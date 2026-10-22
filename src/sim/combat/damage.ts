@@ -1,3 +1,4 @@
+import { BRAND_BURST } from '../../content/abilities';
 import { ENEMIES } from '../../content/enemies';
 import type { HitSource, HitstopLevel } from '../../content/schema';
 import { TUNING } from '../../content/tuning';
@@ -24,6 +25,22 @@ export function applyHitstop(state: SimState, seconds: number): void {
 
 export function rollCrit(state: SimState, forced: boolean): boolean {
   return forced || nextFloat(state.rng.combat) < TUNING.critChance + state.build.stats.critChance;
+}
+
+/** Fills the ultimate meter (GDD §4.1) and announces the moment it becomes full. */
+export function gainUltCharge(state: SimState, amount: number): void {
+  const p = state.player;
+  if (amount <= 0 || p.ultCharge >= 1) return;
+  p.ultCharge = Math.min(1, p.ultCharge + amount);
+  if (p.ultCharge >= 1) {
+    const eid = state.playerEid;
+    pushEvent(
+      state.events,
+      Ev.UltimateReady,
+      state.c.posX[eid] as number,
+      state.c.posY[eid] as number,
+    );
+  }
 }
 
 export function releaseToken(state: SimState, eid: number): void {
@@ -70,6 +87,7 @@ function damageMultiplier(state: SimState, eid: number, source: HitSource): numb
   let mult = 1 + stats.allDamage;
   if (source === 'attack') mult += stats.attackDamage;
   else if (source === 'special') mult += stats.specialDamage;
+  else if (source === 'cast') mult += stats.castDamage;
   if ((c.burnStacks[eid] as number) > 0) mult += stats.damageVsBurning;
   if ((c.frozenTicks[eid] as number) > 0) mult += TUNING.frozenDamageBonus + stats.damageVsFrozen;
   mult += (c.chillStacks[eid] as number) * stats.damageVsChilledPerStack;
@@ -91,6 +109,7 @@ export function damageEnemy(state: SimState, eid: number, spec: PlayerHitSpec): 
   const hp = (c.hp[eid] as number) - damage;
   c.hp[eid] = hp;
   const killed = hp <= 0;
+  if (spec.source !== 'ultimate') gainUltCharge(state, damage / BRAND_BURST.chargeDamageDealt);
 
   let knockback = spec.knockback * (1 - def.weight);
   if (!killed) {
@@ -129,7 +148,9 @@ export function damageEnemy(state: SimState, eid: number, spec: PlayerHitSpec): 
     killed ? Math.max(TUNING.hitstopKillSec, hitstopSec(spec.hitstop)) : hitstopSec(spec.hitstop),
   );
   if (killed) killEnemy(state, eid, spec.dirX, spec.dirY);
-  else if (spec.source !== 'effect') fireOnHit(state, eid, spec.source);
+  else if (spec.source === 'attack' || spec.source === 'special' || spec.source === 'cast') {
+    fireOnHit(state, eid, spec.source);
+  }
   return true;
 }
 
@@ -139,6 +160,7 @@ export function damageEnemyDot(state: SimState, eid: number, amount: number): vo
   const damage = amount * damageMultiplier(state, eid, 'effect');
   const hp = (c.hp[eid] as number) - damage;
   c.hp[eid] = hp;
+  gainUltCharge(state, damage / BRAND_BURST.chargeDamageDealt);
   const e = pushEvent(state.events, Ev.Hit, c.posX[eid] as number, c.posY[eid] as number);
   if (e) {
     e.eid = eid;
@@ -227,6 +249,7 @@ export function damagePlayer(
   const hp = (c.hp[eid] as number) - amount;
   c.hp[eid] = hp;
   p.invulnTicks = secondsToTicks(TUNING.playerHitInvulnSec);
+  gainUltCharge(state, amount / BRAND_BURST.chargeDamageTaken);
   c.kbX[eid] = dx * TUNING.playerHitKnockback;
   c.kbY[eid] = dy * TUNING.playerHitKnockback;
   const e = pushEvent(state.events, Ev.PlayerHit, px, py);

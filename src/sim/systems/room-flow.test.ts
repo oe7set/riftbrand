@@ -22,6 +22,8 @@ function roomSim(encounter: Encounter, template = OPEN, seed = 4): SimState {
     boons: [],
     relics: [],
     shards: 0,
+    evolutions: [],
+    ultCharge: 0,
   });
 }
 

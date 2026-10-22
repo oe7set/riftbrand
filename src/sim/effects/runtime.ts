@@ -1,6 +1,8 @@
+import type { HitSource, StatusId } from '../../content/schema';
 import { TUNING } from '../../content/tuning';
 import { queryRect } from '../collision/spatial-hash';
 import { damageEnemy, type PlayerHitSpec } from '../combat/damage';
+import { type PlayerShotSpec, spawnPlayerShot } from '../combat/player-projectiles';
 import { C } from '../ecs/components';
 import { Ev, pushEvent, StatusCode } from '../events';
 import { nextFloat } from '../rng/rng';
@@ -10,6 +12,20 @@ import { applyBurn, applyChill, freeze } from './status';
 
 /** Effects that trigger effects stop at this depth (TECH_DESIGN §6.5). */
 export const MAX_EFFECT_DEPTH = 3;
+
+const shotSpec: PlayerShotSpec = {
+  kind: 'firebird',
+  damage: 0,
+  speedPxPerSec: 1,
+  radiusPx: 1,
+  rangePx: 1,
+  knockback: 120,
+  poiseDamage: 10,
+  pierce: false,
+  status: null,
+  stacks: 0,
+  isCast: false,
+};
 
 const novaSpec: PlayerHitSpec = {
   damage: 0,
@@ -43,33 +59,32 @@ function isEnemy(state: SimState, eid: number): boolean {
 function applyStatusTo(
   state: SimState,
   eid: number,
-  status: 'burn' | 'chill' | null,
+  status: StatusId | null,
   stacks: number,
 ): void {
   if (status === 'burn') applyBurn(state, eid, stacks);
   else if (status === 'chill') applyChill(state, eid, stacks);
 }
 
-function nova(state: SimState, eff: CompiledEffect, ctx: TriggerContext): void {
-  const a = eff.action;
-  if (a.type !== 'nova') return;
+/** Parameters of an area burst; one shared instance, filled in by the caller. */
+export interface BurstSpec {
+  radiusPx: number;
+  damage: number;
+  status: StatusId | null;
+  stacks: number;
+  freeze: boolean;
+  knockback: number;
+  source: HitSource;
+}
+
+/**
+ * Damages and applies status to every enemy within the radius. Shared by effect novas and the
+ * ultimate. Nested effects get their own query buffer so outer loops are not clobbered.
+ */
+export function areaBurst(state: SimState, cx: number, cy: number, spec: BurstSpec): void {
   const c = state.c;
-  const cx = a.at === 'player' ? (c.posX[state.playerEid] as number) : ctx.x;
-  const cy = a.at === 'player' ? (c.posY[state.playerEid] as number) : ctx.y;
-  const e = pushEvent(state.events, Ev.Nova, cx, cy);
-  if (e) {
-    e.amount = a.radiusPx;
-    e.value = a.freeze
-      ? StatusCode.Freeze
-      : a.status === 'burn'
-        ? StatusCode.Burn
-        : a.status === 'chill'
-          ? StatusCode.Chill
-          : StatusCode.None;
-  }
-  // Nested effects get their own query buffer so outer loops are not clobbered.
   const buffer = state.effectQueryBuffers[state.effectDepth] as Int32Array;
-  const r = a.radiusPx;
+  const r = spec.radiusPx;
   const n = queryRect(state.spatial, cx - r - 40, cy - r - 40, cx + r + 40, cy + r + 40, buffer);
   const swingId = ++state.swingCounter;
   for (let i = 0; i < n; i++) {
@@ -79,17 +94,76 @@ function nova(state: SimState, eff: CompiledEffect, ctx: TriggerContext): void {
     const dy = (c.posY[t] as number) - cy;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist > r + (c.radius[t] as number)) continue;
-    if (a.freeze) freeze(state, t);
-    else applyStatusTo(state, t, a.status, a.stacks);
-    if (a.damage > 0 && isEnemy(state, t)) {
-      novaSpec.damage = a.damage;
+    if (spec.freeze) freeze(state, t);
+    else applyStatusTo(state, t, spec.status, spec.stacks);
+    if (spec.damage > 0 && isEnemy(state, t)) {
+      novaSpec.damage = spec.damage;
       novaSpec.dirX = dist > 0 ? dx / dist : 0;
       novaSpec.dirY = dist > 0 ? dy / dist : -1;
-      novaSpec.knockback = 120;
+      novaSpec.knockback = spec.knockback;
       novaSpec.swingId = swingId;
+      novaSpec.source = spec.source;
       damageEnemy(state, t, novaSpec);
     }
   }
+}
+
+const burst: BurstSpec = {
+  radiusPx: 0,
+  damage: 0,
+  status: null,
+  stacks: 0,
+  freeze: false,
+  knockback: 120,
+  source: 'effect',
+};
+
+function nova(state: SimState, eff: CompiledEffect, ctx: TriggerContext): void {
+  const a = eff.action;
+  if (a.type !== 'nova') return;
+  const c = state.c;
+  const cx = a.at === 'player' ? (c.posX[state.playerEid] as number) : ctx.x;
+  const cy = a.at === 'player' ? (c.posY[state.playerEid] as number) : ctx.y;
+  if (a.consumeStatuses && isEnemy(state, ctx.target)) {
+    // Consumed first, so the burst's own status changes cannot fire the combo again.
+    c.burnStacks[ctx.target] = 0;
+    c.burnTicks[ctx.target] = 0;
+    c.frozenTicks[ctx.target] = 0;
+  }
+  const e = pushEvent(state.events, Ev.Nova, cx, cy);
+  if (e) {
+    e.amount = a.radiusPx;
+    e.value = a.consumeStatuses
+      ? StatusCode.Steam
+      : a.freeze
+        ? StatusCode.Freeze
+        : a.status === 'burn'
+          ? StatusCode.Burn
+          : a.status === 'chill'
+            ? StatusCode.Chill
+            : StatusCode.None;
+  }
+  burst.radiusPx = a.radiusPx;
+  burst.damage = a.damage;
+  burst.status = a.status;
+  burst.stacks = a.stacks;
+  burst.freeze = a.freeze;
+  areaBurst(state, cx, cy, burst);
+}
+
+function projectile(state: SimState, eff: CompiledEffect): void {
+  const a = eff.action;
+  if (a.type !== 'projectile') return;
+  shotSpec.kind = a.kind;
+  shotSpec.damage = a.damage;
+  shotSpec.speedPxPerSec = a.speedPxPerSec;
+  shotSpec.radiusPx = a.radiusPx;
+  shotSpec.rangePx = a.rangePx;
+  shotSpec.pierce = a.pierce;
+  shotSpec.status = a.status;
+  shotSpec.stacks = a.stacks;
+  // Effect projectiles fly along the current attack direction.
+  spawnPlayerShot(state, shotSpec, state.player.dirX, state.player.dirY);
 }
 
 function run(state: SimState, eff: CompiledEffect, ctx: TriggerContext): void {
@@ -106,6 +180,9 @@ function run(state: SimState, eff: CompiledEffect, ctx: TriggerContext): void {
       break;
     case 'nova':
       nova(state, eff, ctx);
+      break;
+    case 'projectile':
+      projectile(state, eff);
       break;
     case 'heal': {
       const p = state.playerEid;
@@ -131,7 +208,7 @@ function fire(
   state: SimState,
   effects: readonly CompiledEffect[],
   ctx: TriggerContext,
-  source?: 'attack' | 'special',
+  source?: 'attack' | 'special' | 'cast',
 ): void {
   if (effects.length === 0 || state.effectDepth >= MAX_EFFECT_DEPTH) return;
   state.effectDepth++;
@@ -160,11 +237,17 @@ function context(
   return ctx;
 }
 
-export function fireOnHit(state: SimState, target: number, source: 'attack' | 'special'): void {
+function fireOnTarget(
+  state: SimState,
+  effects: readonly CompiledEffect[],
+  target: number,
+  source?: 'attack' | 'special' | 'cast',
+): void {
+  if (effects.length === 0) return;
   const c = state.c;
   fire(
     state,
-    state.build.onHit,
+    effects,
     context(
       state,
       target,
@@ -175,6 +258,22 @@ export function fireOnHit(state: SimState, target: number, source: 'attack' | 's
     ),
     source,
   );
+}
+
+export function fireOnHit(
+  state: SimState,
+  target: number,
+  source: 'attack' | 'special' | 'cast',
+): void {
+  fireOnTarget(state, state.build.onHit, target, source);
+}
+
+export function fireOnFreeze(state: SimState, target: number): void {
+  fireOnTarget(state, state.build.onFreeze, target);
+}
+
+export function fireOnBurnApplied(state: SimState, target: number): void {
+  fireOnTarget(state, state.build.onBurnApplied, target);
 }
 
 export function fireOnKill(
@@ -207,4 +306,8 @@ export function fireOnDamaged(state: SimState): void {
 
 export function fireOnRoomClear(state: SimState): void {
   firePlayer(state, state.build.onRoomClear);
+}
+
+export function fireOnComboFinisher(state: SimState): void {
+  firePlayer(state, state.build.onComboFinisher);
 }

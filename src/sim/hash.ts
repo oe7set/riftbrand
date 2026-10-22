@@ -35,6 +35,9 @@ export function hashSim(state: SimState): number {
   h = fnv1a(h, p.buffered);
   h = fnv1a(h, p.invulnTicks);
   h = mixFloat(h, p.stamina);
+  h = fnv1a(h, p.castCharges);
+  h = fnv1a(h, p.castRechargeTicks);
+  h = mixFloat(h, p.ultCharge);
   h = fnv1a(h, w.wave);
   h = fnv1a(h, w.pendingCount);
   h = fnv1a(h, state.room.waveIndex);

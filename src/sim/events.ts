@@ -24,6 +24,7 @@ export const Ev = {
   /** Last enemy of a wave died. value = wave number. */
   WaveCleared: 14,
   PlayerDied: 15,
+  /** value = 0 enemy shot, else ProjectileCode. */
   ProjectileExpired: 16,
   EnemyStagger: 17,
   /** Encounter finished; the exit portal at (x, y) is open. */
@@ -39,6 +40,29 @@ export const Ev = {
   Heal: 23,
   /** Shards picked up from a kill; amount = shards. */
   Shards: 24,
+  /** Player projectile fired. value = ProjectileCode, dir = flight direction. */
+  Shot: 25,
+  /** Ultimate activated (windup starts). value = BurstCode. */
+  UltimateStart: 26,
+  /** Ultimate blast. amount = radius, value = BurstCode. */
+  Ultimate: 27,
+  /** Ultimate meter just became full. */
+  UltimateReady: 28,
+  /** Cast or ultimate pressed without charge. value = 1 cast, 2 ultimate. */
+  Denied: 29,
+} as const;
+
+/** Player projectile kinds in event payloads (matches content projectile kinds). */
+export const ProjectileCode = {
+  RiftShot: 1,
+  Firebird: 2,
+} as const;
+
+/** Ultimate flavour in event payloads. */
+export const BurstCode = {
+  None: 0,
+  Ignara: 1,
+  Vaelis: 2,
 } as const;
 
 /** Numeric status codes for event payloads. */
@@ -47,6 +71,8 @@ export const StatusCode = {
   Burn: 1,
   Chill: 2,
   Freeze: 3,
+  /** Duo explosion that consumed burn and frost. */
+  Steam: 4,
 } as const;
 
 export type EventType = (typeof Ev)[keyof typeof Ev];

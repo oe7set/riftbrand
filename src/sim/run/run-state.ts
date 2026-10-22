@@ -1,5 +1,6 @@
 import { EMBER_WASTES } from '../../content/biomes/ember-wastes';
 import { BEING_IDS } from '../../content/boons/beings';
+import { EVOLUTIONS } from '../../content/evolutions';
 import { ROOMS } from '../../content/rooms';
 import type { Rarity, RoomTemplateDef } from '../../content/schema';
 import { TUNING } from '../../content/tuning';
@@ -38,6 +39,10 @@ export interface RunState {
   shopBought: number[];
   /** Permanent max HP gained outside relics (events); relic bonuses are recomputed. */
   maxHpBonus: number;
+  /** Weapon evolutions taken (GDD §4.9). */
+  evolutions: string[];
+  /** Ultimate meter 0..1, carried from room to room. */
+  ultCharge: number;
 }
 
 export interface RoomSetup {
@@ -48,6 +53,8 @@ export interface RoomSetup {
   boons: OwnedBoon[];
   relics: OwnedRelic[];
   shards: number;
+  evolutions: string[];
+  ultCharge: number;
 }
 
 export function createRun(seed: number): RunState {
@@ -70,6 +77,8 @@ export function createRun(seed: number): RunState {
     shards: 0,
     shopBought: [],
     maxHpBonus: 0,
+    evolutions: [],
+    ultCharge: 0,
   };
 }
 
@@ -109,6 +118,8 @@ export function roomSetupFor(run: RunState, node: MapNode): RoomSetup {
     boons: run.boons,
     relics: run.relics,
     shards: run.shards,
+    evolutions: run.evolutions,
+    ultCharge: run.ultCharge,
   };
 }
 
@@ -118,12 +129,14 @@ export interface RoomResult {
   timeSec: number;
   /** Absolute shard count at the end of the room (the room starts with the run's shards). */
   shards: number;
+  ultCharge: number;
 }
 
 export function completeRoom(run: RunState, result: RoomResult): void {
   run.hp = result.hp;
   run.kills += result.kills;
   run.playTimeSec += result.timeSec;
+  run.ultCharge = result.ultCharge;
   run.roomsCleared++;
   const node = run.map.nodes[run.currentNodeId];
   const bonus = node ? clearBonusShards(node.type) : 0;
@@ -137,7 +150,7 @@ export function completeNonCombat(run: RunState): void {
   run.status = 'map';
 }
 
-/** Rest node: heal a fraction of max HP (the weapon-upgrade alternative comes with M2.3). */
+/** Rest node: heal a fraction of max HP (or evolve the weapon instead, see restEvolve). */
 export function rest(run: RunState): number {
   const healed = Math.round(heal(run, run.maxHp * EMBER_WASTES.restHealFraction));
   run.roomsCleared++;
@@ -160,6 +173,29 @@ export function offerFor(run: RunState, node: MapNode): BoonOffer | null {
     if (fallback.options.length > 0) return fallback;
   }
   return null;
+}
+
+/** Evolutions whose combination the run owns and that were not taken yet (GDD §4.9). */
+export function availableEvolutions(run: RunState): string[] {
+  const boons = new Set(run.boons.map((b) => b.id));
+  const relics = new Set(run.relics.map((r) => r.id));
+  return EVOLUTIONS.filter(
+    (e) =>
+      !run.evolutions.includes(e.id) &&
+      e.requires.boons.every((id) => boons.has(id)) &&
+      e.requires.relics.every((id) => relics.has(id)),
+  ).map((e) => e.id);
+}
+
+export function evolve(run: RunState, id: string): void {
+  if (!run.evolutions.includes(id)) run.evolutions.push(id);
+}
+
+/** Rest alternative to healing: take an available evolution instead. */
+export function restEvolve(run: RunState, id: string): void {
+  evolve(run, id);
+  run.roomsCleared++;
+  run.status = 'map';
 }
 
 export function pickBoon(run: RunState, pick: { id: string; rarity: Rarity }): void {

@@ -4,6 +4,7 @@ import { AiState, C } from '../ecs/components';
 import { Ev, pushEvent, StatusCode } from '../events';
 import type { SimState } from '../sim';
 import { secondsToTicks } from '../time';
+import { fireOnBurnApplied, fireOnFreeze } from './runtime';
 
 /** Adds burn stacks and refreshes the duration (GDD: Ignara stacks damage over time). */
 export function applyBurn(state: SimState, eid: number, stacks: number): void {
@@ -20,6 +21,7 @@ export function applyBurn(state: SimState, eid: number, stacks: number): void {
     e.value = StatusCode.Burn;
     e.amount = now;
   }
+  fireOnBurnApplied(state, eid);
 }
 
 /** Adds chill; at max stacks the enemy freezes solid and chill resets (GDD: Vaelis). */
@@ -58,6 +60,7 @@ export function freeze(state: SimState, eid: number): void {
   c.velY[eid] = 0;
   const e = pushEvent(state.events, Ev.Frozen, c.posX[eid] as number, c.posY[eid] as number);
   if (e) e.eid = eid;
+  fireOnFreeze(state, eid);
 }
 
 /** Movement multiplier from chill (frozen enemies don't move at all). */
