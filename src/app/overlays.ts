@@ -1,6 +1,16 @@
+import { boonById, boonDescParams } from '../content/boons';
+import { BEINGS } from '../content/boons/beings';
+import { relicById, relicDescParams } from '../content/relics';
 import type { InputDevice } from '../platform/input/input-manager';
 import type { Settings } from '../platform/storage/settings';
-import { t } from '../shared/i18n';
+import { type TranslationKey, t } from '../shared/i18n';
+import type { OwnedBoon, OwnedRelic } from '../sim/effects/build';
+
+export interface BuildSummary {
+  boons: readonly OwnedBoon[];
+  relics: readonly OwnedRelic[];
+  shards: number;
+}
 
 function div(className: string, text = ''): HTMLDivElement {
   const el = document.createElement('div');
@@ -22,6 +32,7 @@ export class PauseOverlay {
   private readonly title = div('rb-overlay-title');
   private readonly hint = div('rb-overlay-hint');
   private readonly settingsBox = div('rb-settings');
+  private readonly buildBox = div('rb-settings rb-build');
   private readonly resume = document.createElement('button');
   private readonly toTitle = document.createElement('button');
   private readonly debug = document.createElement('button');
@@ -44,7 +55,7 @@ export class PauseOverlay {
     this.debug.addEventListener('click', actions.toggleDebug);
     const row = div('rb-row');
     row.append(this.toTitle, this.debug);
-    this.root.append(this.title, this.resume, this.hint, this.settingsBox, row);
+    this.root.append(this.title, this.resume, this.hint, this.buildBox, this.settingsBox, row);
     this.root.hidden = true;
     isolate(this.root);
     parent.append(this.root);
@@ -109,7 +120,59 @@ export class PauseOverlay {
     box.append(qualityRow);
   }
 
-  show(device: InputDevice): void {
+  /** Build overview (ROADMAP M2.3): every boon and relic with its current effect. */
+  private buildOverview(build: BuildSummary): void {
+    const box = this.buildBox;
+    box.replaceChildren(
+      div('rb-settings-title', t('build.title')),
+      div('rb-build-shards', t('build.shards', { n: build.shards })),
+    );
+    const section = (title: string, rows: HTMLElement[]) => {
+      box.append(div('rb-build-heading', title));
+      if (rows.length === 0) box.append(div('rb-build-empty', t('build.empty')));
+      for (const row of rows) box.append(row);
+    };
+    const row = (name: string, meta: string, desc: string, color: string) => {
+      const el = div('rb-build-row');
+      const head = div('rb-build-name', name);
+      head.style.color = color;
+      el.append(head, div('rb-build-meta', meta), div('rb-build-desc', desc));
+      return el;
+    };
+    section(
+      t('build.boons'),
+      build.boons.flatMap((b) => {
+        const def = boonById(b.id);
+        if (!def) return [];
+        return [
+          row(
+            t(`boon.${b.id}.name` as TranslationKey),
+            `${t(`rarity.${b.rarity}` as TranslationKey)} · ${t(`slot.${def.slot}` as TranslationKey)}`,
+            t(`boon.${b.id}.desc` as TranslationKey, boonDescParams(def, b.rarity)),
+            BEINGS[def.being].css,
+          ),
+        ];
+      }),
+    );
+    section(
+      t('build.relics'),
+      build.relics.flatMap((r) => {
+        const def = relicById(r.id);
+        if (!def) return [];
+        return [
+          row(
+            `${t(`relic.${r.id}.name` as TranslationKey)}${r.stacks > 1 ? ` ×${r.stacks}` : ''}`,
+            t(`relic_rarity.${def.rarity}` as TranslationKey),
+            t(`relic.${r.id}.desc` as TranslationKey, relicDescParams(def, r.stacks)),
+            def.rarity === 'curse' ? '#ff6b81' : '#ffe6b0',
+          ),
+        ];
+      }),
+    );
+  }
+
+  show(device: InputDevice, build: BuildSummary): void {
+    this.buildOverview(build);
     this.title.textContent = t('pause.title');
     this.resume.textContent = t('pause.resume');
     this.toTitle.textContent = t('pause.to_title');

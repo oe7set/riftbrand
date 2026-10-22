@@ -231,6 +231,11 @@ export class FeedbackDirector {
         this.audio.play('nova', { pan: this.pan(e.x) });
         break;
       }
+      case Ev.Shards:
+        fx.shards(e.x, e.y, e.amount);
+        this.view.hud.onShards();
+        this.audio.play('shard', { pan: this.pan(e.x), volume: 0.5, pitchVariation: 0.15 });
+        break;
       case Ev.Heal:
         fx.heal(e.x, e.y);
         this.view.damageNumbers.spawnText(

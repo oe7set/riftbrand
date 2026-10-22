@@ -16,6 +16,7 @@ export interface DebugHooks {
   spawnEnemy(type: number): void;
   killAllEnemies(): void;
   clearRoom(): void;
+  warpToExit(): void;
   nextWave(): void;
   setWaves(enabled: boolean): void;
   setGodMode(enabled: boolean): void;
@@ -23,6 +24,8 @@ export interface DebugHooks {
   setHitboxes(enabled: boolean): void;
   giveBoon(id: string): void;
   clearBoons(): void;
+  giveRelic(id: string): void;
+  giveShards(amount: number): void;
 }
 
 export interface DebugStats {
@@ -74,6 +77,7 @@ export class DebugMenu {
     enemyNames: readonly string[],
     private readonly version: string,
     boonIds: readonly string[] = [],
+    relicIds: readonly string[] = [],
   ) {
     this.fpsChip = el('div', { className: 'rb-fps' });
     this.fpsChip.hidden = true;
@@ -109,6 +113,7 @@ export class DebugMenu {
         el('div', { className: 'rb-debug-row' }, [
           this.button('Kill all', () => this.hooks.killAllEnemies()),
           this.button('Clear room', () => this.hooks.clearRoom()),
+          this.button('Warp to exit', () => this.hooks.warpToExit()),
           this.button('Next wave', () => this.hooks.nextWave()),
         ]),
       ]),
@@ -116,6 +121,12 @@ export class DebugMenu {
         el('div', { className: 'rb-debug-row' }, [
           ...boonIds.map((id) => this.button(id, () => this.hooks.giveBoon(id))),
           this.button('Clear boons', () => this.hooks.clearBoons()),
+        ]),
+      ]),
+      this.section('Relics & shards', false, [
+        el('div', { className: 'rb-debug-row' }, [
+          ...relicIds.map((id) => this.button(id, () => this.hooks.giveRelic(id))),
+          this.button('+100 shards', () => this.hooks.giveShards(100)),
         ]),
       ]),
       this.section('Stress test', false, [

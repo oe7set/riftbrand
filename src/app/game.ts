@@ -1,6 +1,7 @@
 import { EMBER_WASTES } from '../content/biomes/ember-wastes';
 import { BOONS } from '../content/boons';
 import { ENEMIES } from '../content/enemies';
+import { RELICS } from '../content/relics';
 import { AudioEngine } from '../platform/audio/audio-engine';
 import {
   hasTouchScreen,
@@ -20,15 +21,32 @@ import {
   type Settings,
   saveSettings,
 } from '../platform/storage/settings';
-import { resolveLocale, setLocale, t } from '../shared/i18n';
+import { resolveLocale, setLocale, type TranslationKey, t } from '../shared/i18n';
 import { Button, createInputFrame } from '../shared/input-frame';
-import { debugClearRoom, debugKillAllEnemies, debugNextWave, debugSpawnEnemy } from '../sim/debug';
+import {
+  debugClearRoom,
+  debugKillAllEnemies,
+  debugNextWave,
+  debugSpawnEnemy,
+  debugWarpToExit,
+} from '../sim/debug';
 import { C } from '../sim/ecs/components';
 import { Ev, type EventBuffer } from '../sim/events';
 import { hashSim } from '../sim/hash';
+import {
+  addRelic,
+  applyOutcomes,
+  eventFor,
+  heal,
+  nodeReward,
+  type ResolvedOutcome,
+  rollRelicOffer,
+  runStats,
+  shopStock,
+} from '../sim/run/economy';
 import { addBoon, type BoonOffer } from '../sim/run/rewards';
 import {
-  completeAltar,
+  completeNonCombat,
   completeRoom,
   createRun,
   enterNode,
@@ -72,6 +90,25 @@ const RESTART_BUTTONS = Button.Attack | Button.Dash | Button.Interact;
 
 /** Where the player is in the game flow (title → map ⇄ room/rest → victory or death). */
 type Mode = 'title' | 'map' | 'rest' | 'reward' | 'room' | 'arena' | 'victory';
+
+function describeOutcome(o: ResolvedOutcome): string {
+  switch (o.type) {
+    case 'heal':
+      return t('event.result.heal', { n: o.healed ?? 0 });
+    case 'damage':
+      return t('event.result.damage', { n: o.amount });
+    case 'shards':
+      return o.amount >= 0
+        ? t('event.result.shards_gain', { n: o.amount })
+        : t('event.result.shards_lose', { n: -o.amount });
+    case 'maxHp':
+      return t('event.result.max_hp', { n: o.amount });
+    case 'relic':
+      return t('event.result.relic', {
+        name: o.relicId ? t(`relic.${o.relicId}.name` as TranslationKey) : '?',
+      });
+  }
+}
 
 function randomSeed(): number {
   return crypto.getRandomValues(new Uint32Array(1))[0] ?? 1;
@@ -164,6 +201,7 @@ export class Game {
         spawnEnemy: (type) => debugSpawnEnemy(this.sim, type),
         killAllEnemies: () => debugKillAllEnemies(this.sim),
         clearRoom: () => debugClearRoom(this.sim),
+        warpToExit: () => debugWarpToExit(this.sim),
         nextWave: () => debugNextWave(this.sim),
         setWaves: (on) => {
           this.sim.debug.wavesEnabled = on;
@@ -186,10 +224,23 @@ export class Game {
           setBuild(this.sim, []);
           if (this.run) this.run.boons = [];
         },
+        giveRelic: (id) => {
+          const relics = this.sim.relics.map((r) => ({ ...r }));
+          const owned = relics.find((r) => r.id === id);
+          if (owned) owned.stacks++;
+          else relics.push({ id, stacks: 1 });
+          setBuild(this.sim, this.sim.boons, relics);
+          if (this.run) addRelic(this.run, id);
+        },
+        giveShards: (n) => {
+          this.sim.shards += n;
+          if (this.run) this.run.shards += n;
+        },
       },
       ENEMIES.map((e) => e.id),
       this.version,
       BOONS.map((b) => b.id),
+      RELICS.map((r) => r.id),
     );
     this.pauseOverlay = new PauseOverlay(
       root,
@@ -309,6 +360,8 @@ export class Game {
     if (run.status === 'room' && node) {
       if (node.type === 'rest') this.showRest();
       else if (node.type === 'altar') this.showAltar();
+      else if (node.type === 'shop') this.showShop();
+      else if (node.type === 'event') this.showEvent();
       else this.startRoom();
     } else this.showMap();
   }
@@ -328,6 +381,8 @@ export class Game {
     saveRun(this.store, run);
     if (node.type === 'rest') this.showRest();
     else if (node.type === 'altar') this.showAltar();
+    else if (node.type === 'shop') this.showShop();
+    else if (node.type === 'event') this.showEvent();
     else this.startRoom();
   }
 
@@ -340,7 +395,7 @@ export class Game {
       this.showMap();
       return;
     }
-    this.showBoonChoice(offer, () => completeAltar(run));
+    this.showBoonChoice(offer, () => completeNonCombat(run));
   }
 
   /** Shows a boon offer; `beforeSave` runs after the pick (e.g. marking the node done). */
@@ -396,6 +451,7 @@ export class Game {
       hp: this.sim.c.hp[this.sim.playerEid] ?? 0,
       kills: this.sim.player.kills,
       timeSec: this.sim.room.elapsedTicks / TICK_RATE_HZ,
+      shards: this.sim.shards,
     };
   }
 
@@ -411,13 +467,106 @@ export class Game {
       return;
     }
     const node = run.map.nodes[run.currentNodeId];
-    const offer = node ? offerFor(run, node) : null;
-    if (offer) {
-      this.showBoonChoice(offer);
+    const reward = node ? nodeReward(run.seed, node) : null;
+    if (node && reward?.kind === 'boon') {
+      const offer = offerFor(run, node);
+      if (offer) {
+        this.showBoonChoice(offer);
+        return;
+      }
+    } else if (node && reward?.kind === 'relic') {
+      this.showRelicChoice(rollRelicOffer(run.seed, node.id, reward.rarityBonus));
+      return;
+    } else if (reward?.kind === 'shards') {
+      const amount = Math.round(reward.amount * (1 + runStats(run).shardGain));
+      run.shards += amount;
+      saveRun(this.store, run);
+      this.showNotice(t('reward.shards_title'), t('reward.shards_desc', { n: amount }));
       return;
     }
     saveRun(this.store, run);
     this.showMap();
+  }
+
+  private showNotice(title: string, text: string): void {
+    if (this.mode === 'room') this.loadSim(this.backdropSim());
+    this.setMode('reward');
+    this.ui.show({ kind: 'notice', title, text, onContinue: () => this.showMap() });
+  }
+
+  private showRelicChoice(options: string[]): void {
+    const run = this.run;
+    if (!run) return;
+    if (this.mode === 'room') this.loadSim(this.backdropSim());
+    this.setMode('reward');
+    this.ui.show({
+      kind: 'relic',
+      options,
+      owned: run.relics,
+      onPick: (id) => {
+        addRelic(run, id);
+        saveRun(this.store, run);
+        this.audio.play('boonPick', { pitch: 0.9, pitchVariation: 0 });
+        this.showMap();
+      },
+    });
+  }
+
+  private showShop(): void {
+    const run = this.run;
+    const node = run?.map.nodes[run.currentNodeId];
+    if (!run || !node) return;
+    this.setMode('reward');
+    const stock = shopStock(run, node);
+    const render = () =>
+      this.ui.show({
+        kind: 'shop',
+        run,
+        stock,
+        onBuy: (index) => {
+          const item = stock[index];
+          if (!item || run.shopBought.includes(index) || run.shards < item.price) return;
+          run.shards -= item.price;
+          run.shopBought.push(index);
+          if (item.kind === 'relic') addRelic(run, item.id);
+          else if (item.kind === 'boon') pickBoon(run, item.option);
+          else heal(run, run.maxHp * item.fraction);
+          saveRun(this.store, run);
+          this.audio.play('shard', { pitch: 0.8, pitchVariation: 0 });
+          render();
+        },
+        onLeave: () => {
+          completeNonCombat(run);
+          saveRun(this.store, run);
+          this.showMap();
+        },
+      });
+    render();
+  }
+
+  private showEvent(): void {
+    const run = this.run;
+    const node = run?.map.nodes[run.currentNodeId];
+    const event = run && node ? eventFor(run.seed, node.id) : undefined;
+    if (!run || !node || !event) return;
+    this.setMode('reward');
+    const show = (results: string[] | null) =>
+      this.ui.show({
+        kind: 'event',
+        run,
+        event,
+        results,
+        onChoose: (optionId) => {
+          const option = event.options.find((o) => o.id === optionId);
+          if (!option) return;
+          const lines = applyOutcomes(run, node.id, optionId, option.outcomes).map(describeOutcome);
+          completeNonCombat(run);
+          saveRun(this.store, run);
+          show(lines.length > 0 ? lines : [t('event.result.nothing')]);
+        },
+        onContinue: () => this.showMap(),
+      });
+    show(null);
   }
 
   private startArena(seed: number): void {
@@ -501,7 +650,11 @@ export class Game {
     this.input.releaseAll();
     this.input.setGameplayEnabled(!paused);
     if (paused) {
-      this.pauseOverlay.show(this.input.lastDevice);
+      this.pauseOverlay.show(this.input.lastDevice, {
+        boons: this.sim.boons,
+        relics: this.sim.relics,
+        shards: this.sim.shards,
+      });
       this.audio.suspend();
     } else {
       this.pauseOverlay.hide();
