@@ -23,6 +23,12 @@ export class TouchInput {
   readonly move = vec2();
   readonly aim = vec2();
   hasAim = false;
+  /** Cast drag: the preview direction while held, and whether it has left the dead zone. */
+  readonly castAim = vec2();
+  castAiming = false;
+  castAimed = false;
+  /** Set on release of an aimed cast; the next sampled frame consumes it. */
+  releaseAimPending = false;
   heldMask = 0;
   /** Bitmask of layout indices currently pressed, for button highlighting. */
   pressedButtons = 0;
@@ -71,7 +77,10 @@ export class TouchInput {
     if (button) {
       this.buttonPointers.set(e.pointerId, { button, startX: x, startY: y });
       if (button.id === 'pause') this.sink.appAction('pause');
-      else this.sink.pressed(button.bit as Exclude<typeof button.bit, 0>);
+      else if (button.fireOnRelease) {
+        this.castAiming = true;
+        this.castAimed = false;
+      } else this.sink.pressed(button.bit as Exclude<typeof button.bit, 0>);
       this.recomputeButtons();
       return;
     }
@@ -101,7 +110,12 @@ export class TouchInput {
       const dx = x - bp.startX;
       const dy = y - bp.startY;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist >= TUNING.touchAimDragThresholdPx) {
+      const aimed = dist >= TUNING.touchAimDragThresholdPx;
+      if (bp.button.fireOnRelease) {
+        // Sliding back onto the button returns to aim assist.
+        this.castAimed = aimed;
+        if (aimed) setVec2(this.castAim, dx / dist, dy / dist);
+      } else if (aimed) {
         this.hasAim = true;
         setVec2(this.aim, dx / dist, dy / dist);
       }
@@ -138,7 +152,15 @@ export class TouchInput {
     const bp = this.buttonPointers.get(e.pointerId);
     if (bp) {
       this.buttonPointers.delete(e.pointerId);
-      if (bp.button.aimDrag) this.hasAim = false;
+      if (bp.button.fireOnRelease) {
+        // A cancelled pointer (system gesture) never fires.
+        if (e.type === 'pointerup') {
+          this.releaseAimPending = this.castAimed;
+          this.sink.pressed(bp.button.bit as Exclude<typeof bp.button.bit, 0>);
+        }
+        this.castAiming = false;
+        this.castAimed = false;
+      } else if (bp.button.aimDrag) this.hasAim = false;
       this.recomputeButtons();
     }
   }
@@ -147,7 +169,8 @@ export class TouchInput {
     let held = 0;
     let pressed = 0;
     for (const { button } of this.buttonPointers.values()) {
-      held |= button.bit;
+      // Release-fired buttons are not "held" for the sim; they act on lift-off.
+      if (!button.fireOnRelease) held |= button.bit;
       pressed |= 1 << this.layout.buttons.indexOf(button);
     }
     this.heldMask = held;
@@ -160,6 +183,9 @@ export class TouchInput {
     this.joystickPointer = -1;
     this.joystick.active = false;
     this.hasAim = false;
+    this.castAiming = false;
+    this.castAimed = false;
+    this.releaseAimPending = false;
     setVec2(this.move, 0, 0);
     this.recomputeButtons();
   }

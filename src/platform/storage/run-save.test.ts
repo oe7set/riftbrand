@@ -62,6 +62,14 @@ describe('run save', () => {
     expect(migrated?.shopBought).toEqual([]);
   });
 
+  it('migrates v3 saves (no evolutions or ultimate meter yet)', () => {
+    const { evolutions: _e, ultCharge: _u, ...v3Run } = createRun(9);
+    const migrated = migrateRunSave({ version: 3, run: { ...v3Run, shards: 40 } });
+    expect(migrated?.shards).toBe(40);
+    expect(migrated?.evolutions).toEqual([]);
+    expect(migrated?.ultCharge).toBe(0);
+  });
+
   it('clears the save', () => {
     const store = memoryStore();
     saveRun(store, createRun(5));

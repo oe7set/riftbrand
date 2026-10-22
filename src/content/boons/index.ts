@@ -1,9 +1,11 @@
 import type { BeingId, BoonDef, Rarity } from '../schema';
 import { registerTunables } from '../tunables';
+import { DUO_BOONS } from './duos';
 import { IGNARA_BOONS } from './ignara';
 import { VAELIS_BOONS } from './vaelis';
 
-export const BOONS: readonly BoonDef[] = [...IGNARA_BOONS, ...VAELIS_BOONS];
+/** All boons including duos, for lookup. Offers draw from `boonsOf` and `DUO_BOONS`. */
+export const BOONS: readonly BoonDef[] = [...IGNARA_BOONS, ...VAELIS_BOONS, ...DUO_BOONS];
 
 const byId = new Map(BOONS.map((b) => [b.id, b]));
 
@@ -11,9 +13,17 @@ export function boonById(id: string): BoonDef | undefined {
   return byId.get(id);
 }
 
+/** Regular (non-duo) boons of one being. */
 export function boonsOf(being: BeingId): BoonDef[] {
-  return BOONS.filter((b) => b.being === being);
+  return BOONS.filter((b) => b.being === being && !b.partner);
 }
+
+export function isDuo(boon: BoonDef): boolean {
+  return boon.partner !== undefined;
+}
+
+/** Chance that an offer from either partner swaps one option for an unlocked duo. */
+export const DUO_OFFER = { chance: 0.5 };
 
 export const RARITIES: readonly Rarity[] = ['common', 'rare', 'epic', 'heroic'];
 
@@ -33,6 +43,7 @@ export function boonValue(boon: BoonDef, name: string, rarity: Rarity): number {
 }
 
 registerTunables('boons: rarity weights', 'src/content/boons/index.ts', RARITY_WEIGHTS);
+registerTunables('boons: duo offer', 'src/content/boons/index.ts', DUO_OFFER);
 
 /** Description parameters for i18n: every named value, formatted for the given rarity. */
 export function boonDescParams(boon: BoonDef, rarity: Rarity): Record<string, string> {

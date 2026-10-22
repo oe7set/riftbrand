@@ -110,7 +110,12 @@ export class InputManager implements DeviceSink {
     out.hasAim = false;
     // Untargeted taps and move-direction attacks get the generous cone (GDD §4.4).
     out.assistDeg = TUNING.aimAssistTouchDeg;
-    if (this.touch.hasAim && this.lastDevice === 'touch') {
+    if (this.touch.releaseAimPending && this.lastDevice === 'touch') {
+      // An aimed cast was just released: it fires exactly where the thumb pointed.
+      this.touch.releaseAimPending = false;
+      this.setAim(out, this.touch.castAim.x, this.touch.castAim.y);
+      out.assistDeg = TUNING.aimAssistStickDeg;
+    } else if (this.touch.hasAim && this.lastDevice === 'touch') {
       this.setAim(out, this.touch.aim.x, this.touch.aim.y);
       out.assistDeg = TUNING.aimAssistStickDeg;
     } else if (this.gamepad.hasAim && this.lastDevice === 'gamepad') {

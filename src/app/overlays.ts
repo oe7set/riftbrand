@@ -9,6 +9,7 @@ import type { OwnedBoon, OwnedRelic } from '../sim/effects/build';
 export interface BuildSummary {
   boons: readonly OwnedBoon[];
   relics: readonly OwnedRelic[];
+  evolutions: readonly string[];
   shards: number;
 }
 
@@ -139,6 +140,19 @@ export class PauseOverlay {
       el.append(head, div('rb-build-meta', meta), div('rb-build-desc', desc));
       return el;
     };
+    if (build.evolutions.length > 0) {
+      section(
+        t('pause.evolutions'),
+        build.evolutions.map((id) =>
+          row(
+            t(`evolution.${id}.name` as TranslationKey),
+            t('evolution.title'),
+            t(`evolution.${id}.desc` as TranslationKey),
+            '#ffb347',
+          ),
+        ),
+      );
+    }
     section(
       t('build.boons'),
       build.boons.flatMap((b) => {
@@ -147,7 +161,7 @@ export class PauseOverlay {
         return [
           row(
             t(`boon.${b.id}.name` as TranslationKey),
-            `${t(`rarity.${b.rarity}` as TranslationKey)} · ${t(`slot.${def.slot}` as TranslationKey)}`,
+            `${def.partner ? t('reward.duo') : t(`rarity.${b.rarity}` as TranslationKey)} · ${t(`slot.${def.slot}` as TranslationKey)}`,
             t(`boon.${b.id}.desc` as TranslationKey, boonDescParams(def, b.rarity)),
             BEINGS[def.being].css,
           ),

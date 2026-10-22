@@ -20,6 +20,8 @@ export const RenderKind = {
   Drifter: 2,
   Enemy: 3,
   EnemyProjectile: 4,
+  RiftShot: 5,
+  Firebird: 6,
 } as const;
 
 export type RenderKindId = (typeof RenderKind)[keyof typeof RenderKind];
@@ -90,6 +92,18 @@ export interface Components {
   // Projectile
   projDamage: Float64Array;
   projLifeTicks: Int32Array;
+  // Player projectile extras
+  projKnockback: Float64Array;
+  projPoise: Float64Array;
+  /** 1 = flies through enemies, hitting each once. */
+  projPierce: Uint8Array;
+  /** StatusCode applied on hit, with projStacks stacks. */
+  projStatus: Uint8Array;
+  projStacks: Uint8Array;
+  /** 1 = cast (triggers onHit cast boons), 0 = effect. */
+  projIsCast: Uint8Array;
+  /** Hit id shared by all hits of one projectile, so piercing shots hit each enemy once. */
+  projSwing: Int32Array;
   /** Drifter AI: ticks until a new wander direction is chosen. */
   wanderTicks: Int32Array;
 }
@@ -131,6 +145,13 @@ export function createComponents(capacity: number): Components {
     frozenTicks: new Int32Array(capacity),
     projDamage: new Float64Array(capacity),
     projLifeTicks: new Int32Array(capacity),
+    projKnockback: new Float64Array(capacity),
+    projPoise: new Float64Array(capacity),
+    projPierce: new Uint8Array(capacity),
+    projStatus: new Uint8Array(capacity),
+    projStacks: new Uint8Array(capacity),
+    projIsCast: new Uint8Array(capacity),
+    projSwing: new Int32Array(capacity),
     wanderTicks: new Int32Array(capacity),
   };
 }

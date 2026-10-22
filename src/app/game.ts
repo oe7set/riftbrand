@@ -1,6 +1,8 @@
+import { RIFT_SHOT } from '../content/abilities';
 import { EMBER_WASTES } from '../content/biomes/ember-wastes';
 import { BOONS } from '../content/boons';
 import { ENEMIES } from '../content/enemies';
+import { EVOLUTIONS } from '../content/evolutions';
 import { RELICS } from '../content/relics';
 import { AudioEngine } from '../platform/audio/audio-engine';
 import {
@@ -46,15 +48,18 @@ import {
 } from '../sim/run/economy';
 import { addBoon, type BoonOffer } from '../sim/run/rewards';
 import {
+  availableEvolutions,
   completeNonCombat,
   completeRoom,
   createRun,
   enterNode,
+  evolve,
   failRun,
   offerFor,
   pickBoon,
   type RunState,
   rest,
+  restEvolve,
   roomSeed,
   roomSetupFor,
 } from '../sim/run/run-state';
@@ -236,11 +241,25 @@ export class Game {
           this.sim.shards += n;
           if (this.run) this.run.shards += n;
         },
+        fillUltimate: () => {
+          this.sim.player.ultCharge = 1;
+        },
+        refillCast: () => {
+          this.sim.player.castCharges = RIFT_SHOT.charges;
+        },
+        giveEvolution: (id) => {
+          setBuild(this.sim, this.sim.boons, this.sim.relics, [
+            ...this.sim.evolutions.filter((e) => e !== id),
+            id,
+          ]);
+          if (this.run) evolve(this.run, id);
+        },
       },
       ENEMIES.map((e) => e.id),
       this.version,
       BOONS.map((b) => b.id),
       RELICS.map((r) => r.id),
+      EVOLUTIONS.map((e) => e.id),
     );
     this.pauseOverlay = new PauseOverlay(
       root,
@@ -386,16 +405,40 @@ export class Game {
     else this.startRoom();
   }
 
-  /** Altar: no fight, just a (better) boon choice. */
+  /** Altar: no fight, a (better) boon choice, preceded by an evolution offer if one is ready. */
   private showAltar(): void {
     const run = this.run;
     const node = run?.map.nodes[run.currentNodeId];
-    const offer = run && node ? offerFor(run, node) : null;
-    if (!run || !offer) {
+    if (!run || !node) {
       this.showMap();
       return;
     }
-    this.showBoonChoice(offer, () => completeNonCombat(run));
+    const evolution = availableEvolutions(run)[0];
+    const toBoons = () => {
+      const offer = offerFor(run, node);
+      if (offer) this.showBoonChoice(offer, () => completeNonCombat(run));
+      else {
+        completeNonCombat(run);
+        saveRun(this.store, run);
+        this.showMap();
+      }
+    };
+    if (!evolution) {
+      toBoons();
+      return;
+    }
+    this.setMode('reward');
+    this.ui.show({
+      kind: 'evolution',
+      id: evolution,
+      onAccept: () => {
+        evolve(run, evolution);
+        saveRun(this.store, run);
+        this.audio.play('evolve', { pitchVariation: 0 });
+        toBoons();
+      },
+      onLater: toBoons,
+    });
   }
 
   /** Shows a boon offer; `beforeSave` runs after the pick (e.g. marking the node done). */
@@ -425,6 +468,7 @@ export class Game {
       run.maxHp - run.hp,
       Math.round(run.maxHp * EMBER_WASTES.restHealFraction),
     );
+    const evolution = availableEvolutions(run)[0] ?? null;
     this.ui.show({
       kind: 'rest',
       run,
@@ -433,6 +477,14 @@ export class Game {
         rest(run);
         saveRun(this.store, run);
         this.audio.play('waveCleared', { pitch: 0.8, pitchVariation: 0 });
+        this.showMap();
+      },
+      evolution,
+      onEvolve: () => {
+        if (!evolution) return;
+        restEvolve(run, evolution);
+        saveRun(this.store, run);
+        this.audio.play('evolve', { pitchVariation: 0 });
         this.showMap();
       },
     });
@@ -452,6 +504,7 @@ export class Game {
       kills: this.sim.player.kills,
       timeSec: this.sim.room.elapsedTicks / TICK_RATE_HZ,
       shards: this.sim.shards,
+      ultCharge: this.sim.player.ultCharge,
     };
   }
 
@@ -653,6 +706,7 @@ export class Game {
       this.pauseOverlay.show(this.input.lastDevice, {
         boons: this.sim.boons,
         relics: this.sim.relics,
+        evolutions: this.sim.evolutions,
         shards: this.sim.shards,
       });
       this.audio.suspend();

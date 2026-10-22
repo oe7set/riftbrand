@@ -73,6 +73,8 @@ describe('relics in combat', () => {
       boons: [],
       relics: [{ id: 'second_wind', stacks: 1 }],
       shards: 0,
+      evolutions: [],
+      ultCharge: 0,
     });
     const input = createInputFrame();
     for (let i = 0; i < 120; i++) stepSim(s, input);

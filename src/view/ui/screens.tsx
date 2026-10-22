@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { boonById, boonDescParams } from '../../content/boons';
 import { BEINGS } from '../../content/boons/beings';
+import { evolutionById } from '../../content/evolutions';
 import { relicById, relicDescParams } from '../../content/relics';
 import type { BoonSlot, EventDef, RoomType } from '../../content/schema';
 import { type TranslationKey, t } from '../../shared/i18n';
@@ -25,7 +26,16 @@ export type Screen =
       onArena(): void;
     }
   | { kind: 'map'; run: RunState; onEnter(nodeId: number): void }
-  | { kind: 'rest'; run: RunState; healAmount: number; onRest(): void }
+  | {
+      kind: 'rest';
+      run: RunState;
+      healAmount: number;
+      onRest(): void;
+      /** An evolution the player may take instead of healing (GDD §4.9), or null. */
+      evolution: string | null;
+      onEvolve(): void;
+    }
+  | { kind: 'evolution'; id: string; onAccept(): void; onLater(): void }
   | { kind: 'victory'; run: RunState; onTitle(): void }
   | { kind: 'boon'; offer: BoonOffer; onPick(option: BoonOption): void }
   | { kind: 'relic'; options: string[]; owned: OwnedRelic[]; onPick(id: string): void }
@@ -260,19 +270,28 @@ function RewardMarker({ run, node }: { run: RunState; node: MapNode }) {
   return <span class={`rb-node-reward ${reward.kind === 'relic' ? 'is-relic' : 'is-shards'}`} />;
 }
 
-/** Compact list of owned boons, coloured by being. */
+/** Compact list of owned boons (coloured by being) and evolutions. */
 function BoonChips({ run }: { run: RunState }) {
-  if (run.boons.length === 0)
+  if (run.boons.length === 0 && run.evolutions.length === 0)
     return <div class="rb-chips rb-chips-empty">{t('map.boons_none')}</div>;
   return (
     <div class="rb-chips">
+      {run.evolutions.map((id) => (
+        <span class="rb-chip rb-chip-evolution" key={id}>
+          {t(`evolution.${id}.name` as TranslationKey)}
+        </span>
+      ))}
       {run.boons.map((b) => {
         const def = boonById(b.id);
         if (!def) return null;
         return (
           <span
             class={`rb-chip rarity-${b.rarity}`}
-            style={{ borderColor: BEINGS[def.being].css }}
+            style={{
+              borderColor: BEINGS[def.being].css,
+              // Duos show both beings: the second colour as an outer ring.
+              boxShadow: def.partner ? `0 0 0 2px ${BEINGS[def.partner].css}` : undefined,
+            }}
             key={b.id}
           >
             {t(`boon.${b.id}.name` as TranslationKey)}
@@ -283,9 +302,46 @@ function BoonChips({ run }: { run: RunState }) {
   );
 }
 
+/** "Searing Strike + Spark Ring": the combination that unlocked an evolution. */
+export function evolutionRecipe(id: string): string {
+  const def = evolutionById(id);
+  if (!def) return '';
+  return [
+    ...def.requires.boons.map((b) => t(`boon.${b}.name` as TranslationKey)),
+    ...def.requires.relics.map((r) => t(`relic.${r}.name` as TranslationKey)),
+  ].join(' + ');
+}
+
+function EvolutionScreen({ id, onAccept, onLater }: Extract<Screen, { kind: 'evolution' }>) {
+  return (
+    <div class="rb-screen rb-center rb-evolution">
+      <div class="rb-overlay-hint">{t('evolution.title')}</div>
+      <div class="rb-overlay-title">{t(`evolution.${id}.name` as TranslationKey)}</div>
+      <div class="rb-overlay-hint">{t('evolution.ready')}</div>
+      <div class="rb-card rb-evolution-card">
+        <div class="rb-card-head">
+          <span class="rb-card-slot">{evolutionRecipe(id)}</span>
+        </div>
+        <div class="rb-card-desc">{t(`evolution.${id}.desc` as TranslationKey)}</div>
+      </div>
+      <Autofocus>
+        <div class="rb-menu">
+          <button type="button" class="rb-button rb-primary" data-autofocus onClick={onAccept}>
+            {t('evolution.accept')}
+          </button>
+          <button type="button" class="rb-button" onClick={onLater}>
+            {t('evolution.later')}
+          </button>
+        </div>
+      </Autofocus>
+    </div>
+  );
+}
+
 const SLOT_KEYS: Record<BoonSlot, TranslationKey> = {
   attack: 'slot.attack',
   special: 'slot.special',
+  cast: 'slot.cast',
   dash: 'slot.dash',
   passive: 'slot.passive',
 };
@@ -307,17 +363,23 @@ function BoonScreen({ offer, onPick }: Extract<Screen, { kind: 'boon' }>) {
             const def = boonById(o.id);
             if (!def) return null;
             const replaced = o.replaces ? t(`boon.${o.replaces}.name` as TranslationKey) : null;
+            const partner = def.partner ? BEINGS[def.partner].css : null;
             return (
               <button
                 type="button"
-                class={`rb-card rarity-${o.rarity}`}
+                class={`rb-card rarity-${o.rarity} ${partner ? 'rb-duo' : ''}`}
+                style={
+                  partner ? { '--being': BEINGS[def.being].css, '--partner': partner } : undefined
+                }
                 data-autofocus={i === 0 ? true : undefined}
                 onClick={() => onPick(o)}
                 key={o.id}
               >
                 <div class="rb-card-head">
                   <span class="rb-card-slot">{t(SLOT_KEYS[def.slot])}</span>
-                  <span class="rb-card-rarity">{t(`rarity.${o.rarity}` as TranslationKey)}</span>
+                  <span class="rb-card-rarity">
+                    {partner ? t('reward.duo') : t(`rarity.${o.rarity}` as TranslationKey)}
+                  </span>
                 </div>
                 <div class="rb-card-name">{t(`boon.${o.id}.name` as TranslationKey)}</div>
                 <div class="rb-card-desc">
@@ -529,7 +591,13 @@ function EventScreen({
   );
 }
 
-function RestScreen({ run, healAmount, onRest }: Extract<Screen, { kind: 'rest' }>) {
+function RestScreen({
+  run,
+  healAmount,
+  onRest,
+  evolution,
+  onEvolve,
+}: Extract<Screen, { kind: 'rest' }>) {
   return (
     <div class="rb-screen rb-center">
       <div class="rb-rest-icon">
@@ -538,14 +606,26 @@ function RestScreen({ run, healAmount, onRest }: Extract<Screen, { kind: 'rest' 
       <div class="rb-overlay-title">{t('rest.title')}</div>
       <div class="rb-overlay-hint">{t('rest.desc')}</div>
       <Autofocus>
-        <button type="button" class="rb-button rb-primary" data-autofocus onClick={onRest}>
-          {t('rest.heal', {
-            amount: healAmount,
-            hp: Math.min(run.maxHp, Math.ceil(run.hp + healAmount)),
-            max: run.maxHp,
-          })}
-        </button>
+        <div class="rb-menu">
+          <button type="button" class="rb-button rb-primary" data-autofocus onClick={onRest}>
+            {t('rest.heal', {
+              amount: healAmount,
+              hp: Math.min(run.maxHp, Math.ceil(run.hp + healAmount)),
+              max: run.maxHp,
+            })}
+          </button>
+          {evolution && (
+            <button type="button" class="rb-button rb-evolve" onClick={onEvolve}>
+              {t('rest.evolve', { name: t(`evolution.${evolution}.name` as TranslationKey) })}
+            </button>
+          )}
+        </div>
       </Autofocus>
+      {evolution && (
+        <div class="rb-overlay-hint rb-evolve-hint">
+          {t(`evolution.${evolution}.desc` as TranslationKey)}
+        </div>
+      )}
     </div>
   );
 }
@@ -577,6 +657,8 @@ export function UiRoot({ screen }: { screen: Screen }) {
       return <MapScreen {...screen} />;
     case 'rest':
       return <RestScreen {...screen} />;
+    case 'evolution':
+      return <EvolutionScreen {...screen} />;
     case 'victory':
       return <VictoryScreen {...screen} />;
     case 'boon':

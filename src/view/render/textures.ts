@@ -20,6 +20,8 @@ export interface BakedTextures {
   /** Indexed by enemy type. */
   enemies: BodyTextures[];
   enemyShot: Texture;
+  riftShot: BodyTextures;
+  firebird: BodyTextures;
   /** White particle shapes, tinted per use. */
   dot: Texture;
   spark: Texture;
@@ -91,6 +93,11 @@ function radialTexture(size: number, stops: Array<[number, string]>): Texture {
   return Texture.from(canvas);
 }
 
+/** Projectiles don't flash on hit; both slots share one texture. */
+function projectileTextures(texture: Texture): BodyTextures {
+  return { normal: texture, flash: texture };
+}
+
 /** Procedural vector art (GDD §12.1), rendered once into textures at startup. */
 export function bakeTextures(renderer: Renderer): BakedTextures {
   const r = BAKE_RADIUS_PX;
@@ -121,6 +128,23 @@ export function bakeTextures(renderer: Renderer): BakedTextures {
   shot.circle(0, 0, r).fill({ color: PALETTE.enemyShot, alpha: 0.6 });
   shot.circle(0, 0, r * 0.55).fill({ color: 0xffffff });
 
+  // Rift shot: elongated diamond pointing along +x (sprites rotate to the flight direction).
+  const rift = new Graphics();
+  glowHalo(rift, PALETTE.riftShot, r * 0.6);
+  rift
+    .poly([r * 1.6, 0, 0, -r * 0.55, -r * 0.9, 0, 0, r * 0.55])
+    .fill({ color: PALETTE.riftShot, alpha: 0.7 });
+  rift.poly([r * 1.2, 0, 0, -r * 0.25, -r * 0.4, 0, 0, r * 0.25]).fill({ color: 0xffffff });
+
+  // Firebird: a swept-wing chevron with a bright core.
+  const bird = new Graphics();
+  glowHalo(bird, PALETTE.firebird, r);
+  bird
+    .poly([r * 1.3, 0, -r * 0.6, -r * 1.1, -r * 0.1, 0, -r * 0.6, r * 1.1])
+    .fill({ color: PALETTE.firebird, alpha: 0.8 })
+    .stroke({ color: 0xffe0a0, width: 2 });
+  bird.circle(r * 0.35, 0, r * 0.3).fill({ color: 0xffffff });
+
   const dot = new Graphics();
   for (let i = 5; i >= 1; i--) dot.circle(0, 0, (r * i) / 5).fill({ color: 0xffffff, alpha: 0.2 });
   const spark = new Graphics();
@@ -137,6 +161,8 @@ export function bakeTextures(renderer: Renderer): BakedTextures {
       enemyTextures(renderer, e.visual.color, e.visual.sides, e.visual.rotationDeg),
     ),
     enemyShot: bake(renderer, shot),
+    riftShot: projectileTextures(bake(renderer, rift)),
+    firebird: projectileTextures(bake(renderer, bird)),
     dot: bake(renderer, dot, r),
     spark: bake(renderer, spark, r),
     ring: bake(renderer, ring, r),

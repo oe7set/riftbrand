@@ -3,8 +3,16 @@ import { TUNING } from '../content/tuning';
 import { BRAND_BLADE } from '../content/weapons/brand-blade';
 import type { AudioEngine } from '../platform/audio/audio-engine';
 import type { Haptics } from '../platform/haptics';
-import { C } from '../sim/ecs/components';
-import { Ev, type EventBuffer, EvFlag, type SimEvent, StatusCode } from '../sim/events';
+import { C, RenderKind } from '../sim/ecs/components';
+import {
+  BurstCode,
+  Ev,
+  type EventBuffer,
+  EvFlag,
+  ProjectileCode,
+  type SimEvent,
+  StatusCode,
+} from '../sim/events';
 import { PlayerAction } from '../sim/player-state';
 import type { SimState } from '../sim/sim';
 import type { GameView } from '../view/game-view';
@@ -17,6 +25,15 @@ const AFTERIMAGE_INTERVAL_SEC = 1 / 45;
 /** Ember emission rate per burn stack (per second), capped per enemy. */
 const EMBERS_PER_STACK_PER_SEC = 3;
 const MAX_EMBERS_PER_SEC = 18;
+/** Trail particles per second behind player projectiles. */
+const RIFT_TRAIL_PER_SEC = 40;
+const FIREBIRD_TRAIL_PER_SEC = 70;
+
+function burstColor(code: number): number {
+  if (code === BurstCode.Ignara) return PALETTE.ultimate;
+  if (code === BurstCode.Vaelis) return PALETTE.frost;
+  return PALETTE.playerSlash;
+}
 
 /** Requests from feedback to the game loop. */
 export interface SlowMoRequest {
@@ -53,6 +70,7 @@ export class FeedbackDirector {
   /** Continuous, per-frame feedback (dash afterimages, embers on burning enemies). */
   update(sim: SimState, dtSec: number): void {
     this.emitEmbers(sim, dtSec);
+    this.emitTrails(sim, dtSec);
     const p = sim.player;
     if (p.action !== PlayerAction.Dash) {
       this.afterimageTimer = 0;
@@ -84,6 +102,32 @@ export class FeedbackDirector {
           c.posY[eid] as number,
           c.radius[eid] as number,
         );
+      }
+    }
+  }
+
+  private emitTrails(sim: SimState, dtSec: number): void {
+    if (dtSec <= 0) return;
+    const { world, c } = sim;
+    for (let eid = 0; eid < world.highWater; eid++) {
+      if (((world.masks[eid] as number) & C.Projectile) === 0) continue;
+      const kind = c.renderKind[eid];
+      if (kind !== RenderKind.RiftShot && kind !== RenderKind.Firebird) continue;
+      const big = kind === RenderKind.Firebird;
+      let expected = (big ? FIREBIRD_TRAIL_PER_SEC : RIFT_TRAIL_PER_SEC) * dtSec;
+      // Several per frame at low frame rates; the fraction is resolved randomly (cosmetic only).
+      while (expected > 0) {
+        if (expected >= 1 || Math.random() < expected) {
+          this.view.effects.projectileTrail(
+            c.posX[eid] as number,
+            c.posY[eid] as number,
+            c.facingX[eid] as number,
+            c.facingY[eid] as number,
+            big ? PALETTE.firebird : PALETTE.riftShot,
+            big,
+          );
+        }
+        expected -= 1;
       }
     }
   }
@@ -199,7 +243,55 @@ export class FeedbackDirector {
         fx.spawnFlash(e.x, e.y, ENEMIES[e.value]?.visual.color ?? PALETTE.portal);
         break;
       case Ev.ProjectileExpired:
-        fx.shotPop(e.x, e.y);
+        fx.shotPop(
+          e.x,
+          e.y,
+          e.value === ProjectileCode.RiftShot
+            ? PALETTE.riftShot
+            : e.value === ProjectileCode.Firebird
+              ? PALETTE.firebird
+              : PALETTE.enemyShot,
+        );
+        break;
+      case Ev.Shot:
+        if (e.value === ProjectileCode.Firebird) {
+          fx.hitSparks(e.x, e.y, e.dirX, e.dirY, PALETTE.firebird, 16);
+          fx.muzzle(e.x, e.y, PALETTE.firebird);
+          shake.add(TUNING.shakeLightTrauma);
+          this.audio.play('firebird', { pan: this.pan(e.x) });
+          this.haptics.pulse(20, 0.4);
+        } else {
+          fx.muzzle(e.x, e.y, PALETTE.riftShot);
+          this.audio.play('cast', { pan: this.pan(e.x) });
+          this.haptics.pulse(8, 0.2);
+        }
+        break;
+      case Ev.UltimateStart:
+        fx.ultimateCharge(e.x, e.y, burstColor(e.value));
+        this.view.addZoomPunch(TUNING.lastEnemyZoomPunch * 0.5);
+        this.audio.play('ultimateCharge', { pitchVariation: 0 });
+        this.haptics.pulse(30, 0.3);
+        break;
+      case Ev.Ultimate:
+        // The biggest moment in a fight: everything at once, then a short breath of slow-mo.
+        fx.ultimate(e.x, e.y, e.amount, burstColor(e.value));
+        shake.add(1);
+        this.view.addZoomPunch(TUNING.lastEnemyZoomPunch * 1.5);
+        this.audio.play('ultimate', { pitchVariation: 0 });
+        this.haptics.pulse(90, 1);
+        this.requestSlowMo({
+          scale: TUNING.ultimateTimeScale,
+          durationSec: TUNING.ultimateSlowMoSec,
+        });
+        break;
+      case Ev.UltimateReady:
+        this.view.hud.onUltimateReady();
+        this.audio.play('ultimateReady', { pitchVariation: 0 });
+        this.haptics.pulse(15, 0.3);
+        break;
+      case Ev.Denied:
+        this.view.hud.onDenied(e.value === 2);
+        this.audio.play('staminaEmpty', { pitchVariation: 0, pitch: 1.2 });
         break;
       case Ev.StatusApplied:
         if (e.value === StatusCode.Burn) {
@@ -221,6 +313,16 @@ export class FeedbackDirector {
         this.haptics.pulse(15, 0.4);
         break;
       case Ev.Nova: {
+        if (e.value === StatusCode.Steam) {
+          // Duo combo: bigger and louder than a normal nova so the synergy is felt.
+          fx.nova(e.x, e.y, e.amount, PALETTE.steam);
+          fx.freezeBurst(e.x, e.y, 30);
+          fx.killBurst(e.x, e.y, 0, -1, PALETTE.ember, 20);
+          shake.add(TUNING.shakeHeavyTrauma);
+          this.audio.play('steam', { pan: this.pan(e.x) });
+          this.haptics.pulse(30, 0.6);
+          break;
+        }
         const color =
           e.value === StatusCode.Burn
             ? PALETTE.ember

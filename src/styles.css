@@ -804,3 +804,63 @@ body {
   font-size: 14px;
   opacity: 0.85;
 }
+
+/* ── M2.4: duo boons and evolutions ─────────────────────────────────── */
+
+/* Duo cards carry both beings: the border blends from one colour to the other. */
+.rb-card.rb-duo {
+  border-color: transparent;
+  background:
+    linear-gradient(160deg, rgba(20, 16, 32, 0.96), rgba(20, 16, 32, 0.9)) padding-box,
+    linear-gradient(120deg, var(--being), var(--partner)) border-box;
+  box-shadow:
+    -8px 0 18px color-mix(in srgb, var(--being) 35%, transparent),
+    8px 0 18px color-mix(in srgb, var(--partner) 35%, transparent);
+}
+
+.rb-duo .rb-card-name {
+  background: linear-gradient(90deg, var(--being), var(--partner));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.rb-duo .rb-card-rarity {
+  color: #ffffff;
+}
+
+.rb-chip-evolution {
+  color: #ffd36b;
+  border-color: #ffb347;
+  box-shadow: 0 0 8px rgba(255, 179, 71, 0.5);
+}
+
+.rb-evolution {
+  --being: #ffb347;
+}
+
+.rb-evolution .rb-overlay-title {
+  color: #ffb347;
+  text-shadow: 0 0 18px rgba(255, 179, 71, 0.6);
+}
+
+.rb-evolution-card {
+  max-width: min(420px, 88vw);
+  min-height: 0;
+  cursor: default;
+}
+
+.rb-evolution-card:hover {
+  transform: none;
+  outline: none;
+}
+
+.rb-button.rb-evolve {
+  border-color: #ffb347;
+  color: #ffd36b;
+}
+
+.rb-evolve-hint {
+  max-width: min(420px, 88vw);
+  font-size: 14px;
+}

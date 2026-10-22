@@ -60,6 +60,10 @@ export class EntityView {
         return this.textures.drifter;
       case RenderKind.Enemy:
         return this.textures.enemies[sim.c.enemyType[eid] as number] ?? null;
+      case RenderKind.RiftShot:
+        return this.textures.riftShot;
+      case RenderKind.Firebird:
+        return this.textures.firebird;
       default:
         return null;
     }

@@ -29,6 +29,12 @@ export const PALETTE = {
   burnText: 0xffa64d,
   heal: 0x6bff9a,
   shard: 0xffd36b,
+  /** Rift shot: cool violet so it reads as the player's, never as an enemy shot. */
+  riftShot: 0xc7b8ff,
+  firebird: 0xffb347,
+  steam: 0xf2f7ff,
+  /** Ultimate meter and burst flavours. */
+  ultimate: 0xff8a3d,
   debugCollider: 0x39ff88,
   touchBase: 0xffffff,
   touchAccent: 0x7ff6ff,

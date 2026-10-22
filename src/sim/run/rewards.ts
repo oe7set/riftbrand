@@ -1,4 +1,4 @@
-import { BOONS, boonById, RARITIES, RARITY_WEIGHTS } from '../../content/boons';
+import { BOONS, boonById, boonsOf, DUO_OFFER, RARITIES, RARITY_WEIGHTS } from '../../content/boons';
 import { BEING_IDS } from '../../content/boons/beings';
 import type { BeingId, BoonDef, Rarity, RoomType } from '../../content/schema';
 import type { OwnedBoon } from '../effects/build';
@@ -54,9 +54,25 @@ function rollRarity(rng: Rng, bonus: number): Rarity {
   return 'common';
 }
 
+/** Duo boons whose prerequisites the build meets and that are not owned yet. */
+export function unlockedDuos(being: BeingId, owned: readonly OwnedBoon[]): BoonDef[] {
+  const ownedIds = new Set(owned.map((b) => b.id));
+  return BOONS.filter(
+    (b) =>
+      b.partner !== undefined &&
+      (b.being === being || b.partner === being) &&
+      !ownedIds.has(b.id) &&
+      (b.requires ?? []).every((group) => group.some((id) => ownedIds.has(id))),
+  );
+}
+
+/** Duos have fixed values; they are shown at this rarity. */
+export const DUO_RARITY: Rarity = 'epic';
+
 /**
  * Three different boons of one being (GDD §7.1). Passive boons the player already owns are
- * excluded; slot boons may replace the current one in that slot.
+ * excluded; slot boons may replace the current one in that slot. An unlocked duo may take
+ * the last spot.
  */
 export function rollBoonOffer(
   seed: number,
@@ -67,7 +83,7 @@ export function rollBoonOffer(
 ): BoonOffer {
   const rng = createRng(hashString(`${seed}:offer:${nodeId}`));
   const ownedIds = new Set(owned.map((b) => b.id));
-  const pool: BoonDef[] = BOONS.filter((b) => b.being === being && !ownedIds.has(b.id));
+  const pool: BoonDef[] = boonsOf(being).filter((b) => !ownedIds.has(b.id));
   const options: BoonOption[] = [];
   while (options.length < OFFER_SIZE && pool.length > 0) {
     const [boon] = pool.splice(nextInt(rng, 0, pool.length), 1);
@@ -79,6 +95,14 @@ export function rollBoonOffer(
       rarity: rollRarity(rng, rarityBonus),
       replaces: current?.id ?? null,
     });
+  }
+  // Drawn after the regular options so existing offers stay the same for a given seed.
+  const duos = unlockedDuos(being, owned);
+  if (duos.length > 0 && nextFloat(rng) < DUO_OFFER.chance) {
+    const duo = duos[nextInt(rng, 0, duos.length)] as BoonDef;
+    const option = { id: duo.id, rarity: DUO_RARITY, replaces: null };
+    if (options.length < OFFER_SIZE) options.push(option);
+    else options[options.length - 1] = option;
   }
   return { being, options };
 }

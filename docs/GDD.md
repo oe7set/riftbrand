@@ -116,6 +116,10 @@ Meta (Tage)        Glut/Rissstaub ausgeben → Freischaltungen → Story-Dialog 
 | **Dash** | kurzer, schneller Sprint mit i-Frames | 1 Ausdauer | Dash |
 | **Brandausbruch** (Ultimate) | Lädt sich durch ausgeteilten und erlittenen Schaden auf. Bildschirmweiter Effekt je nach dominantem Wesen. | volle Leiste | Ultimate |
 
+**Umgesetzt (M2.4), Startwerte:**
+- Riss-Geschoss: 16 Schaden, 820 px/s, 480 px Reichweite, trifft den ersten Gegner. Touch: Ziehen vom Wurf-Button zielt (mit Vorschau), Loslassen wirft; Tippen nutzt die Zielhilfe.
+- Brandausbruch: Leiste voll nach 900 ausgeteiltem oder 90 erlittenem Schaden und wird in den nächsten Raum mitgenommen. 0,35 s Aufladen (unverwundbar), dann Explosion um die Spielfigur mit kurzer Zeitlupe. Ignara-dominant: 330 px, 60 Schaden, 5 Brand. Vaelis-dominant: 330 px, 35 Schaden, friert alle ein. Ohne Segen: 300 px, 55 Schaden.
+
 ### 4.2 Bewegung und Dash (Startwerte)
 - Laufgeschwindigkeit: 220 px/s, beschleunigt in 60 ms, kein Rutschen (sofortiges Abbremsen fühlt sich auf Touch präziser an).
 - Dash: 0,18 s, ca. 170 px Weg, **i-Frames für die gesamte Dash-Dauer**. Richtung = Bewegungsrichtung, ohne Eingabe in Blickrichtung.
@@ -206,6 +210,8 @@ Beispiele:
 - **Gletscherspeer** = Rissspeer + Vaelis-Spezialsegen + Relikt „Kalter Kern“. Der Wurf hinterlässt eine Eisbahn, die Gegner einfriert.
 - **Gewitterfäuste** = Funkenfäuste + Kyrr-Angriffssegen + Relikt „Leiter“. Jeder 5. Schlag ruft einen Blitzschlag herab.
 
+**Umgesetzt (M2.4):** Phönixklinge = Brandklinge + „Sengender Schlag“ + „Funkenring“. Jede Combo-Vollendung schickt einen Feuervogel los (28 Schaden, durchdringt alle Gegner, 3 Brand), dazu +10 % Angriffsschaden. Das Angebot erscheint am Altar vor der Segen-Wahl (annehmen oder später) und in der Rast als Alternative zur Heilung.
+
 ### 4.10 Orbitale (später im Run)
 Ab Biom 3 können **Orbitale** erscheinen: automatisch auslösende Begleit-Effekte zusätzlich zu den eigenen Aktionen, z. B. kreisende Glutkugeln, ein Leeren-Auge, das Kritische Treffer markiert, oder eine Sturmwolke, die alle 2 s blitzt. Sie skalieren mit den Tags des Builds und sorgen für das **Horden-Gefühl am Ende des Runs**, ohne das eigene Kämpfen zu ersetzen. Es gibt maximal 3 Orbital-Slots.
 
@@ -290,14 +296,17 @@ Jeder Boss hat 2–3 Phasen, 4–6 Muster pro Phase, eine zornige Phase unter 30
 | Ignara | Passiv | Lodernde Wut | +Angriffsschaden |
 | Ignara | Passiv | Asche zu Asche | +Brand-Schaden |
 | Ignara | Passiv | Phönixglut | Heilung beim Töten brennender Gegner |
+| Ignara | Wurf | Glutgeschoss | Riss-Geschoss: +Schaden, Brand (M2.4) |
 | Vaelis | Angriff | Frostschlag | Angriffe verursachen Kälte (5 = gefroren) |
 | Vaelis | Spezial | Gletscherwirbel | Glutwirbel: +Schaden, Kälte |
+| Vaelis | Wurf | Eissplitter | Riss-Geschoss: +Schaden, Kälte (M2.4) |
 | Vaelis | Dash | Frostschritt | Dash-Start kühlt Gegner im Umkreis ab |
 | Vaelis | Passiv | Kalter Griff | Gefrieren dauert länger |
 | Vaelis | Passiv | Zerschmettern | +Schaden gegen gefrorene Gegner |
 | Vaelis | Passiv | Eiszeit | Perfekter Dash friert Gegner in der Nähe ein |
 | Vaelis | Passiv | Gletscherhaut | Getroffen werden kühlt Gegner im Umkreis ab |
 | Vaelis | Passiv | Beißende Kälte | +Schaden pro Kälte-Stufe |
+| Ignara + Vaelis | Duo | Dampfbruch | Gefriert ein brennender Gegner (oder brennt ein gefrorener), werden beide Status verbraucht und er explodiert (45 Schaden, Radius 110 px). Voraussetzung: je ein Brand- und ein Frost-Segen (M2.4) |
 
 ### 7.2 Relikte (stapelbar)
 - Gefunden in Elite-Räumen, im Shop, bei Ereignissen und als Kampfbelohnung.

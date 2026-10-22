@@ -314,7 +314,7 @@ export class Effects {
     });
   }
 
-  shotPop(x: number, y: number): void {
+  shotPop(x: number, y: number, color: number = PALETTE.enemyShot): void {
     for (let i = 0; i < 5; i++) {
       const a = rand(0, Math.PI * 2);
       this.fx.emit({
@@ -324,11 +324,116 @@ export class Effects {
         vx: Math.cos(a) * 90,
         vy: Math.sin(a) * 90,
         lifeSec: 0.2,
-        color: PALETTE.enemyShot,
+        color,
         scaleStart: 0.3,
         flags: PFlag.Shrink,
       });
     }
+  }
+
+  /** One trail particle behind a player projectile (called at a fixed rate per projectile). */
+  projectileTrail(
+    x: number,
+    y: number,
+    dirX: number,
+    dirY: number,
+    color: number,
+    big: boolean,
+  ): void {
+    this.fx.emit({
+      texture: big ? this.tex.spark : this.tex.dot,
+      x: x - dirX * (big ? 14 : 8) + rand(-3, 3),
+      y: y - dirY * (big ? 14 : 8) + rand(-3, 3),
+      vx: -dirX * rand(20, 60) + rand(-30, 30),
+      vy: -dirY * rand(20, 60) + rand(-30, 30),
+      rotation: Math.atan2(dirY, dirX),
+      lifeSec: big ? rand(0.25, 0.4) : 0.15,
+      color: big && rand(0, 1) < 0.3 ? 0xffe0a0 : color,
+      scaleStart: big ? rand(0.4, 0.6) : 0.35,
+      flags: PFlag.Shrink,
+    });
+  }
+
+  /** Ultimate windup: energy streaming into the player. */
+  ultimateCharge(x: number, y: number, color: number): void {
+    for (let i = 0; i < 24; i++) {
+      const a = rand(0, Math.PI * 2);
+      const d = rand(80, 160);
+      this.fx.emit({
+        texture: this.tex.spark,
+        x: x + Math.cos(a) * d,
+        y: y + Math.sin(a) * d,
+        vx: -Math.cos(a) * d * 2.6,
+        vy: -Math.sin(a) * d * 2.6,
+        lifeSec: 0.32,
+        color: i % 3 === 0 ? 0xffffff : color,
+        scaleStart: 0.5,
+        scaleEnd: 0.1,
+        stretch: 2,
+        flags: PFlag.AlignToVelocity,
+      });
+    }
+    this.fx.emit({
+      texture: this.tex.ring,
+      x,
+      y,
+      lifeSec: 0.35,
+      color,
+      scaleStart: 8,
+      scaleEnd: 1,
+    });
+  }
+
+  /** Ultimate blast: screen-filling disc, layered rings and a spray of sparks. */
+  ultimate(x: number, y: number, radius: number, color: number): void {
+    this.ground.emit({
+      texture: this.tex.disc,
+      x,
+      y,
+      lifeSec: 0.5,
+      color,
+      alpha: 0.35,
+      scaleStart: radius / 40,
+      scaleEnd: radius / 16,
+    });
+    for (let i = 0; i < 3; i++) {
+      this.fx.emit({
+        texture: this.tex.ring,
+        x,
+        y,
+        lifeSec: 0.35 + i * 0.12,
+        color: i === 0 ? 0xffffff : color,
+        scaleStart: radius / 60,
+        scaleEnd: radius / (15 - i * 2),
+      });
+    }
+    for (let i = 0; i < 40; i++) {
+      const a = (i / 40) * Math.PI * 2 + rand(-0.05, 0.05);
+      const speed = rand(500, 1100);
+      this.fx.emit({
+        texture: this.tex.spark,
+        x,
+        y,
+        vx: Math.cos(a) * speed,
+        vy: Math.sin(a) * speed,
+        lifeSec: rand(0.25, 0.45),
+        color: i % 4 === 0 ? 0xffffff : color,
+        scaleStart: rand(0.6, 1),
+        scaleEnd: 0.1,
+        dragPerSec: 0.03,
+        stretch: 3,
+        flags: PFlag.AlignToVelocity,
+      });
+    }
+    this.fx.emit({
+      texture: this.tex.dot,
+      x,
+      y,
+      lifeSec: 0.2,
+      color: 0xffffff,
+      scaleStart: 6,
+      scaleEnd: 12,
+    });
   }
 
   playerHit(x: number, y: number, dirX: number, dirY: number): void {

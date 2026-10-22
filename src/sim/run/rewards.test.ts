@@ -79,3 +79,44 @@ describe('altars on the map', () => {
     expect(altars).toBeGreaterThan(50);
   });
 });
+
+describe('duo boons', () => {
+  it('unlock only with a matching boon of both beings and then show up in offers', async () => {
+    const { unlockedDuos, DUO_RARITY } = await import('./rewards');
+    const ignaraOnly = [{ id: 'searing_strike', rarity: 'common' as const }];
+    expect(unlockedDuos('ignara', ignaraOnly)).toHaveLength(0);
+    const both = [...ignaraOnly, { id: 'frost_step', rarity: 'common' as const }];
+    expect(unlockedDuos('vaelis', both).map((b) => b.id)).toEqual(['steam_burst']);
+    let offered = 0;
+    for (let node = 0; node < 40; node++) {
+      const offer = rollBoonOffer(5, node, 'vaelis', both, 0);
+      expect(offer.options.length).toBeLessThanOrEqual(3);
+      const duo = offer.options.find((o) => o.id === 'steam_burst');
+      if (duo) {
+        offered++;
+        expect(duo.rarity).toBe(DUO_RARITY);
+      }
+    }
+    // Roughly half of the offers (DUO_OFFER.chance), never all or none.
+    expect(offered).toBeGreaterThan(8);
+    expect(offered).toBeLessThan(32);
+    const owned = [...both, { id: 'steam_burst', rarity: 'epic' as const }];
+    expect(unlockedDuos('ignara', owned)).toHaveLength(0);
+  });
+});
+
+describe('evolutions', () => {
+  it('become available with the combination and can be taken at a rest instead of healing', async () => {
+    const { createRun, availableEvolutions, restEvolve } = await import('./run-state');
+    const run = createRun(4);
+    expect(availableEvolutions(run)).toEqual([]);
+    run.boons = [{ id: 'searing_strike', rarity: 'common' }];
+    run.relics = [{ id: 'spark_ring', stacks: 1 }];
+    expect(availableEvolutions(run)).toEqual(['phoenix_blade']);
+    run.hp = 50;
+    restEvolve(run, 'phoenix_blade');
+    expect(run.evolutions).toEqual(['phoenix_blade']);
+    expect(run.hp).toBe(50);
+    expect(availableEvolutions(run)).toEqual([]);
+  });
+});

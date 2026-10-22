@@ -7,6 +7,7 @@ import type { Vec2 } from '../shared/math/vec2';
 import type { SimState } from '../sim/sim';
 import { HudView } from './hud/hud-view';
 import { TouchControlsView } from './hud/touch-controls-view';
+import { AimPreview } from './render/aim-preview';
 import { ArenaView } from './render/arena-view';
 import {
   type Camera,
@@ -60,6 +61,7 @@ export class GameView {
   private readonly fxParticles = new ParticleSystem(PARTICLE_CAPACITY);
   private readonly groundParticles = new ParticleSystem(PARTICLE_CAPACITY / 2);
   private readonly touchControls = new TouchControlsView();
+  private readonly aimPreview: AimPreview;
   private readonly bloom = new AdvancedBloomFilter({
     threshold: 0.35,
     bloomScale: 0.9,
@@ -76,6 +78,7 @@ export class GameView {
     this.roomView = new RoomView(this.textures);
     this.effects = new Effects(this.fxParticles, this.groundParticles, this.textures);
     this.hud = new HudView(this.textures.white, this.textures.vignette, this.textures.spark);
+    this.aimPreview = new AimPreview(this.textures.white, this.textures.ring);
     this.fxParticles.root.blendMode = 'add';
     this.groundParticles.root.blendMode = 'add';
     this.worldLayer.addChild(
@@ -83,6 +86,7 @@ export class GameView {
       this.roomView.root,
       this.groundParticles.root,
       this.entities.groundLayer,
+      this.aimPreview.root,
       this.entities.bodyLayer,
       this.fxParticles.root,
       this.entities.overlayLayer,
@@ -221,9 +225,17 @@ export class GameView {
     this.groundParticles.update(realDtSec);
     this.damageNumbers.update(realDtSec);
     this.debugDraw.sync(sim, alpha);
+    this.aimPreview.sync(
+      device === 'touch' && touch.castAiming && touch.castAimed && sim.player.castCharges > 0,
+      px,
+      py,
+      touch.castAim.x,
+      touch.castAim.y,
+      realDtSec,
+    );
     worldToScreen(cam, sim.room.exitX, sim.room.exitY, this.exitScreen);
     this.hud.sync(sim, realDtSec, this.exitScreen);
-    this.touchControls.sync(touch, device === 'touch');
+    this.touchControls.sync(touch, device === 'touch', sim.player, realDtSec);
     this.renderer.render(this.stage);
   }
 }

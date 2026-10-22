@@ -1,4 +1,5 @@
 import { Container, Sprite, Text, type Texture } from 'pixi.js';
+import { RIFT_SHOT } from '../../content/abilities';
 import { TUNING } from '../../content/tuning';
 import { t } from '../../shared/i18n';
 import type { SimState } from '../../sim/sim';
@@ -14,6 +15,9 @@ const PIP_GAP_PX = 6;
 const BANNER_SEC = 1.6;
 const STAMINA_PULSE_SEC = 0.35;
 const DAMAGE_FLASH_SEC = 0.35;
+const CAST_PIP_WIDTH_PX = 14;
+const ULT_HEIGHT_PX = 5;
+const DENIED_PULSE_SEC = 0.35;
 
 function bar(texture: Texture, tint: number, anchorX = 0): Sprite {
   const s = new Sprite(texture);
@@ -39,6 +43,13 @@ export class HudView {
   private readonly vignette: Sprite;
   private readonly exitArrow: Sprite;
   private readonly shardLabel: Text;
+  private readonly castBack: Sprite[] = [];
+  private readonly castFill: Sprite[] = [];
+  private readonly ultBack: Sprite;
+  private readonly ultFill: Sprite;
+  private castDeniedSec = 0;
+  private ultDeniedSec = 0;
+  private ultReadySec = 0;
   private shownShards = -1;
   private shardPulseSec = 0;
   private shownLabel = '';
@@ -68,6 +79,16 @@ export class HudView {
       this.pipsFill.push(fill);
       this.root.addChild(back, fill);
     }
+    for (let i = 0; i < RIFT_SHOT.charges; i++) {
+      const back = bar(white, PALETTE.hpBack);
+      const fill = bar(white, PALETTE.riftShot);
+      this.castBack.push(back);
+      this.castFill.push(fill);
+      this.root.addChild(back, fill);
+    }
+    this.ultBack = bar(white, PALETTE.hpBack);
+    this.ultFill = bar(white, PALETTE.ultimate);
+    this.root.addChild(this.ultBack, this.ultFill);
     const style = {
       fontFamily: 'system-ui, sans-serif',
       fontWeight: '700' as const,
@@ -109,7 +130,7 @@ export class HudView {
     this.waveLabel.anchor.set(narrow ? 0 : 0.5, 0);
     this.waveLabel.position.set(
       narrow ? MARGIN_PX : width / 2,
-      narrow ? MARGIN_PX + HP_HEIGHT_PX + PIP_HEIGHT_PX + 16 : MARGIN_PX - 2,
+      narrow ? MARGIN_PX + HP_HEIGHT_PX + PIP_HEIGHT_PX + ULT_HEIGHT_PX + 22 : MARGIN_PX - 2,
     );
     this.banner.position.set(width / 2, height * 0.3);
   }
@@ -135,6 +156,15 @@ export class HudView {
 
   onPlayerHit(): void {
     this.damageFlashSec = DAMAGE_FLASH_SEC;
+  }
+
+  onDenied(ultimate: boolean): void {
+    if (ultimate) this.ultDeniedSec = DENIED_PULSE_SEC;
+    else this.castDeniedSec = DENIED_PULSE_SEC;
+  }
+
+  onUltimateReady(): void {
+    this.ultReadySec = 0.6;
   }
 
   /** Label: arena wave, room wave x/y, or the horde countdown. */
@@ -182,6 +212,42 @@ export class HudView {
     arrow.alpha = 0.85;
   }
 
+  /** Cast charges sit right of the stamina pips; the ultimate meter runs below both. */
+  private syncCastAndUlt(sim: SimState, dtSec: number, segments: number): void {
+    const p = sim.player;
+    const rowY = MARGIN_PX + HP_HEIGHT_PX + 8;
+    const castX = MARGIN_PX + segments * (PIP_WIDTH_PX + PIP_GAP_PX) + 6;
+    const recharge = 1 - p.castRechargeTicks / Math.max(1, RIFT_SHOT.rechargeSec * TICK_RATE_HZ);
+    this.castDeniedSec = Math.max(0, this.castDeniedSec - dtSec);
+    const castPulse = this.castDeniedSec > 0 ? Math.sin(this.time * 50) * 0.5 + 0.5 : 0;
+    for (let i = 0; i < this.castBack.length; i++) {
+      const back = this.castBack[i] as Sprite;
+      const fill = this.castFill[i] as Sprite;
+      const x = castX + i * (CAST_PIP_WIDTH_PX + 4);
+      back.position.set(x, rowY);
+      back.scale.set(CAST_PIP_WIDTH_PX, PIP_HEIGHT_PX);
+      back.tint = castPulse > 0.5 ? PALETTE.hpFill : PALETTE.hpBack;
+      // The next charge to return fills up gradually; later ones stay empty.
+      const amount = i < p.castCharges ? 1 : i === p.castCharges ? Math.max(0, recharge) : 0;
+      fill.position.set(x, rowY);
+      fill.scale.set(CAST_PIP_WIDTH_PX * amount, PIP_HEIGHT_PX);
+      fill.alpha = amount >= 1 ? 1 : 0.4;
+    }
+
+    const ultY = rowY + PIP_HEIGHT_PX + 5;
+    const width = castX + RIFT_SHOT.charges * (CAST_PIP_WIDTH_PX + 4) - 4 - MARGIN_PX;
+    this.ultDeniedSec = Math.max(0, this.ultDeniedSec - dtSec);
+    this.ultReadySec = Math.max(0, this.ultReadySec - dtSec);
+    this.ultBack.position.set(MARGIN_PX, ultY);
+    this.ultBack.scale.set(width, ULT_HEIGHT_PX);
+    this.ultBack.tint =
+      this.ultDeniedSec > 0 && Math.sin(this.time * 50) > 0 ? PALETTE.hpFill : PALETTE.hpBack;
+    this.ultFill.position.set(MARGIN_PX, ultY);
+    this.ultFill.scale.set(width * p.ultCharge, ULT_HEIGHT_PX + this.ultReadySec * 6);
+    this.ultFill.tint = p.ultCharge >= 1 ? 0xffffff : PALETTE.ultimate;
+    this.ultFill.alpha = p.ultCharge >= 1 ? 0.75 + 0.25 * Math.sin(this.time * 6) : 0.85;
+  }
+
   sync(sim: SimState, dtSec: number, exitScreen: { x: number; y: number }): void {
     this.time += dtSec;
     const eid = sim.playerEid;
@@ -213,6 +279,8 @@ export class HudView {
       fill.scale.set(PIP_WIDTH_PX * amount, PIP_HEIGHT_PX);
       fill.alpha = amount >= 1 ? 1 : 0.45;
     }
+
+    this.syncCastAndUlt(sim, dtSec, segments);
 
     if (sim.shards !== this.shownShards) {
       this.shownShards = sim.shards;

@@ -1,3 +1,4 @@
+import { RIFT_SHOT } from '../content/abilities';
 import { ENEMIES } from '../content/enemies';
 import { TUNING } from '../content/tuning';
 import type { InputFrame } from '../shared/input-frame';
@@ -56,6 +57,8 @@ export interface SimState {
   /** Owned boons and their compiled form (stats + trigger lists). */
   boons: OwnedBoon[];
   relics: OwnedRelic[];
+  /** Weapon evolutions unlocked in this run (GDD §4.9). */
+  evolutions: string[];
   build: CompiledBuild;
   /** Run currency carried into the room plus everything picked up here. */
   shards: number;
@@ -100,6 +103,7 @@ export function createSim(seed: number, setup?: RoomSetup): SimState {
     room: createRoomState(),
     boons: [],
     relics: [],
+    evolutions: [],
     build: compileBuild([]),
     shards: 0,
     effectDepth: 0,
@@ -115,8 +119,9 @@ export function createSim(seed: number, setup?: RoomSetup): SimState {
     debug: { godMode: false, wavesEnabled: true },
   };
   if (setup) {
-    setBuild(state, setup.boons, setup.relics);
+    setBuild(state, setup.boons, setup.relics, setup.evolutions);
     state.shards = setup.shards;
+    state.player.ultCharge = setup.ultCharge;
     const t = setup.template;
     loadObstacles(state.room, t.obstacles);
     loadSpawnPoints(state.room, t.spawnPoints);
@@ -133,6 +138,7 @@ export function createSim(seed: number, setup?: RoomSetup): SimState {
     state.playerEid = spawnPlayer(state, state.arenaWidthPx / 2, state.arenaHeightPx / 2);
   }
   state.player.stamina = TUNING.staminaMax;
+  state.player.castCharges = RIFT_SHOT.charges;
   state.waves.timerTicks = secondsToTicks(TUNING.firstWaveDelaySec);
   return state;
 }
@@ -231,10 +237,12 @@ export function setBuild(
   state: SimState,
   boons: readonly OwnedBoon[],
   relics: readonly OwnedRelic[] = state.relics,
+  evolutions: readonly string[] = state.evolutions,
 ): void {
   state.boons = boons.map((b) => ({ ...b }));
   state.relics = relics.map((r) => ({ ...r }));
-  state.build = compileBuild(state.boons, state.relics);
+  state.evolutions = [...evolutions];
+  state.build = compileBuild(state.boons, state.relics, state.evolutions);
 }
 
 /** Advances the simulation by exactly one fixed tick. */

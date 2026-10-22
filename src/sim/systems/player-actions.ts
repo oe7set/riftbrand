@@ -1,12 +1,14 @@
-import type { MeleeHitDef } from '../../content/schema';
+import { BRAND_BURST, RIFT_SHOT } from '../../content/abilities';
+import type { BurstVariant, MeleeHitDef } from '../../content/schema';
 import { TUNING } from '../../content/tuning';
 import { BRAND_BLADE } from '../../content/weapons/brand-blade';
 import { Button, type InputFrame } from '../../shared/input-frame';
 import { queryRect } from '../collision/spatial-hash';
 import { damageEnemy, type PlayerHitSpec, rollCrit } from '../combat/damage';
+import { type PlayerShotSpec, spawnPlayerShot } from '../combat/player-projectiles';
 import { C } from '../ecs/components';
-import { fireOnDash } from '../effects/runtime';
-import { Ev, pushEvent } from '../events';
+import { areaBurst, type BurstSpec, fireOnComboFinisher, fireOnDash } from '../effects/runtime';
+import { BurstCode, Ev, pushEvent } from '../events';
 import { Buffered, type BufferedId, PlayerAction } from '../player-state';
 import type { SimState } from '../sim';
 import { secondsToTicks, TICK_DT_SEC } from '../time';
@@ -26,6 +28,30 @@ const hitSpec: PlayerHitSpec = {
   source: 'attack',
 };
 
+const castSpec: PlayerShotSpec = {
+  kind: 'rift_shot',
+  damage: 0,
+  speedPxPerSec: 1,
+  radiusPx: 1,
+  rangePx: 1,
+  knockback: 0,
+  poiseDamage: 0,
+  pierce: false,
+  status: null,
+  stacks: 0,
+  isCast: true,
+};
+
+const ultSpec: BurstSpec = {
+  radiusPx: 0,
+  damage: 0,
+  status: null,
+  stacks: 0,
+  freeze: false,
+  knockback: 0,
+  source: 'ultimate',
+};
+
 function approach(current: number, target: number, maxDelta: number): number {
   if (current < target) return Math.min(current + maxDelta, target);
   return Math.max(current - maxDelta, target);
@@ -39,9 +65,11 @@ export function capturePlayerInput(state: SimState, input: InputFrame): void {
   const p = state.player;
   if (state.gameOver) return;
   let wanted: BufferedId = Buffered.None;
-  // Dash wins ties: it is the defensive panic button.
+  // Dash wins ties: it is the defensive panic button. The ultimate is rare and deliberate.
   if (input.pressed & Button.Dash) wanted = Buffered.Dash;
+  else if (input.pressed & Button.Ultimate) wanted = Buffered.Ultimate;
   else if (input.pressed & Button.Special) wanted = Buffered.Special;
+  else if (input.pressed & Button.Cast) wanted = Buffered.Cast;
   else if (input.pressed & Button.Attack) wanted = Buffered.Attack;
   if (wanted === Buffered.None) return;
   p.buffered = wanted;
@@ -64,10 +92,26 @@ function specialPhaseTicks(): [number, number, number] {
   ];
 }
 
+function castPhaseTicks(): [number, number] {
+  return [secondsToTicks(RIFT_SHOT.windupSec), secondsToTicks(RIFT_SHOT.recoverySec)];
+}
+
+function ultPhaseTicks(): [number, number] {
+  return [secondsToTicks(BRAND_BURST.windupSec), secondsToTicks(BRAND_BURST.recoverySec)];
+}
+
 function staminaCost(action: BufferedId): number {
   if (action === Buffered.Dash) return 1;
   if (action === Buffered.Special) return BRAND_BLADE.special.staminaCost;
   return 0;
+}
+
+/** Whether the resource for an action is there: stamina, a cast charge or a full meter. */
+function canAfford(state: SimState, action: BufferedId): boolean {
+  const p = state.player;
+  if (action === Buffered.Cast) return p.castCharges >= 1;
+  if (action === Buffered.Ultimate) return p.ultCharge >= 1;
+  return p.stamina + 1e-9 >= staminaCost(action);
 }
 
 /** Whether the current action may be interrupted by `next` right now. */
@@ -83,14 +127,21 @@ function canInterrupt(state: SimState, next: BufferedId): boolean {
       const [w, a] = attackPhaseTicks(hit);
       const inRecovery = t >= w + a;
       if (!inRecovery) return false;
-      // Dash and special cancel recovery (GDD §4.2); the next combo hit needs a short delay.
+      // Dash, special, cast and ultimate cancel recovery (GDD §4.2); the next combo hit needs
+      // a short delay.
       if (next !== Buffered.Attack) return true;
       const isLastHit = p.comboIndex >= BRAND_BLADE.combo.length - 1;
       return !isLastHit && t - (w + a) >= secondsToTicks(BRAND_BLADE.recoveryCancelSec);
     }
     case PlayerAction.Special: {
       const [w, a] = specialPhaseTicks();
-      return next === Buffered.Dash && t >= w + a;
+      return (next === Buffered.Dash || next === Buffered.Ultimate) && t >= w + a;
+    }
+    case PlayerAction.Cast: {
+      // The shot leaves at the end of the windup; afterwards anything but attack may cancel
+      // (attacks wait in the buffer until the short recovery ends).
+      const [w] = castPhaseTicks();
+      return t > w && next !== Buffered.Attack;
     }
     default:
       return false;
@@ -98,7 +149,12 @@ function canInterrupt(state: SimState, next: BufferedId): boolean {
 }
 
 /** Direction for an attack: explicit aim, else movement, else facing, then aim-assisted. */
-function resolveAttackDir(state: SimState, input: InputFrame, out: { x: number; y: number }): void {
+function resolveAttackDir(
+  state: SimState,
+  input: InputFrame,
+  out: { x: number; y: number },
+  range: number,
+): void {
   const eid = state.playerEid;
   const c = state.c;
   let dx = c.facingX[eid] as number;
@@ -116,7 +172,6 @@ function resolveAttackDir(state: SimState, input: InputFrame, out: { x: number; 
 
   const px = c.posX[eid] as number;
   const py = c.posY[eid] as number;
-  const range = BRAND_BLADE.assistRangePx;
   const cosCone = Math.cos(input.assistDeg * DEG);
   const n = queryRect(
     state.spatial,
@@ -157,7 +212,24 @@ function startAction(state: SimState, next: BufferedId, input: InputFrame): void
   p.stamina -= staminaCost(next);
   if (staminaCost(next) > 0) p.staminaDelayTicks = secondsToTicks(TUNING.staminaRegenDelaySec);
 
-  if (next === Buffered.Dash) {
+  if (next === Buffered.Ultimate) {
+    p.ultCharge = 0;
+    p.action = PlayerAction.Ultimate;
+    p.invulnTicks = Math.max(p.invulnTicks, secondsToTicks(BRAND_BURST.invulnSec));
+    c.velX[eid] = 0;
+    c.velY[eid] = 0;
+    const e = pushEvent(state.events, Ev.UltimateStart, px, py);
+    if (e) e.value = burstCode(state);
+  } else if (next === Buffered.Cast) {
+    resolveAttackDir(state, input, dirScratch, RIFT_SHOT.assistRangePx);
+    p.dirX = dirScratch.x;
+    p.dirY = dirScratch.y;
+    if (p.castCharges >= RIFT_SHOT.charges) {
+      p.castRechargeTicks = secondsToTicks(RIFT_SHOT.rechargeSec);
+    }
+    p.castCharges--;
+    p.action = PlayerAction.Cast;
+  } else if (next === Buffered.Dash) {
     const moveLen = Math.sqrt(input.moveX * input.moveX + input.moveY * input.moveY);
     p.dirX = moveLen > MOVE_EPSILON ? input.moveX / moveLen : (c.facingX[eid] as number);
     p.dirY = moveLen > MOVE_EPSILON ? input.moveY / moveLen : (c.facingY[eid] as number);
@@ -170,7 +242,7 @@ function startAction(state: SimState, next: BufferedId, input: InputFrame): void
     }
     fireOnDash(state);
   } else {
-    resolveAttackDir(state, input, dirScratch);
+    resolveAttackDir(state, input, dirScratch, BRAND_BLADE.assistRangePx);
     p.dirX = dirScratch.x;
     p.dirY = dirScratch.y;
     p.swingId = ++state.swingCounter;
@@ -208,7 +280,7 @@ function tryBufferedAction(state: SimState, input: InputFrame): void {
   if (p.buffered === Buffered.None) return;
   const next = p.buffered;
   if (canInterrupt(state, next)) {
-    if (p.stamina + 1e-9 >= staminaCost(next)) {
+    if (canAfford(state, next)) {
       p.buffered = Buffered.None;
       startAction(state, next, input);
       return;
@@ -216,12 +288,14 @@ function tryBufferedAction(state: SimState, input: InputFrame): void {
     if (!p.bufferStaminaSignaled) {
       p.bufferStaminaSignaled = true;
       const eid = state.playerEid;
-      pushEvent(
-        state.events,
-        Ev.StaminaEmpty,
-        state.c.posX[eid] as number,
-        state.c.posY[eid] as number,
-      );
+      const x = state.c.posX[eid] as number;
+      const y = state.c.posY[eid] as number;
+      if (next === Buffered.Cast || next === Buffered.Ultimate) {
+        const e = pushEvent(state.events, Ev.Denied, x, y);
+        if (e) e.value = next === Buffered.Cast ? 1 : 2;
+      } else {
+        pushEvent(state.events, Ev.StaminaEmpty, x, y);
+      }
     }
   }
   p.bufferTicks--;
@@ -311,6 +385,61 @@ function controlMovement(state: SimState, input: InputFrame, speedFactor: number
   }
 }
 
+function burstCode(state: SimState): number {
+  const being = state.build.dominantBeing;
+  return being === 'ignara'
+    ? BurstCode.Ignara
+    : being === 'vaelis'
+      ? BurstCode.Vaelis
+      : BurstCode.None;
+}
+
+function burstVariant(state: SimState): BurstVariant {
+  const being = state.build.dominantBeing;
+  return being ? BRAND_BURST.variants[being] : BRAND_BURST.variants.none;
+}
+
+function fireCast(state: SimState): void {
+  const p = state.player;
+  castSpec.damage = RIFT_SHOT.damage;
+  castSpec.speedPxPerSec = RIFT_SHOT.speedPxPerSec;
+  castSpec.radiusPx = RIFT_SHOT.radiusPx;
+  castSpec.rangePx = RIFT_SHOT.rangePx;
+  castSpec.knockback = RIFT_SHOT.knockback;
+  castSpec.poiseDamage = RIFT_SHOT.poiseDamage;
+  spawnPlayerShot(state, castSpec, p.dirX, p.dirY);
+}
+
+function fireUltimate(state: SimState): void {
+  const eid = state.playerEid;
+  const x = state.c.posX[eid] as number;
+  const y = state.c.posY[eid] as number;
+  const v = burstVariant(state);
+  const e = pushEvent(state.events, Ev.Ultimate, x, y);
+  if (e) {
+    e.amount = v.radiusPx;
+    e.value = burstCode(state);
+  }
+  ultSpec.radiusPx = v.radiusPx;
+  ultSpec.damage = v.damage;
+  ultSpec.status = v.status ?? null;
+  ultSpec.stacks = v.stacks;
+  ultSpec.freeze = v.freeze;
+  ultSpec.knockback = v.knockback;
+  areaBurst(state, x, y, ultSpec);
+}
+
+/** Charges come back one at a time (GDD §4.1). */
+function rechargeCast(state: SimState): void {
+  const p = state.player;
+  if (p.castCharges >= RIFT_SHOT.charges) return;
+  p.castRechargeTicks--;
+  if (p.castRechargeTicks > 0) return;
+  p.castCharges++;
+  if (p.castCharges < RIFT_SHOT.charges)
+    p.castRechargeTicks = secondsToTicks(RIFT_SHOT.rechargeSec);
+}
+
 export function playerActionSystem(state: SimState, input: InputFrame): void {
   const eid = state.playerEid;
   if (eid < 0) return;
@@ -333,6 +462,7 @@ export function playerActionSystem(state: SimState, input: InputFrame): void {
     );
   }
   if (p.action === PlayerAction.Idle && p.comboWindowTicks > 0) p.comboWindowTicks--;
+  rechargeCast(state);
 
   tryBufferedAction(state, input);
   const t = p.actionTicks;
@@ -357,6 +487,8 @@ export function playerActionSystem(state: SimState, input: InputFrame): void {
         break;
       }
       const [w, a, r] = attackPhaseTicks(hit);
+      // The finisher of a full combo can trigger evolutions (Phoenix Blade, GDD §4.9).
+      if (t === w && p.comboIndex === BRAND_BLADE.combo.length - 1) fireOnComboFinisher(state);
       if (t >= w && t < w + a) {
         const lungeSpeed = hit.lungePx / (a * TICK_DT_SEC);
         c.velX[eid] = p.dirX * lungeSpeed;
@@ -400,6 +532,21 @@ export function playerActionSystem(state: SimState, input: InputFrame): void {
         );
       }
       if (t + 1 >= w + a + r) p.action = PlayerAction.Idle;
+      break;
+    }
+    case PlayerAction.Cast: {
+      const [w, r] = castPhaseTicks();
+      controlMovement(state, input, RIFT_SHOT.moveFactor);
+      if (t === w) fireCast(state);
+      if (t + 1 >= w + r + 1) p.action = PlayerAction.Idle;
+      break;
+    }
+    case PlayerAction.Ultimate: {
+      const [w, r] = ultPhaseTicks();
+      c.velX[eid] = 0;
+      c.velY[eid] = 0;
+      if (t === w) fireUltimate(state);
+      if (t + 1 >= w + r + 1) p.action = PlayerAction.Idle;
       break;
     }
   }

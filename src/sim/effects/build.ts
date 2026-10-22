@@ -1,9 +1,12 @@
 import { boonById, boonValue } from '../../content/boons';
+import { evolutionById } from '../../content/evolutions';
 import { relicById, relicValue } from '../../content/relics';
 import type {
+  BeingId,
   EffectAction,
   EffectDef,
   EffectTrigger,
+  ProjectileKind,
   Rarity,
   StatId,
   StatusId,
@@ -32,6 +35,18 @@ export type ResolvedAction =
       status: StatusId | null;
       stacks: number;
       freeze: boolean;
+      consumeStatuses: boolean;
+    }
+  | {
+      type: 'projectile';
+      kind: ProjectileKind;
+      damage: number;
+      speedPxPerSec: number;
+      radiusPx: number;
+      rangePx: number;
+      pierce: boolean;
+      status: StatusId | null;
+      stacks: number;
     }
   | { type: 'heal'; amount: number }
   | { type: 'refundStamina'; amount: number };
@@ -40,7 +55,7 @@ export interface CompiledEffect {
   /** Boon or relic id, for debugging and UI. */
   sourceId: string;
   trigger: EffectTrigger;
-  source: 'attack' | 'special' | 'any';
+  source: 'attack' | 'special' | 'cast' | 'any';
   chance: number;
   minBurnStacks: number;
   requireFrozen: boolean;
@@ -61,6 +76,11 @@ export interface CompiledBuild {
   onPerfectDash: CompiledEffect[];
   onDamaged: CompiledEffect[];
   onRoomClear: CompiledEffect[];
+  onComboFinisher: CompiledEffect[];
+  onFreeze: CompiledEffect[];
+  onBurnApplied: CompiledEffect[];
+  /** Being with the most boons (ties: the one picked most recently), or null without boons. */
+  dominantBeing: BeingId | null;
 }
 
 export function emptyStats(): Stats {
@@ -72,6 +92,7 @@ export function emptyStats(): Stats {
     damageVsChilledPerStack: 0,
     burnDamage: 0,
     freezeDuration: 0,
+    castDamage: 0,
     allDamage: 0,
     critChance: 0,
     critDamage: 0,
@@ -109,6 +130,19 @@ function addEffects(
         status: a.status ?? null,
         stacks: v(a.stacks),
         freeze: a.freeze === true,
+        consumeStatuses: a.consumeStatuses === true,
+      };
+    } else if (a.type === 'projectile') {
+      action = {
+        type: 'projectile',
+        kind: a.kind,
+        damage: v(a.damage),
+        speedPxPerSec: a.speedPxPerSec,
+        radiusPx: a.radiusPx,
+        rangePx: a.rangePx,
+        pierce: a.pierce,
+        status: a.status ?? null,
+        stacks: v(a.stacks),
       };
     } else if (a.type === 'heal') action = { type: 'heal', amount: v(a.amount) };
     else action = { type: 'refundStamina', amount: v(a.amount) };
@@ -124,9 +158,30 @@ function addEffects(
   }
 }
 
+/** Counts boons per being (a duo counts for both); later picks win ties (GDD §4.1). */
+export function dominantBeing(boons: readonly OwnedBoon[]): BeingId | null {
+  const counts = new Map<BeingId, number>();
+  let best: BeingId | null = null;
+  let bestCount = 0;
+  for (const owned of boons) {
+    const def = boonById(owned.id);
+    if (!def) continue;
+    for (const being of def.partner ? [def.being, def.partner] : [def.being]) {
+      const n = (counts.get(being) ?? 0) + 1;
+      counts.set(being, n);
+      if (n >= bestCount) {
+        best = being;
+        bestCount = n;
+      }
+    }
+  }
+  return best;
+}
+
 export function compileBuild(
   boons: readonly OwnedBoon[],
   relics: readonly OwnedRelic[] = [],
+  evolutions: readonly string[] = [],
 ): CompiledBuild {
   const build: CompiledBuild = {
     stats: emptyStats(),
@@ -136,6 +191,10 @@ export function compileBuild(
     onPerfectDash: [],
     onDamaged: [],
     onRoomClear: [],
+    onComboFinisher: [],
+    onFreeze: [],
+    onBurnApplied: [],
+    dominantBeing: dominantBeing(boons),
   };
   for (const owned of boons) {
     const def = boonById(owned.id);
@@ -157,6 +216,13 @@ export function compileBuild(
         : typeof ref === 'number'
           ? ref
           : relicValue(def, ref, owned.stacks),
+    );
+  }
+  for (const id of evolutions) {
+    const def = evolutionById(id);
+    if (!def) continue;
+    addEffects(build, def.id, def.effects, (ref, fallback = 0) =>
+      typeof ref === 'number' ? ref : fallback,
     );
   }
   return build;

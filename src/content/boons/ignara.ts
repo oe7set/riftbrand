@@ -37,6 +37,25 @@ export const IGNARA_BOONS: readonly BoonDef[] = [
     ],
   }),
   defineBoon({
+    id: 'ember_shot',
+    being: 'ignara',
+    slot: 'cast',
+    tags: ['fire', 'cast'],
+    values: {
+      stacks: { base: 2, step: 1, int: true },
+      damage: { base: 0.25, step: 0.15, percent: true },
+    },
+    effects: [
+      {
+        kind: 'trigger',
+        trigger: 'onHit',
+        source: 'cast',
+        action: { type: 'applyStatus', status: 'burn', stacks: 'stacks' },
+      },
+      { kind: 'stat', stat: 'castDamage', add: 'damage' },
+    ],
+  }),
+  defineBoon({
     id: 'spark_trail',
     being: 'ignara',
     slot: 'dash',

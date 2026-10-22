@@ -77,7 +77,7 @@ describe('run economy', () => {
     const node = run.map.nodes[run.map.layers[0]?.[0] ?? 0];
     if (!node) throw new Error('no node');
     run.currentNodeId = node.id;
-    completeRoom(run, { hp: 100, kills: 4, timeSec: 20, shards: 12 });
+    completeRoom(run, { hp: 100, kills: 4, timeSec: 20, shards: 12, ultCharge: 0 });
     expect(run.shards).toBe(12 + 10);
   });
 

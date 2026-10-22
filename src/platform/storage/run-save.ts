@@ -3,7 +3,7 @@ import type { RunState } from '../../sim/run/run-state';
 import type { KeyValueStore } from './settings';
 
 const STORAGE_KEY = 'riftbrand.run';
-export const RUN_SAVE_VERSION = 3;
+export const RUN_SAVE_VERSION = 4;
 
 const mapNodeSchema = z.object({
   id: z.number().int().min(0),
@@ -28,6 +28,8 @@ const runSchema = z.object({
   boons: z.array(
     z.object({ id: z.string(), rarity: z.enum(['common', 'rare', 'epic', 'heroic']) }),
   ),
+  evolutions: z.array(z.string()),
+  ultCharge: z.number().min(0).max(1),
   relics: z.array(z.object({ id: z.string(), stacks: z.number().int().min(1) })),
   shards: z.number().int().min(0),
   shopBought: z.array(z.number().int().min(0)),
@@ -57,11 +59,17 @@ function migrate2to3(raw: { version: number; run?: Record<string, unknown> }): u
   };
 }
 
+/** v3 → v4: weapon evolutions and the carried ultimate meter were added (M2.4). */
+function migrate3to4(raw: { version: number; run?: Record<string, unknown> }): unknown {
+  return { ...raw, version: 4, run: { ...raw.run, evolutions: [], ultCharge: 0 } };
+}
+
 export function migrateRunSave(raw: unknown): RunState | null {
   if (typeof raw !== 'object' || raw === null) return null;
   let data = raw as { version?: unknown; run?: Record<string, unknown> };
   if (data.version === 1) data = migrate1to2(data as { version: number }) as typeof data;
   if (data.version === 2) data = migrate2to3(data as { version: number }) as typeof data;
+  if (data.version === 3) data = migrate3to4(data as { version: number }) as typeof data;
   if (data.version !== RUN_SAVE_VERSION) return null;
   raw = data;
   const parsed = saveSchema.safeParse(raw);

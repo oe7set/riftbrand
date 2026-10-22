@@ -392,7 +392,22 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Ereignisse** (`content/events/`): Optionen mit Bedingungen (`requiresShards`, `requiresHpAbove`) und Ergebnissen (`heal`, `damage`, `shards`, `relic`, `maxHp`). `applyOutcomes` wendet sie an und gibt sie für die Anzeige aufgelöst zurück.
 - **Speicherstand v3** mit Migrationskette v1 → v2 → v3.
 
-## 23. Risiken und Gegenmaßnahmen
+## 23. Stand nach M2.4 (Neue Aktionen)
+- **Riss-Geschoss** (`content/abilities.ts` → `RIFT_SHOT`): Wurf mit 2 Ladungen, die nacheinander in je 3 s zurückkommen (`PlayerState.castCharges`, `castRechargeTicks`). Eigene Aktion `PlayerAction.Cast` mit kurzem Windup, Zielhilfe mit großer Reichweite, Dash bzw. Ultimate brechen die Erholung ab.
+- **Spieler-Geschosse** (`sim/combat/player-projectiles.ts`): Gleiche Komponenten wie Gegner-Geschosse plus `projPierce`, `projStatus`/`projStacks`, `projIsCast` und `projSwing` (eine Treffer-ID pro Geschoss, damit durchdringende Geschosse jeden Gegner nur einmal treffen). `projectileSystem` prüft sie gegen Gegner über den Spatial Hash.
+- **Brandausbruch** (`BRAND_BURST`): Die Leiste `PlayerState.ultCharge` (0..1) füllt sich durch ausgeteilten Schaden (jede Quelle außer der Ultimate selbst, inkl. Brand-Ticks) und erlittenen Schaden (zehnmal stärker gewichtet). Auslösen: Windup mit Unverwundbarkeit, dann `areaBurst` mit der Variante des **dominanten Wesens** (`CompiledBuild.dominantBeing`: meiste Segen, bei Gleichstand der zuletzt gewählte; ohne Segen eine neutrale Variante). Die Leiste wird über `RoomSetup`/`RoomResult` von Raum zu Raum getragen.
+- **Neue Schadensquellen:** `cast` (eigener Stat `castDamage`, löst `onHit` mit `source: 'cast'` aus) und `ultimate` (kein `onHit`, keine Aufladung).
+- **Effekt-System erweitert:**
+  - neue Trigger `onComboFinisher`, `onFreeze`, `onBurnApplied`
+  - neue Aktion `projectile` (z. B. Feuervogel), `nova` mit `consumeStatuses` (verbraucht Brand und Frost am Ziel, bevor die Explosion wirkt, damit sie sich nicht selbst neu auslöst)
+  - `areaBurst()` ist die gemeinsame Flächen-Schadensfunktion von Novas und Ultimate
+- **Duo-Segen** (`content/boons/duos.ts`): normale `BoonDef` mit `partner` und `requires` (pro Gruppe mindestens ein besessener Segen). Sie sind nie im normalen Pool. Sind die Voraussetzungen erfüllt, ersetzt ein Duo mit 50 % Chance (`DUO_OFFER.chance`) die letzte Option eines Angebots von einem der beiden Wesen. Das Würfeln geschieht nach den normalen Optionen, damit bestehende Angebote je Seed gleich bleiben.
+- **Evolutionen** (`content/evolutions/`): `EvolutionDef` mit Waffe, benötigten Segen und Relikten sowie festen Effekten. `compileBuild(boons, relics, evolutions)` nimmt sie mit auf. `availableEvolutions(run)` liefert, was angeboten werden darf: am Altar vor der Segen-Wahl (annehmen oder später) und in der Rast als Alternative zur Heilung.
+- **Touch-Wurf:** Der Wurf-Button löst beim **Loslassen** aus (`fireOnRelease`). Ziehen zeigt eine Zielvorschau mit der Reichweite; die Richtung geht über `releaseAimPending` genau in den nächsten Sim-Frame. Tippen ohne Ziehen nutzt die Zielhilfe. Ein abgebrochener Pointer feuert nicht.
+- **HUD:** Wurf-Ladungen rechts neben der Ausdauer (die nächste Ladung füllt sich sichtbar), die Ultimate-Leiste darunter. Auf Touch zeigen die Buttons Ladungs-Punkte bzw. eine wachsende Füllscheibe; ein voller Brandausbruch pulsiert.
+- **Speicherstand v4:** `evolutions` und `ultCharge`, Migration v3 → v4.
+
+## 24. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

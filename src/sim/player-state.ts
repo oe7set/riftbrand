@@ -5,6 +5,8 @@ export const PlayerAction = {
   Special: 2,
   Dash: 3,
   Dead: 4,
+  Cast: 5,
+  Ultimate: 6,
 } as const;
 
 export type PlayerActionId = (typeof PlayerAction)[keyof typeof PlayerAction];
@@ -14,6 +16,8 @@ export const Buffered = {
   Attack: 1,
   Special: 2,
   Dash: 3,
+  Cast: 4,
+  Ultimate: 5,
 } as const;
 
 export type BufferedId = (typeof Buffered)[keyof typeof Buffered];
@@ -43,6 +47,11 @@ export interface PlayerState {
   guaranteedCrit: boolean;
   invulnTicks: number;
   kills: number;
+  /** Rift shot charges (GDD §4.1) and ticks until the next one returns. */
+  castCharges: number;
+  castRechargeTicks: number;
+  /** Ultimate meter 0..1; carried between rooms by the run. */
+  ultCharge: number;
 }
 
 export function createPlayerState(): PlayerState {
@@ -64,5 +73,8 @@ export function createPlayerState(): PlayerState {
     guaranteedCrit: false,
     invulnTicks: 0,
     kills: 0,
+    castCharges: 0,
+    castRechargeTicks: 0,
+    ultCharge: 0,
   };
 }
