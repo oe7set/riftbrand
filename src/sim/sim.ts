@@ -12,6 +12,9 @@ import {
   Team,
 } from './ecs/components';
 import { addComponents, createEntity, createWorld, destroyEntity, type World } from './ecs/world';
+import { type CompiledBuild, compileBuild, type OwnedBoon } from './effects/build';
+import { MAX_EFFECT_DEPTH } from './effects/runtime';
+import { statusSystem } from './effects/status';
 import { clearEvents, createEventBuffer, Ev, type EventBuffer, pushEvent } from './events';
 import { createPlayerState, type PlayerState } from './player-state';
 import { createRngStreams, nextRange, type RngStreams } from './rng/rng';
@@ -50,6 +53,14 @@ export interface SimState {
   readonly player: PlayerState;
   readonly waves: WaveState;
   readonly room: RoomState;
+  /** Owned boons and their compiled form (stats + trigger lists). */
+  boons: OwnedBoon[];
+  build: CompiledBuild;
+  /** Nesting depth of effects triggering effects, and the per-tick budget used. */
+  effectDepth: number;
+  effectsThisTick: number;
+  /** One spatial query buffer per effect depth, so nested effects don't clobber outer loops. */
+  readonly effectQueryBuffers: Int32Array[];
   /** Monotonic id per player attack, so one swing damages each enemy at most once. */
   swingCounter: number;
   meleeTokensInUse: number;
@@ -84,6 +95,11 @@ export function createSim(seed: number, setup?: RoomSetup): SimState {
     player: createPlayerState(),
     waves: createWaveState(),
     room: createRoomState(),
+    boons: [],
+    build: compileBuild([]),
+    effectDepth: 0,
+    effectsThisTick: 0,
+    effectQueryBuffers: Array.from({ length: MAX_EFFECT_DEPTH + 1 }, () => new Int32Array(512)),
     swingCounter: 0,
     meleeTokensInUse: 0,
     rangedTokensInUse: 0,
@@ -94,6 +110,7 @@ export function createSim(seed: number, setup?: RoomSetup): SimState {
     debug: { godMode: false, wavesEnabled: true },
   };
   if (setup) {
+    setBuild(state, setup.boons);
     const t = setup.template;
     loadObstacles(state.room, t.obstacles);
     loadSpawnPoints(state.room, t.spawnPoints);
@@ -203,6 +220,12 @@ export function clearDrifters(state: SimState): void {
   }
 }
 
+/** Replaces the player's boons and recompiles the build (room start, debug). */
+export function setBuild(state: SimState, boons: readonly OwnedBoon[]): void {
+  state.boons = boons.map((b) => ({ ...b }));
+  state.build = compileBuild(state.boons);
+}
+
 /** Advances the simulation by exactly one fixed tick. */
 export function stepSim(state: SimState, input: InputFrame): void {
   state.tick++;
@@ -217,9 +240,11 @@ export function stepSim(state: SimState, input: InputFrame): void {
     state.freezeTicks--;
     return;
   }
+  state.effectsThisTick = 0;
   rebuildSpatialHash(state);
   playerActionSystem(state, input);
   enemyAiSystem(state);
+  statusSystem(state);
   drifterAiSystem(state);
   movementSystem(state);
   projectileSystem(state);

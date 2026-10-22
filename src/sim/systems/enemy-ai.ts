@@ -3,6 +3,7 @@ import type { EnemyDef } from '../../content/schema';
 import { damagePlayer, releaseToken } from '../combat/damage';
 import { AiState, C, RenderKind, Team, Token } from '../ecs/components';
 import { addComponents } from '../ecs/world';
+import { chillSpeedFactor } from '../effects/status';
 import { Ev, pushEvent } from '../events';
 import { nextFloat, nextRange } from '../rng/rng';
 import { MAX_MELEE_TOKENS, MAX_RANGED_TOKENS, type SimState, spawnEntity } from '../sim';
@@ -104,6 +105,14 @@ export function enemyAiSystem(state: SimState): void {
       if (c.poiseRegenTicks[eid] === 0) c.poise[eid] = def.poise;
     }
 
+    // Frozen solid: no movement, no attacks, timers paused (GDD: Vaelis).
+    if ((c.frozenTicks[eid] as number) > 0) {
+      c.aiTicks[eid] = ticks - 1;
+      c.velX[eid] = 0;
+      c.velY[eid] = 0;
+      continue;
+    }
+
     if (state.gameOver) {
       c.velX[eid] = 0;
       c.velY[eid] = 0;
@@ -116,7 +125,7 @@ export function enemyAiSystem(state: SimState): void {
       case AiState.Position: {
         if ((c.aiCooldownTicks[eid] as number) > 0)
           c.aiCooldownTicks[eid] = (c.aiCooldownTicks[eid] as number) - 1;
-        const speed = def.speedPxPerSec;
+        const speed = def.speedPxPerSec * chillSpeedFactor(state, eid);
         if (dist > def.keepDistanceMaxPx) {
           c.velX[eid] = ux * speed;
           c.velY[eid] = uy * speed;

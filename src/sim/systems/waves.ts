@@ -194,7 +194,7 @@ function hordeSystem(state: SimState): void {
     // Survived: every remaining enemy burns away at once, the payoff of a horde room.
     w.pendingCount = 0;
     for (let eid = 0; eid < state.world.highWater; eid++) {
-      if (((state.world.masks[eid] as number) & C.Enemy) !== 0) killEnemy(state, eid, 0, -1);
+      if (((state.world.masks[eid] as number) & C.Enemy) !== 0) killEnemy(state, eid, 0, -1, false);
     }
     clearRoom(state);
     return;
@@ -280,7 +280,7 @@ export function forceClearRoom(state: SimState): void {
   const room = state.room;
   state.waves.pendingCount = 0;
   for (let eid = 0; eid < state.world.highWater; eid++) {
-    if (((state.world.masks[eid] as number) & C.Enemy) !== 0) killEnemy(state, eid, 0, -1);
+    if (((state.world.masks[eid] as number) & C.Enemy) !== 0) killEnemy(state, eid, 0, -1, false);
   }
   if (room.mode === 'arena') return;
   if (room.mode === 'waves') {

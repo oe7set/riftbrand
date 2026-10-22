@@ -59,6 +59,7 @@ export function generateMap(rng: Rng, biome: BiomeDef): RunMap {
         // No rest right before the guaranteed rest layer; that would be a wasted choice.
         if (layer >= biome.restMinLayer && layer < restLayer - 1)
           weights.push(['rest', biome.typeWeights.rest]);
+        if (layer >= biome.altarMinLayer) weights.push(['altar', biome.typeWeights.altar]);
         type = pickWeighted(rng, weights);
       }
       const slot = (i + 0.5) / count;

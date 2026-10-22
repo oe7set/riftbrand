@@ -78,6 +78,7 @@ export function buildEncounter(
         pool: biome.enemyPool.filter((t) => ENEMIES[t]?.role !== 'bruiser'),
       };
     case 'rest':
+    case 'altar':
       return { kind: 'none' };
   }
 }

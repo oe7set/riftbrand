@@ -1,10 +1,13 @@
 import { EMBER_WASTES } from '../../content/biomes/ember-wastes';
+import { BEING_IDS } from '../../content/boons/beings';
 import { ROOMS } from '../../content/rooms';
-import type { RoomTemplateDef } from '../../content/schema';
+import type { Rarity, RoomTemplateDef } from '../../content/schema';
 import { TUNING } from '../../content/tuning';
+import type { OwnedBoon } from '../effects/build';
 import { createRng, hashString, nextInt } from '../rng/rng';
 import { buildEncounter, type Encounter } from './encounter';
 import { generateMap, type MapNode, type RunMap } from './map';
+import { addBoon, type BoonOffer, rewardBeing, rewardRarityBonus, rollBoonOffer } from './rewards';
 
 export type RunStatus = 'map' | 'room' | 'won' | 'lost';
 
@@ -26,6 +29,7 @@ export interface RunState {
   roomsCleared: number;
   /** Accumulated play time, for the result screen. */
   playTimeSec: number;
+  boons: OwnedBoon[];
 }
 
 export interface RoomSetup {
@@ -33,6 +37,7 @@ export interface RoomSetup {
   encounter: Encounter;
   playerHp: number;
   playerMaxHp: number;
+  boons: OwnedBoon[];
 }
 
 export function createRun(seed: number): RunState {
@@ -50,6 +55,7 @@ export function createRun(seed: number): RunState {
     kills: 0,
     roomsCleared: 0,
     playTimeSec: 0,
+    boons: [],
   };
 }
 
@@ -85,6 +91,7 @@ export function roomSetupFor(run: RunState, node: MapNode): RoomSetup {
     encounter: buildEncounter(rng, EMBER_WASTES, node.type, node.layer),
     playerHp: run.hp,
     playerMaxHp: run.maxHp,
+    boons: run.boons,
   };
 }
 
@@ -103,6 +110,12 @@ export function completeRoom(run: RunState, result: RoomResult): void {
   run.status = node?.type === 'boss' ? 'won' : 'map';
 }
 
+/** Altar nodes have no fight; the boon pick completes them. */
+export function completeAltar(run: RunState): void {
+  run.roomsCleared++;
+  run.status = 'map';
+}
+
 /** Rest node: heal a fraction of max HP (the weapon-upgrade alternative comes with M2.3). */
 export function rest(run: RunState): number {
   const healed = Math.min(
@@ -113,6 +126,26 @@ export function rest(run: RunState): number {
   run.roomsCleared++;
   run.status = 'map';
   return healed;
+}
+
+/** The boon offer a node grants, or null if it grants none. */
+export function offerFor(run: RunState, node: MapNode): BoonOffer | null {
+  const bonus = rewardRarityBonus(node.type);
+  if (bonus === null) return null;
+  const being = rewardBeing(run.seed, node.id);
+  const offer = rollBoonOffer(run.seed, node.id, being, run.boons, bonus);
+  if (offer.options.length > 0) return offer;
+  // This being has nothing left to give: another one steps in, or there is no reward.
+  for (const other of BEING_IDS) {
+    if (other === being) continue;
+    const fallback = rollBoonOffer(run.seed, node.id, other, run.boons, bonus);
+    if (fallback.options.length > 0) return fallback;
+  }
+  return null;
+}
+
+export function pickBoon(run: RunState, pick: { id: string; rarity: Rarity }): void {
+  run.boons = addBoon(run.boons, pick);
 }
 
 export function failRun(run: RunState, result: RoomResult): void {
