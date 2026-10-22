@@ -361,4 +361,104 @@ export class Effects {
       scaleEnd: 40,
     });
   }
+
+  /** Single ember drifting up from a burning enemy. */
+  ember(x: number, y: number, radius: number): void {
+    this.fx.emit({
+      texture: this.tex.dot,
+      x: x + rand(-radius, radius) * 0.7,
+      y: y + rand(-radius, radius) * 0.5,
+      vx: rand(-20, 20),
+      vy: rand(-90, -40),
+      lifeSec: rand(0.35, 0.6),
+      color: rand(0, 1) < 0.5 ? PALETTE.ember : 0xffd36b,
+      scaleStart: rand(0.15, 0.3),
+      flags: PFlag.Shrink,
+    });
+  }
+
+  statusPuff(x: number, y: number, color: number): void {
+    for (let i = 0; i < 6; i++) {
+      const a = rand(0, Math.PI * 2);
+      this.fx.emit({
+        texture: this.tex.dot,
+        x,
+        y,
+        vx: Math.cos(a) * 80,
+        vy: Math.sin(a) * 80,
+        lifeSec: 0.25,
+        color,
+        scaleStart: 0.3,
+        flags: PFlag.Shrink,
+      });
+    }
+  }
+
+  freezeBurst(x: number, y: number, radius: number): void {
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      const speed = rand(120, 260);
+      this.fx.emit({
+        texture: this.tex.spark,
+        x,
+        y,
+        vx: Math.cos(a) * speed,
+        vy: Math.sin(a) * speed,
+        lifeSec: rand(0.2, 0.35),
+        color: i % 2 === 0 ? 0xffffff : PALETTE.frost,
+        scaleStart: 0.5,
+        scaleEnd: 0.1,
+        dragPerSec: 0.02,
+        stretch: 1.8,
+        flags: PFlag.AlignToVelocity,
+      });
+    }
+    this.fx.emit({
+      texture: this.tex.ring,
+      x,
+      y,
+      lifeSec: 0.3,
+      color: PALETTE.frost,
+      scaleStart: radius / 16,
+      scaleEnd: (radius / 16) * 2.5,
+    });
+  }
+
+  /** Effect area burst (boon novas): ring sized to the actual radius. */
+  nova(x: number, y: number, radius: number, color: number): void {
+    this.ground.emit({
+      texture: this.tex.disc,
+      x,
+      y,
+      lifeSec: 0.25,
+      color,
+      alpha: 0.25,
+      scaleStart: radius / 32,
+      scaleEnd: radius / 16,
+    });
+    this.fx.emit({
+      texture: this.tex.ring,
+      x,
+      y,
+      lifeSec: 0.3,
+      color,
+      scaleStart: radius / 40,
+      scaleEnd: radius / 15,
+    });
+  }
+
+  heal(x: number, y: number): void {
+    for (let i = 0; i < 8; i++) {
+      this.fx.emit({
+        texture: this.tex.dot,
+        x: x + rand(-14, 14),
+        y: y + rand(-6, 10),
+        vy: rand(-80, -40),
+        lifeSec: 0.5,
+        color: PALETTE.heal,
+        scaleStart: 0.3,
+        flags: PFlag.Shrink,
+      });
+    }
+  }
 }

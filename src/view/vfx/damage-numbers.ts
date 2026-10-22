@@ -18,7 +18,7 @@ function installFont(): void {
       fill: 0xffffff,
       stroke: { color: 0x07060d, width: 5 },
     },
-    chars: '0123456789!',
+    chars: '0123456789!+',
     resolution: 2,
   });
   fontInstalled = true;
@@ -46,18 +46,28 @@ export class DamageNumbers {
   }
 
   spawn(x: number, y: number, amount: number, crit: boolean): void {
+    this.spawnText(
+      x,
+      y,
+      crit ? `${Math.round(amount)}!` : String(Math.round(amount)),
+      crit ? PALETTE.crit : PALETTE.damageText,
+      crit ? 0.75 : 0.5,
+    );
+  }
+
+  spawnText(x: number, y: number, label: string, color: number, scale: number): void {
     if (!this.enabled) return;
     const i = this.next;
     this.next = (this.next + 1) % POOL_SIZE;
     const text = this.texts[i] as BitmapText;
-    text.text = crit ? `${Math.round(amount)}!` : String(Math.round(amount));
-    text.tint = crit ? PALETTE.crit : PALETTE.damageText;
+    text.text = label;
+    text.tint = color;
     // Slight horizontal scatter so multi-hits don't overlap exactly.
     text.position.set(x + ((i % 5) - 2) * 6, y - 18);
     text.visible = true;
     this.life[i] = LIFE_SEC;
     this.vy[i] = -70;
-    this.baseScale[i] = crit ? 0.75 : 0.5;
+    this.baseScale[i] = scale;
   }
 
   update(dtSec: number): void {

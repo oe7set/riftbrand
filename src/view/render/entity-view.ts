@@ -21,6 +21,8 @@ interface Slot {
   teleFill: Sprite;
   hpBack: Sprite;
   hpFill: Sprite;
+  /** Status aura: ember glow (burn) or ice shell (frozen). */
+  aura: Sprite;
   generation: number;
 }
 
@@ -79,6 +81,7 @@ export class EntityView {
       body: make(texture, this.bodyLayer),
       hpBack: make(this.textures.white, this.overlayLayer),
       hpFill: make(this.textures.white, this.overlayLayer),
+      aura: make(this.textures.disc, this.overlayLayer),
       generation: -1,
     };
     slot.hpBack.tint = PALETTE.hpBack;
@@ -94,6 +97,7 @@ export class EntityView {
     slot.teleFill.visible = false;
     slot.hpBack.visible = false;
     slot.hpFill.visible = false;
+    slot.aura.visible = false;
   }
 
   /** `alpha` interpolates between the previous and the current tick (0..1). */
@@ -167,6 +171,8 @@ export class EntityView {
 
       if ((mask & C.Enemy) !== 0) this.syncEnemyExtras(sim, eid, s, x, y);
       else {
+        s.body.tint = 0xffffff;
+        s.aura.visible = false;
         s.teleBack.visible = false;
         s.teleFill.visible = false;
         s.hpBack.visible = false;
@@ -179,11 +185,45 @@ export class EntityView {
     }
   }
 
+  /** Frozen: icy tint plus a translucent shell. Chilled: cooler tint. Burning: flickering glow. */
+  private syncStatus(sim: SimState, eid: number, s: Slot, x: number, y: number, r: number): void {
+    const c = sim.c;
+    const frozen = (c.frozenTicks[eid] as number) > 0;
+    const chill = c.chillStacks[eid] as number;
+    const burn = c.burnStacks[eid] as number;
+    s.body.tint = frozen
+      ? PALETTE.frozen
+      : chill > 0
+        ? chill >= 3
+          ? PALETTE.chillHeavy
+          : PALETTE.chillLight
+        : 0xffffff;
+    const aura = s.aura;
+    if (frozen) {
+      aura.visible = true;
+      aura.texture = this.textures.disc;
+      aura.tint = PALETTE.frozen;
+      aura.alpha = 0.35;
+      aura.position.set(x, y);
+      aura.scale.set((r * 1.35) / BAKE_RADIUS_PX);
+    } else if (burn > 0) {
+      aura.visible = true;
+      aura.texture = this.textures.dot;
+      aura.tint = PALETTE.ember;
+      aura.alpha = 0.25 + 0.15 * Math.sin(this.time * 18 + eid) + Math.min(0.3, burn * 0.03);
+      aura.position.set(x, y);
+      aura.scale.set((r * 2.2) / BAKE_RADIUS_PX);
+    } else {
+      aura.visible = false;
+    }
+  }
+
   private syncEnemyExtras(sim: SimState, eid: number, s: Slot, x: number, y: number): void {
     const c = sim.c;
     const def = ENEMIES[c.enemyType[eid] as number];
     if (!def) return;
     const r = c.radius[eid] as number;
+    this.syncStatus(sim, eid, s, x, y, r);
 
     const hp = c.hp[eid] as number;
     const maxHp = c.maxHp[eid] as number;

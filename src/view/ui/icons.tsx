@@ -38,6 +38,13 @@ export function NodeIcon({ type }: { type: RoomType }) {
           <path d="M5 21 L19 17 M5 17 L19 21" />
         </g>
       )}
+      {type === 'altar' && (
+        <g {...STROKE}>
+          <path d="M12 3 L15 9 L12 13 L9 9 Z" />
+          <path d="M6 21 L8 14 L16 14 L18 21 Z" />
+          <path d="M4 21 L20 21" />
+        </g>
+      )}
       {type === 'boss' && (
         <g {...STROKE}>
           <path d="M3 18 L5 7 L9.5 12 L12 5 L14.5 12 L19 7 L21 18 Z" />
