@@ -28,6 +28,7 @@ export const PALETTE = {
   frost: 0x8fe3ff,
   burnText: 0xffa64d,
   heal: 0x6bff9a,
+  shard: 0xffd36b,
   debugCollider: 0x39ff88,
   touchBase: 0xffffff,
   touchAccent: 0x7ff6ff,

@@ -1,15 +1,13 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { boonById, boonDescParams } from '../../content/boons';
 import { BEINGS } from '../../content/boons/beings';
-import type { BoonSlot, RoomType } from '../../content/schema';
+import { relicById, relicDescParams } from '../../content/relics';
+import type { BoonSlot, EventDef, RoomType } from '../../content/schema';
 import { type TranslationKey, t } from '../../shared/i18n';
+import type { OwnedRelic } from '../../sim/effects/build';
+import { nodeReward, relicStacks, type ShopItem } from '../../sim/run/economy';
 import type { MapNode } from '../../sim/run/map';
-import {
-  type BoonOffer,
-  type BoonOption,
-  rewardBeing,
-  rewardRarityBonus,
-} from '../../sim/run/rewards';
+import type { BoonOffer, BoonOption } from '../../sim/run/rewards';
 import { availableNodes, type RunState } from '../../sim/run/run-state';
 import { NodeIcon } from './icons';
 
@@ -29,7 +27,25 @@ export type Screen =
   | { kind: 'map'; run: RunState; onEnter(nodeId: number): void }
   | { kind: 'rest'; run: RunState; healAmount: number; onRest(): void }
   | { kind: 'victory'; run: RunState; onTitle(): void }
-  | { kind: 'boon'; offer: BoonOffer; onPick(option: BoonOption): void };
+  | { kind: 'boon'; offer: BoonOffer; onPick(option: BoonOption): void }
+  | { kind: 'relic'; options: string[]; owned: OwnedRelic[]; onPick(id: string): void }
+  | { kind: 'notice'; title: string; text: string; onContinue(): void }
+  | {
+      kind: 'shop';
+      run: RunState;
+      stock: ShopItem[];
+      onBuy(index: number): void;
+      onLeave(): void;
+    }
+  | {
+      kind: 'event';
+      run: RunState;
+      event: EventDef;
+      /** Result lines after a choice; null while choosing. */
+      results: string[] | null;
+      onChoose(optionId: string): void;
+      onContinue(): void;
+    };
 
 function formatTime(sec: number): string {
   const m = Math.floor(sec / 60);
@@ -93,6 +109,8 @@ function nodeState(run: RunState, node: MapNode, available: Set<number>): string
 }
 
 const NODE_NAME_KEYS: Record<RoomType, TranslationKey> = {
+  shop: 'node.shop.name',
+  event: 'node.event.name',
   altar: 'node.altar.name',
   combat: 'node.combat.name',
   elite: 'node.elite.name',
@@ -102,6 +120,8 @@ const NODE_NAME_KEYS: Record<RoomType, TranslationKey> = {
 };
 
 const NODE_DESC_KEYS: Record<RoomType, TranslationKey> = {
+  shop: 'node.shop.desc',
+  event: 'node.event.desc',
   altar: 'node.altar.desc',
   combat: 'node.combat.desc',
   elite: 'node.elite.desc',
@@ -141,6 +161,7 @@ function MapScreen({ run, onEnter }: Extract<Screen, { kind: 'map' }>) {
     <div class="rb-screen rb-map">
       <header class="rb-map-header">
         <div class="rb-map-title">{t('biome.ember_wastes.name')}</div>
+        <div class="rb-shards">◆ {t('map.shards', { n: run.shards })}</div>
         <div class="rb-map-hp">
           <div class="rb-hpbar">
             <div class="rb-hpbar-fill" style={{ width: `${(run.hp / run.maxHp) * 100}%` }} />
@@ -200,12 +221,7 @@ function MapScreen({ run, onEnter }: Extract<Screen, { kind: 'map' }>) {
                 onFocus={() => state === 'available' && setSelected(n.id)}
               >
                 <NodeIcon type={n.type} />
-                {rewardRarityBonus(n.type) !== null && (
-                  <span
-                    class="rb-node-reward"
-                    style={{ background: BEINGS[rewardBeing(run.seed, n.id)].css }}
-                  />
-                )}
+                <RewardMarker run={run} node={n} />
               </button>
             );
           })}
@@ -232,6 +248,16 @@ function MapScreen({ run, onEnter }: Extract<Screen, { kind: 'map' }>) {
       </footer>
     </div>
   );
+}
+
+/** Small dot on a map node telling which reward its fight grants (GDD §6.2: shown in advance). */
+function RewardMarker({ run, node }: { run: RunState; node: MapNode }) {
+  const reward = nodeReward(run.seed, node);
+  if (!reward) return null;
+  if (reward.kind === 'boon') {
+    return <span class="rb-node-reward" style={{ background: BEINGS[reward.being].css }} />;
+  }
+  return <span class={`rb-node-reward ${reward.kind === 'relic' ? 'is-relic' : 'is-shards'}`} />;
 }
 
 /** Compact list of owned boons, coloured by being. */
@@ -309,6 +335,200 @@ function BoonScreen({ offer, onPick }: Extract<Screen, { kind: 'boon' }>) {
   );
 }
 
+function RelicCard({
+  id,
+  stacks,
+  onClick,
+  autofocus,
+}: {
+  id: string;
+  stacks: number;
+  onClick(): void;
+  autofocus?: boolean;
+}) {
+  const def = relicById(id);
+  if (!def) return null;
+  return (
+    <button
+      type="button"
+      class={`rb-card rb-relic relic-${def.rarity}`}
+      data-autofocus={autofocus ? true : undefined}
+      onClick={onClick}
+    >
+      <div class="rb-card-head">
+        <span class="rb-card-slot">{t('reward.relic_title')}</span>
+        <span class="rb-card-rarity">{t(`relic_rarity.${def.rarity}` as TranslationKey)}</span>
+      </div>
+      <div class="rb-card-name">{t(`relic.${id}.name` as TranslationKey)}</div>
+      <div class="rb-card-desc">
+        {t(`relic.${id}.desc` as TranslationKey, relicDescParams(def, stacks + 1))}
+      </div>
+      {stacks > 0 && (
+        <div class="rb-card-replaces">{t('reward.stack', { n: stacks, m: stacks + 1 })}</div>
+      )}
+    </button>
+  );
+}
+
+function RelicScreen({ options, owned, onPick }: Extract<Screen, { kind: 'relic' }>) {
+  return (
+    <div class="rb-screen rb-center rb-boon-screen" style={{ '--being': '#ffe6b0' }}>
+      <div class="rb-being-name">{t('reward.relic_title')}</div>
+      <div class="rb-overlay-hint">{t('reward.choose_relic')}</div>
+      <Autofocus wide>
+        <div class="rb-cards">
+          {options.map((id, i) => (
+            <RelicCard
+              key={id}
+              id={id}
+              stacks={relicStacks(owned, id)}
+              autofocus={i === 0}
+              onClick={() => onPick(id)}
+            />
+          ))}
+        </div>
+      </Autofocus>
+    </div>
+  );
+}
+
+function NoticeScreen({ title, text, onContinue }: Extract<Screen, { kind: 'notice' }>) {
+  return (
+    <div class="rb-screen rb-center">
+      <div class="rb-overlay-title">{title}</div>
+      <div class="rb-overlay-hint">{text}</div>
+      <Autofocus>
+        <button type="button" class="rb-button rb-primary" data-autofocus onClick={onContinue}>
+          {t('common.continue')}
+        </button>
+      </Autofocus>
+    </div>
+  );
+}
+
+function ShopScreen({ run, stock, onBuy, onLeave }: Extract<Screen, { kind: 'shop' }>) {
+  return (
+    <div class="rb-screen rb-center rb-boon-screen" style={{ '--being': '#c46bff' }}>
+      <div class="rb-being-name">{t('shop.title')}</div>
+      <div class="rb-being-quote">„{t('shop.greeting')}“</div>
+      <div class="rb-shards rb-shards-big">◆ {t('map.shards', { n: run.shards })}</div>
+      <Autofocus wide>
+        <div class="rb-cards">
+          {stock.map((item, i) => {
+            const sold = run.shopBought.includes(i);
+            const affordable = run.shards >= item.price;
+            let name: string;
+            let desc: string;
+            let tag: string;
+            if (item.kind === 'relic') {
+              const def = relicById(item.id);
+              name = t(`relic.${item.id}.name` as TranslationKey);
+              desc = def
+                ? t(
+                    `relic.${item.id}.desc` as TranslationKey,
+                    relicDescParams(def, relicStacks(run.relics, item.id) + 1),
+                  )
+                : '';
+              tag = def ? t(`relic_rarity.${def.rarity}` as TranslationKey) : '';
+            } else if (item.kind === 'boon') {
+              const def = boonById(item.option.id);
+              name = t(`boon.${item.option.id}.name` as TranslationKey);
+              desc = def
+                ? t(
+                    `boon.${item.option.id}.desc` as TranslationKey,
+                    boonDescParams(def, item.option.rarity),
+                  )
+                : '';
+              tag = t('shop.boon_from', { being: t(`being.${item.being}.name` as TranslationKey) });
+            } else {
+              name = t('shop.heal');
+              desc = t('shop.heal_desc', { amount: Math.round(run.maxHp * item.fraction) });
+              tag = '';
+            }
+            const curse = item.kind === 'relic' && relicById(item.id)?.rarity === 'curse';
+            return (
+              <button
+                type="button"
+                key={`${item.kind}-${i}`}
+                class={`rb-card rb-shop-item ${curse ? 'relic-curse' : ''} ${sold ? 'is-sold' : ''}`}
+                disabled={sold || !affordable}
+                data-autofocus={i === 0 ? true : undefined}
+                onClick={() => onBuy(i)}
+              >
+                <div class="rb-card-head">
+                  <span class="rb-card-slot">{tag}</span>
+                  <span class="rb-card-rarity">
+                    {sold ? t('shop.sold') : `◆ ${t('shop.buy', { price: item.price })}`}
+                  </span>
+                </div>
+                <div class="rb-card-name">{name}</div>
+                <div class="rb-card-desc">{desc}</div>
+              </button>
+            );
+          })}
+        </div>
+      </Autofocus>
+      <button type="button" class="rb-button" onClick={onLeave}>
+        {t('shop.leave')}
+      </button>
+    </div>
+  );
+}
+
+function EventScreen({
+  run,
+  event,
+  results,
+  onChoose,
+  onContinue,
+}: Extract<Screen, { kind: 'event' }>) {
+  return (
+    <div class="rb-screen rb-center rb-event">
+      <div class="rb-overlay-title">{t(`event.${event.id}.title` as TranslationKey)}</div>
+      <div class="rb-event-text">{t(`event.${event.id}.text` as TranslationKey)}</div>
+      <Autofocus key={results ? 'results' : 'choices'}>
+        {results ? (
+          <div class="rb-menu">
+            {results.map((line) => (
+              <div class="rb-event-result" key={line}>
+                {line}
+              </div>
+            ))}
+            <button type="button" class="rb-button rb-primary" data-autofocus onClick={onContinue}>
+              {t('common.continue')}
+            </button>
+          </div>
+        ) : (
+          <div class="rb-menu rb-event-options">
+            {event.options.map((o, i) => {
+              const needsShards = o.requiresShards !== undefined && run.shards < o.requiresShards;
+              const needsHp = o.requiresHpAbove !== undefined && run.hp <= o.requiresHpAbove;
+              return (
+                <button
+                  type="button"
+                  key={o.id}
+                  class="rb-button rb-event-option"
+                  disabled={needsShards || needsHp}
+                  data-autofocus={i === 0 ? true : undefined}
+                  onClick={() => onChoose(o.id)}
+                >
+                  {t(`event.${event.id}.${o.id}` as TranslationKey)}
+                  {needsShards && (
+                    <small>{t('event.requires_shards', { n: o.requiresShards ?? 0 })}</small>
+                  )}
+                  {needsHp && (
+                    <small>{t('event.requires_hp', { n: o.requiresHpAbove ?? 0 })}</small>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </Autofocus>
+    </div>
+  );
+}
+
 function RestScreen({ run, healAmount, onRest }: Extract<Screen, { kind: 'rest' }>) {
   return (
     <div class="rb-screen rb-center">
@@ -361,6 +581,14 @@ export function UiRoot({ screen }: { screen: Screen }) {
       return <VictoryScreen {...screen} />;
     case 'boon':
       return <BoonScreen {...screen} />;
+    case 'relic':
+      return <RelicScreen {...screen} />;
+    case 'notice':
+      return <NoticeScreen {...screen} />;
+    case 'shop':
+      return <ShopScreen {...screen} />;
+    case 'event':
+      return <EventScreen {...screen} />;
     case 'none':
       return null;
   }

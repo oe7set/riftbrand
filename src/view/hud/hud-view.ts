@@ -38,6 +38,9 @@ export class HudView {
   private readonly banner: Text;
   private readonly vignette: Sprite;
   private readonly exitArrow: Sprite;
+  private readonly shardLabel: Text;
+  private shownShards = -1;
+  private shardPulseSec = 0;
   private shownLabel = '';
   private lagHp = 1;
   private bannerSec = 0;
@@ -84,7 +87,12 @@ export class HudView {
     this.exitArrow.tint = PALETTE.player;
     this.exitArrow.anchor.set(0.5);
     this.exitArrow.visible = false;
-    this.root.addChild(this.waveLabel, this.banner, this.exitArrow);
+    this.shardLabel = new Text({
+      text: '',
+      style: { ...style, fontSize: 15, fill: PALETTE.shard },
+    });
+    this.shardLabel.anchor.set(0, 0);
+    this.root.addChild(this.waveLabel, this.banner, this.exitArrow, this.shardLabel);
   }
 
   resize(width: number, height: number): void {
@@ -110,6 +118,10 @@ export class HudView {
     this.banner.text =
       total > 0 ? t('hud.wave_of', { n: wave, total }) : t('hud.wave', { n: wave });
     this.bannerSec = BANNER_SEC;
+  }
+
+  onShards(): void {
+    this.shardPulseSec = 0.25;
   }
 
   onRoomCleared(): void {
@@ -202,6 +214,13 @@ export class HudView {
       fill.alpha = amount >= 1 ? 1 : 0.45;
     }
 
+    if (sim.shards !== this.shownShards) {
+      this.shownShards = sim.shards;
+      this.shardLabel.text = `◆ ${sim.shards}`;
+    }
+    this.shardPulseSec = Math.max(0, this.shardPulseSec - dtSec);
+    this.shardLabel.position.set(MARGIN_PX + HP_WIDTH_PX + 12, MARGIN_PX - 3);
+    this.shardLabel.scale.set(1 + this.shardPulseSec * 0.8);
     const label = this.label(sim);
     if (label !== this.shownLabel) {
       this.shownLabel = label;
