@@ -26,6 +26,10 @@ export const Ev = {
   PlayerDied: 15,
   ProjectileExpired: 16,
   EnemyStagger: 17,
+  /** Encounter finished; the exit portal at (x, y) is open. */
+  RoomCleared: 18,
+  /** Player stepped into the open exit. */
+  ExitReached: 19,
 } as const;
 
 export type EventType = (typeof Ev)[keyof typeof Ev];

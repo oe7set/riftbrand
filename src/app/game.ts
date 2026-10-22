@@ -1,3 +1,4 @@
+import { EMBER_WASTES } from '../content/biomes/ember-wastes';
 import { ENEMIES } from '../content/enemies';
 import { AudioEngine } from '../platform/audio/audio-engine';
 import {
@@ -9,19 +10,31 @@ import {
   watchViewport,
 } from '../platform/display';
 import { Haptics } from '../platform/haptics';
+import { MenuAction } from '../platform/input/bindings';
 import { InputManager } from '../platform/input/input-manager';
+import { clearRun, loadRun, saveRun } from '../platform/storage/run-save';
 import {
   browserStore,
   loadSettings,
   type Settings,
   saveSettings,
 } from '../platform/storage/settings';
-import { resolveLocale, setLocale } from '../shared/i18n';
+import { resolveLocale, setLocale, t } from '../shared/i18n';
 import { Button, createInputFrame } from '../shared/input-frame';
-import { debugKillAllEnemies, debugNextWave, debugSpawnEnemy } from '../sim/debug';
+import { debugClearRoom, debugKillAllEnemies, debugNextWave, debugSpawnEnemy } from '../sim/debug';
 import { C } from '../sim/ecs/components';
 import { Ev, type EventBuffer } from '../sim/events';
 import { hashSim } from '../sim/hash';
+import {
+  completeRoom,
+  createRun,
+  enterNode,
+  failRun,
+  type RunState,
+  rest,
+  roomSeed,
+  roomSetupFor,
+} from '../sim/run/run-state';
 import {
   clearDrifters,
   createSim,
@@ -30,8 +43,10 @@ import {
   spawnDrifters,
   stepSim,
 } from '../sim/sim';
-import { TICK_DT_SEC } from '../sim/time';
+import { TICK_DT_SEC, TICK_RATE_HZ } from '../sim/time';
 import { GameView } from '../view/game-view';
+import { type NavDirection, navigate } from '../view/ui/spatial-nav';
+import { Ui } from '../view/ui/ui';
 import { DebugMenu, type DebugStats } from './debug/debug-menu';
 import { FeedbackDirector, type SlowMoRequest } from './feedback';
 import { FixedStepper } from './fixed-stepper';
@@ -45,7 +60,12 @@ const MAX_FRAME_DT_SEC = 0.25;
 const STATS_SMOOTHING = 0.05;
 /** Let the death animation and slow motion play before the overlay appears. */
 const DEATH_OVERLAY_DELAY_SEC = 1.1;
+/** Let the portal effect play before switching to the map. */
+const EXIT_TRANSITION_SEC = 0.35;
 const RESTART_BUTTONS = Button.Attack | Button.Dash | Button.Interact;
+
+/** Where the player is in the game flow (title → map ⇄ room/rest → victory or death). */
+type Mode = 'title' | 'map' | 'rest' | 'room' | 'arena' | 'victory';
 
 function randomSeed(): number {
   return crypto.getRandomValues(new Uint32Array(1))[0] ?? 1;
@@ -61,12 +81,14 @@ function seedFromUrl(): number | null {
 /** Test/debug hook for Playwright and the browser console. Read-only. */
 export interface RiftbrandDebugHandle {
   ready: boolean;
+  mode(): string;
   tick(): number;
   playerPosition(): { x: number; y: number };
   playerHp(): number;
   wave(): number;
   enemiesAlive(): number;
   enemyPositions(): Array<{ x: number; y: number; type: number }>;
+  roomsCleared(): number;
   stateHash(): number;
 }
 
@@ -78,36 +100,43 @@ declare global {
 
 export class Game {
   private sim: SimState;
+  private mode: Mode = 'title';
+  private run: RunState | null = null;
+  private readonly store = browserStore();
   private readonly input: InputManager;
   private readonly audio = new AudioEngine();
   private readonly haptics: Haptics;
   private readonly feedback: FeedbackDirector;
   private readonly stepper = new FixedStepper(TICK_DT_SEC);
   private readonly frame = createInputFrame();
+  private readonly ui: Ui;
   private readonly debugMenu: DebugMenu;
   private readonly pauseOverlay: PauseOverlay;
   private readonly deathOverlay: DeathOverlay;
   private readonly settings: Settings;
+  private readonly version = `v${__APP_VERSION__} (${__GIT_HASH__})`;
   private paused = false;
   private debugTimeScale = 1;
   private slowMoScale = 1;
   private slowMoSec = 0;
   private deathOverlaySec = -1;
+  private exitTransitionSec = -1;
   private lastFrameMs = 0;
   private readonly stats: DebugStats;
   private readonly onEvents = (events: EventBuffer) => {
     this.feedback.consume(events);
     for (let i = 0; i < events.count; i++) {
-      if (events.items[i]?.type === Ev.PlayerDied) this.deathOverlaySec = DEATH_OVERLAY_DELAY_SEC;
+      const type = events.items[i]?.type;
+      if (type === Ev.PlayerDied) this.deathOverlaySec = DEATH_OVERLAY_DELAY_SEC;
+      if (type === Ev.ExitReached) this.exitTransitionSec = EXIT_TRANSITION_SEC;
     }
   };
 
   private constructor(
     root: HTMLElement,
     private readonly view: GameView,
-    seed: number,
   ) {
-    this.sim = createSim(seed);
+    this.sim = this.backdropSim();
     root.append(view.canvas);
     this.input = new InputManager(view.canvas, hasTouchScreen());
     this.input.setPlayerScreenProvider((out) => this.view.playerScreenPosition(this.sim, out));
@@ -116,19 +145,19 @@ export class Game {
     this.feedback = new FeedbackDirector(view, this.audio, this.haptics, (req) => this.slowMo(req));
     this.audio.unlockOnGesture();
 
-    const store = browserStore();
-    this.settings = loadSettings(store);
+    this.settings = loadSettings(this.store);
     this.applySettings();
 
-    const version = `v${__APP_VERSION__} (${__GIT_HASH__})`;
+    this.ui = new Ui(root);
     this.debugMenu = new DebugMenu(
       root,
       {
-        restart: (s) => this.restart(s),
+        restart: (s) => this.startArena(s),
         spawnDrifters: (n) => spawnDrifters(this.sim, n),
         clearDrifters: () => clearDrifters(this.sim),
         spawnEnemy: (type) => debugSpawnEnemy(this.sim, type),
         killAllEnemies: () => debugKillAllEnemies(this.sim),
+        clearRoom: () => debugClearRoom(this.sim),
         nextWave: () => debugNextWave(this.sim),
         setWaves: (on) => {
           this.sim.debug.wavesEnabled = on;
@@ -144,19 +173,25 @@ export class Game {
         },
       },
       ENEMIES.map((e) => e.id),
-      version,
+      this.version,
     );
-    this.debugMenu.setSeed(seed);
     this.pauseOverlay = new PauseOverlay(
       root,
-      () => this.setPaused(false),
+      {
+        resume: () => this.setPaused(false),
+        toTitle: () => {
+          this.setPaused(false);
+          this.showTitle();
+        },
+        toggleDebug: () => this.debugMenu.toggle(),
+      },
       this.settings,
       (s) => {
         this.applySettings();
-        saveSettings(store, s);
+        saveSettings(this.store, s);
       },
     );
-    this.deathOverlay = new DeathOverlay(root, () => this.restart(randomSeed()));
+    this.deathOverlay = new DeathOverlay(root, () => this.afterDeath());
     this.stats = {
       fps: 0,
       frameMsAvg: 0,
@@ -166,7 +201,7 @@ export class Game {
       tick: 0,
       entities: 0,
       particles: 0,
-      seed,
+      seed: this.sim.seed,
       wave: 0,
       device: '',
       gamepad: '',
@@ -183,12 +218,181 @@ export class Game {
   static async start(root: HTMLElement): Promise<Game> {
     setLocale(resolveLocale(preferredLanguages()));
     const view = await GameView.create(readViewport());
-    const game = new Game(root, view, seedFromUrl() ?? randomSeed());
+    const game = new Game(root, view);
     game.exposeDebugHandle();
+    // ?seed=… jumps straight into the endless arena, handy for tuning and bug reports.
+    const urlSeed = seedFromUrl();
+    if (urlSeed !== null) game.startArena(urlSeed);
+    else game.showTitle();
     game.lastFrameMs = nowMs();
     requestAnimationFrame(game.loop);
     return game;
   }
+
+  // ── Flow ────────────────────────────────────────────────────────────────
+
+  /** Empty, quiet arena drawn behind menus. */
+  private backdropSim(): SimState {
+    const sim = createSim(1);
+    sim.debug.wavesEnabled = false;
+    return sim;
+  }
+
+  private setMode(mode: Mode): void {
+    this.mode = mode;
+    const playing = mode === 'room' || mode === 'arena';
+    this.input.setGameplayEnabled(playing);
+    this.deathOverlay.hide();
+    this.deathOverlaySec = -1;
+    this.exitTransitionSec = -1;
+    this.slowMoSec = 0;
+    this.slowMoScale = 1;
+    this.stepper.reset();
+    if (playing) this.ui.show({ kind: 'none' });
+  }
+
+  private loadSim(sim: SimState): void {
+    const debug = { ...this.sim.debug };
+    this.sim = sim;
+    // Keep debug toggles (god mode, waves) across rooms.
+    sim.debug.godMode = debug.godMode;
+    this.view.resetEffects();
+    this.stats.seed = sim.seed;
+    this.debugMenu.setSeed(sim.seed);
+  }
+
+  private showTitle(): void {
+    if (this.mode === 'room' || this.mode === 'arena') this.loadSim(this.backdropSim());
+    this.setMode('title');
+    const saved = loadRun(this.store);
+    this.ui.show({
+      kind: 'title',
+      canContinue: saved !== null,
+      version: this.version,
+      onContinue: () => this.continueRun(),
+      onNewRun: () => this.startRun(),
+      onArena: () => this.startArena(randomSeed()),
+    });
+  }
+
+  private startRun(): void {
+    this.run = createRun(randomSeed());
+    saveRun(this.store, this.run);
+    this.showMap();
+  }
+
+  private continueRun(): void {
+    const run = loadRun(this.store);
+    if (!run) {
+      this.showTitle();
+      return;
+    }
+    this.run = run;
+    const node = run.map.nodes[run.currentNodeId];
+    // Saved on room entry: the room restarts from its entry state.
+    if (run.status === 'room' && node) {
+      if (node.type === 'rest') this.showRest();
+      else this.startRoom();
+    } else this.showMap();
+  }
+
+  private showMap(): void {
+    const run = this.run;
+    if (!run) return;
+    if (this.mode === 'room') this.loadSim(this.backdropSim());
+    this.setMode('map');
+    this.ui.show({ kind: 'map', run, onEnter: (id) => this.enterNode(id) });
+  }
+
+  private enterNode(nodeId: number): void {
+    const run = this.run;
+    if (!run) return;
+    const node = enterNode(run, nodeId);
+    saveRun(this.store, run);
+    if (node.type === 'rest') this.showRest();
+    else this.startRoom();
+  }
+
+  private showRest(): void {
+    const run = this.run;
+    if (!run) return;
+    this.setMode('rest');
+    const healAmount = Math.min(
+      run.maxHp - run.hp,
+      Math.round(run.maxHp * EMBER_WASTES.restHealFraction),
+    );
+    this.ui.show({
+      kind: 'rest',
+      run,
+      healAmount,
+      onRest: () => {
+        rest(run);
+        saveRun(this.store, run);
+        this.audio.play('waveCleared', { pitch: 0.8, pitchVariation: 0 });
+        this.showMap();
+      },
+    });
+  }
+
+  private startRoom(): void {
+    const run = this.run;
+    const node = run?.map.nodes[run.currentNodeId];
+    if (!run || !node) return;
+    this.loadSim(createSim(roomSeed(run, node.id), roomSetupFor(run, node)));
+    this.setMode('room');
+  }
+
+  private roomResult() {
+    return {
+      hp: this.sim.c.hp[this.sim.playerEid] ?? 0,
+      kills: this.sim.player.kills,
+      timeSec: this.sim.room.elapsedTicks / TICK_RATE_HZ,
+    };
+  }
+
+  private finishRoom(): void {
+    const run = this.run;
+    if (!run) return;
+    completeRoom(run, this.roomResult());
+    if (run.status === 'won') {
+      clearRun(this.store);
+      this.loadSim(this.backdropSim());
+      this.setMode('victory');
+      this.ui.show({ kind: 'victory', run, onTitle: () => this.showTitle() });
+      return;
+    }
+    saveRun(this.store, run);
+    this.showMap();
+  }
+
+  private startArena(seed: number): void {
+    this.run = null;
+    this.loadSim(createSim(seed));
+    this.setMode('arena');
+  }
+
+  private showDeath(): void {
+    const run = this.run;
+    let stats: string;
+    if (this.mode === 'room' && run) {
+      failRun(run, this.roomResult());
+      clearRun(this.store);
+      stats = t('death.run_stats', { rooms: run.roomsCleared + 1, kills: run.kills });
+    } else {
+      stats = t('death.stats', { wave: this.sim.waves.wave, kills: this.sim.player.kills });
+    }
+    this.deathOverlay.show(stats, this.input.lastDevice, nowMs());
+  }
+
+  private afterDeath(): void {
+    if (this.mode === 'arena') this.startArena(randomSeed());
+    else {
+      this.run = null;
+      this.showTitle();
+    }
+  }
+
+  // ── Misc ────────────────────────────────────────────────────────────────
 
   private applySettings(): void {
     const s = this.settings;
@@ -204,6 +408,7 @@ export class Game {
     const sim = () => this.sim;
     window.__riftbrand = {
       ready: true,
+      mode: () => this.mode,
       tick: () => sim().tick,
       playerPosition: () => ({
         x: sim().c.posX[sim().playerEid] ?? 0,
@@ -221,6 +426,7 @@ export class Game {
         }
         return out;
       },
+      roomsCleared: () => this.run?.roomsCleared ?? 0,
       stateHash: () => hashSim(sim()),
     };
   }
@@ -231,25 +437,14 @@ export class Game {
     this.slowMoSec = Math.max(this.slowMoSec, req.durationSec);
   }
 
-  private restart(seed: number): void {
-    const debug = { ...this.sim.debug };
-    this.sim = createSim(seed);
-    Object.assign(this.sim.debug, debug);
-    this.stats.seed = seed;
-    this.stepper.reset();
-    this.view.resetEffects();
-    this.deathOverlay.hide();
-    this.deathOverlaySec = -1;
-    this.slowMoSec = 0;
-    this.slowMoScale = 1;
-    this.debugMenu.setSeed(seed);
-  }
-
   private setPaused(paused: boolean): void {
     if (paused === this.paused) return;
+    // Pausing only makes sense while playing; menus are already "paused".
+    if (paused && this.mode !== 'room' && this.mode !== 'arena') return;
     this.paused = paused;
     // Releasing on both edges avoids "stuck" keys from presses made while the overlay was up.
     this.input.releaseAll();
+    this.input.setGameplayEnabled(!paused);
     if (paused) {
       this.pauseOverlay.show(this.input.lastDevice);
       this.audio.suspend();
@@ -260,6 +455,32 @@ export class Game {
     }
   }
 
+  /** Gamepad navigation for DOM menus (map, title, pause). */
+  private handleMenuInput(): void {
+    const actions = this.input.consumeMenuActions();
+    if (actions === 0) return;
+    const menuOpen = this.ui.active || this.paused;
+    if (!menuOpen) return;
+    const nav = (dir: NavDirection) => {
+      if (this.paused) this.navigatePause(dir);
+      else this.ui.navigate(dir);
+    };
+    if (actions & MenuAction.Up) nav('up');
+    if (actions & MenuAction.Down) nav('down');
+    if (actions & MenuAction.Left) nav('left');
+    if (actions & MenuAction.Right) nav('right');
+    if (actions & MenuAction.Confirm) {
+      const el = document.activeElement;
+      if (el instanceof HTMLElement && el !== document.body) el.click();
+      else if (!this.paused) this.ui.confirm();
+    }
+    if (actions & MenuAction.Back && this.paused) this.setPaused(false);
+  }
+
+  private navigatePause(dir: NavDirection): void {
+    navigate(this.pauseOverlay.element, dir);
+  }
+
   private readonly loop = (timestamp: number): void => {
     requestAnimationFrame(this.loop);
     const frameStart = nowMs();
@@ -268,20 +489,24 @@ export class Game {
       MAX_FRAME_DT_SEC,
     );
     this.lastFrameMs = timestamp;
+    const playing = this.mode === 'room' || this.mode === 'arena';
 
     this.input.poll();
+    this.handleMenuInput();
     if (this.input.consumeAppAction('debug')) this.debugMenu.toggle();
-    if (this.input.consumeAppAction('pause') && !this.deathOverlay.visible)
+    if (this.input.consumeAppAction('pause') && playing && !this.deathOverlay.visible) {
       this.setPaused(!this.paused);
+    }
 
     if (this.slowMoSec > 0) {
       this.slowMoSec -= realDtSec;
       if (this.slowMoSec <= 0) this.slowMoScale = 1;
     }
     const timeScale = this.debugTimeScale * this.slowMoScale;
+    const running = playing && !this.paused;
 
     let simMs = 0;
-    if (!this.paused) {
+    if (running) {
       this.stepper.timeScale = timeScale;
       const ticks = this.stepper.advance(realDtSec);
       const simStart = nowMs();
@@ -296,27 +521,25 @@ export class Game {
       drainEvents(this.sim, this.onEvents);
       if (this.deathOverlaySec > 0) {
         this.deathOverlaySec -= realDtSec;
-        if (this.deathOverlaySec <= 0) {
-          this.deathOverlay.show(
-            this.sim.waves.wave,
-            this.sim.player.kills,
-            this.input.lastDevice,
-            nowMs(),
-          );
-        }
+        if (this.deathOverlaySec <= 0) this.showDeath();
+      }
+      if (this.exitTransitionSec > 0) {
+        this.exitTransitionSec -= realDtSec;
+        if (this.exitTransitionSec <= 0) this.finishRoom();
       }
     }
 
     const renderStart = nowMs();
-    const paused = this.paused;
-    this.feedback.update(this.sim, paused ? 0 : realDtSec);
+    const dt = running ? realDtSec : 0;
+    this.feedback.update(this.sim, dt);
     this.view.render(
       this.sim,
-      paused ? 1 : this.stepper.alpha,
-      paused ? 0 : realDtSec * timeScale,
-      paused ? 0 : realDtSec,
+      running ? this.stepper.alpha : 1,
+      dt * timeScale,
+      dt,
       this.input.touch,
       this.input.lastDevice,
+      playing,
     );
     const renderMs = nowMs() - renderStart;
     this.updateStats(realDtSec, simMs, renderMs, nowMs() - frameStart);

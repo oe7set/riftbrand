@@ -255,3 +255,273 @@ body {
   margin-top: 6px;
   opacity: 0.6;
 }
+
+/* ── Menu screens (Preact) ─────────────────────────────────────────── */
+
+.rb-ui {
+  position: absolute;
+  inset: 0;
+}
+
+.rb-ui[hidden] {
+  display: none;
+}
+
+.rb-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: rgba(7, 6, 13, 0.82);
+  backdrop-filter: blur(4px);
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  box-sizing: border-box;
+}
+
+.rb-center,
+.rb-title {
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.rb-logo {
+  font-size: clamp(40px, 12vw, 88px);
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  color: #fff4e0;
+  text-shadow:
+    0 0 12px rgba(255, 122, 47, 0.9),
+    0 0 40px rgba(255, 122, 47, 0.5);
+}
+
+.rb-tagline {
+  max-width: 420px;
+  opacity: 0.75;
+  font-style: italic;
+}
+
+.rb-menu {
+  display: grid;
+  gap: 12px;
+  width: min(320px, 80vw);
+  margin-top: 12px;
+}
+
+.rb-version {
+  position: absolute;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  opacity: 0.45;
+  font:
+    12px ui-monospace,
+    monospace;
+}
+
+.rb-button:focus-visible,
+.rb-node:focus-visible,
+.rb-setting input:focus-visible,
+.rb-setting select:focus-visible {
+  outline: 3px solid var(--rb-accent);
+  outline-offset: 3px;
+}
+
+.rb-small {
+  font-size: 14px;
+  padding: 8px 16px;
+  min-height: 40px;
+}
+
+.rb-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.rb-stats {
+  display: grid;
+  gap: 4px;
+  font-size: 17px;
+}
+
+.rb-victory .rb-overlay-title {
+  color: #ffd36b;
+  text-shadow: 0 0 22px rgba(255, 166, 77, 0.7);
+}
+
+.rb-rest-icon {
+  width: 72px;
+  height: 72px;
+  color: #ffa64d;
+  filter: drop-shadow(0 0 12px rgba(255, 166, 77, 0.8));
+}
+
+/* Map */
+.rb-map {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.rb-map-header,
+.rb-map-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 max(16px, env(safe-area-inset-left));
+}
+
+.rb-map-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #ffa64d;
+}
+
+.rb-map-hp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font:
+    14px ui-monospace,
+    monospace;
+}
+
+.rb-hpbar {
+  width: 120px;
+  height: 8px;
+  background: #2a1020;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.rb-hpbar-fill {
+  height: 100%;
+  background: var(--rb-accent);
+}
+
+.rb-map-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 10px 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rb-map-canvas {
+  position: relative;
+  width: min(560px, calc(100% - 64px));
+  margin: 0 auto;
+}
+
+.rb-map-edges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.rb-map-edges line {
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-width: 2;
+  stroke-dasharray: 4 6;
+}
+
+.rb-map-edges line.open {
+  stroke: rgba(127, 246, 255, 0.7);
+  stroke-dasharray: none;
+}
+
+.rb-map-edges line.walked {
+  stroke: rgba(255, 166, 77, 0.85);
+  stroke-width: 3;
+  stroke-dasharray: none;
+}
+
+.rb-node {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  padding: 10px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: #120e1f;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.rb-node.type-boss {
+  width: 64px;
+  height: 64px;
+  margin: -32px 0 0 -32px;
+  color: #ff6b81;
+  border-color: rgba(255, 77, 109, 0.6);
+}
+
+.rb-node.type-elite {
+  color: #ff8a6b;
+}
+
+.rb-node.type-rest {
+  color: #ffd36b;
+}
+
+.rb-node.type-horde {
+  color: #c46bff;
+}
+
+.rb-node.locked {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.rb-node.visited {
+  opacity: 0.8;
+  border-color: rgba(255, 166, 77, 0.8);
+  background: #2a1608;
+}
+
+.rb-node.current {
+  border-color: #ffa64d;
+  box-shadow: 0 0 16px rgba(255, 166, 77, 0.6);
+}
+
+.rb-node.available {
+  color: #fff;
+  border-color: var(--rb-accent);
+  box-shadow: 0 0 14px rgba(127, 246, 255, 0.45);
+  animation: rb-pulse 1.4s ease-in-out infinite;
+}
+
+.rb-node.available.selected {
+  transform: scale(1.18);
+  background: rgba(127, 246, 255, 0.18);
+  animation: none;
+}
+
+@keyframes rb-pulse {
+  50% {
+    box-shadow: 0 0 22px rgba(127, 246, 255, 0.8);
+  }
+}
+
+.rb-map-footer {
+  min-height: 56px;
+}
+
+.rb-map-info {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  font-size: 15px;
+}
+
+.rb-map-info span {
+  opacity: 0.75;
+}

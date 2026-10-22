@@ -2,6 +2,7 @@ import { Container, Sprite, Text, type Texture } from 'pixi.js';
 import { TUNING } from '../../content/tuning';
 import { t } from '../../shared/i18n';
 import type { SimState } from '../../sim/sim';
+import { TICK_RATE_HZ } from '../../sim/time';
 import { PALETTE } from '../render/palette';
 
 const MARGIN_PX = 16;
@@ -36,18 +37,19 @@ export class HudView {
   private readonly waveLabel: Text;
   private readonly banner: Text;
   private readonly vignette: Sprite;
+  private readonly exitArrow: Sprite;
+  private shownLabel = '';
   private lagHp = 1;
   private bannerSec = 0;
   private staminaPulseSec = 0;
   private damageFlashSec = 0;
-  private shownWave = -1;
   private width = 1;
   private height = 1;
   private time = 0;
   /** Player setting 0..1 for full-screen flashes (photosensitivity, GDD §13). */
   flashIntensity = 1;
 
-  constructor(white: Texture, vignette: Texture) {
+  constructor(white: Texture, vignette: Texture, arrow: Texture) {
     this.vignette = new Sprite(vignette);
     this.vignette.tint = 0xff2040;
     this.vignette.alpha = 0;
@@ -78,7 +80,11 @@ export class HudView {
     });
     this.banner.anchor.set(0.5);
     this.banner.alpha = 0;
-    this.root.addChild(this.waveLabel, this.banner);
+    this.exitArrow = new Sprite(arrow);
+    this.exitArrow.tint = PALETTE.player;
+    this.exitArrow.anchor.set(0.5);
+    this.exitArrow.visible = false;
+    this.root.addChild(this.waveLabel, this.banner, this.exitArrow);
   }
 
   resize(width: number, height: number): void {
@@ -100,8 +106,14 @@ export class HudView {
     this.banner.position.set(width / 2, height * 0.3);
   }
 
-  onWaveStart(wave: number): void {
-    this.banner.text = t('hud.wave', { n: wave });
+  onWaveStart(wave: number, total: number): void {
+    this.banner.text =
+      total > 0 ? t('hud.wave_of', { n: wave, total }) : t('hud.wave', { n: wave });
+    this.bannerSec = BANNER_SEC;
+  }
+
+  onRoomCleared(): void {
+    this.banner.text = t('hud.room_cleared');
     this.bannerSec = BANNER_SEC;
   }
 
@@ -113,7 +125,52 @@ export class HudView {
     this.damageFlashSec = DAMAGE_FLASH_SEC;
   }
 
-  sync(sim: SimState, dtSec: number): void {
+  /** Label: arena wave, room wave x/y, or the horde countdown. */
+  private label(sim: SimState): string {
+    const room = sim.room;
+    if (room.mode === 'horde' && !room.cleared && sim.waves.wave > 0) {
+      const sec = Math.ceil(Math.max(0, room.hordeTicksLeft) / TICK_RATE_HZ);
+      return t('hud.horde', {
+        time: `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`,
+      });
+    }
+    if (room.mode === 'waves') {
+      return room.waveIndex >= 0 && !room.cleared
+        ? t('hud.wave_of', { n: room.waveIndex + 1, total: room.waves.length })
+        : '';
+    }
+    return sim.waves.wave > 0 ? t('hud.wave', { n: sim.waves.wave }) : '';
+  }
+
+  /** Points at the open exit from the screen edge when it is off-screen. */
+  private syncExitArrow(sim: SimState, exit: { x: number; y: number }): void {
+    const arrow = this.exitArrow;
+    const margin = 36;
+    const onScreen =
+      exit.x > margin &&
+      exit.y > margin &&
+      exit.x < this.width - margin &&
+      exit.y < this.height - margin;
+    arrow.visible = sim.room.exitOpen && !sim.room.exitReached && !onScreen;
+    if (!arrow.visible) return;
+    const cx = this.width / 2;
+    const cy = this.height / 2;
+    const angle = Math.atan2(exit.y - cy, exit.x - cx);
+    const dx = Math.cos(angle);
+    const dy = Math.sin(angle);
+    // Scale the direction until it touches the inset screen rectangle.
+    const k = Math.min(
+      Math.abs((this.width / 2 - margin) / (dx || 1e-6)),
+      Math.abs((this.height / 2 - margin) / (dy || 1e-6)),
+    );
+    arrow.position.set(cx + dx * k, cy + dy * k);
+    arrow.rotation = angle;
+    const s = 1.3 + Math.sin(this.time * 6) * 0.15;
+    arrow.scale.set(s * 1.4, s);
+    arrow.alpha = 0.85;
+  }
+
+  sync(sim: SimState, dtSec: number, exitScreen: { x: number; y: number }): void {
     this.time += dtSec;
     const eid = sim.playerEid;
     const maxHp = sim.c.maxHp[eid] ?? 1;
@@ -145,10 +202,12 @@ export class HudView {
       fill.alpha = amount >= 1 ? 1 : 0.45;
     }
 
-    if (sim.waves.wave !== this.shownWave) {
-      this.shownWave = sim.waves.wave;
-      this.waveLabel.text = sim.waves.wave > 0 ? t('hud.wave', { n: sim.waves.wave }) : '';
+    const label = this.label(sim);
+    if (label !== this.shownLabel) {
+      this.shownLabel = label;
+      this.waveLabel.text = label;
     }
+    this.syncExitArrow(sim, exitScreen);
     if (this.bannerSec > 0) {
       this.bannerSec -= dtSec;
       const k = this.bannerSec / BANNER_SEC;

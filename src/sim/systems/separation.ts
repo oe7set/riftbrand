@@ -1,6 +1,7 @@
 import { TUNING } from '../../content/tuning';
 import { clearSpatialHash, insertPoint, queryRect } from '../collision/spatial-hash';
 import { C } from '../ecs/components';
+import { pushOut, pushOutOfObstacles } from '../room';
 import type { SimState } from '../sim';
 
 const BODY_MASK = C.Transform | C.Collider;
@@ -59,7 +60,15 @@ export function separationSystem(state: SimState): void {
       pushX += (dx / dist) * overlap;
       pushY += (dy / dist) * overlap;
     }
-    c.posX[a] = ax + pushX * strength;
-    c.posY[a] = ay + pushY * strength;
+    let nx = ax + pushX * strength;
+    let ny = ay + pushY * strength;
+    // Crowd pushes must not shove bodies into walls.
+    if (state.room.rectCount > 0 || state.room.circleCount > 0) {
+      pushOutOfObstacles(state.room, nx, ny, ar);
+      nx = pushOut.x;
+      ny = pushOut.y;
+    }
+    c.posX[a] = Math.max(ar, Math.min(state.arenaWidthPx - ar, nx));
+    c.posY[a] = Math.max(ar, Math.min(state.arenaHeightPx - ar, ny));
   }
 }

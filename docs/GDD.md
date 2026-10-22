@@ -465,5 +465,5 @@ Die zuletzt verwendete Eingabemethode bestimmt die angezeigten Hinweise und die 
 1. Musik-Stil festlegen (Vorschlag: Darksynth mit orchestralen Elementen).
 2. Namen von Figuren, Wesen und Bossen sind Arbeitsnamen. Finale Namen und eine englische Lokalisierung der Namen festlegen.
 3. Monetarisierungsmodell (Entscheidung zur Beta).
-4. Hochformat: Nach dem Prototyp-Test bestätigen oder auf Querformat beschränken.
+4. ~~Hochformat: Nach dem Prototyp-Test bestätigen oder auf Querformat beschränken.~~ → Entschieden nach M1: Hoch- und Querformat bleiben beide.
 5. Ein 6. Wesen (Erz) nach Version 1.0?

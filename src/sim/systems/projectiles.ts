@@ -2,6 +2,7 @@ import { damagePlayer } from '../combat/damage';
 import { C, Team } from '../ecs/components';
 import { destroyEntity } from '../ecs/world';
 import { Ev, pushEvent } from '../events';
+import { overlapsObstacle } from '../room';
 import type { SimState } from '../sim';
 
 function expire(state: SimState, eid: number): void {
@@ -31,7 +32,12 @@ export function projectileSystem(state: SimState): void {
     const x = c.posX[eid] as number;
     const y = c.posY[eid] as number;
     const r = c.radius[eid] as number;
-    const atWall = x <= r || y <= r || x >= state.arenaWidthPx - r || y >= state.arenaHeightPx - r;
+    const atWall =
+      x <= r ||
+      y <= r ||
+      x >= state.arenaWidthPx - r ||
+      y >= state.arenaHeightPx - r ||
+      overlapsObstacle(state.room, x, y, r * 0.5);
     if (life <= 0 || atWall) {
       expire(state, eid);
       continue;

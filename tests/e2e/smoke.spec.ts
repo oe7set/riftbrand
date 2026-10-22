@@ -58,3 +58,24 @@ test('the first wave spawns enemies and the run stays error-free', async ({ page
   await page.waitForTimeout(500);
   expect(errors).toEqual([]);
 });
+
+test('a run starts from the title: map, then a room', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (err) => errors.push(err.message));
+  await page.goto('/');
+  await page.waitForFunction(() => window.__riftbrand?.ready === true);
+  expect(await page.evaluate(() => window.__riftbrand?.mode())).toBe('title');
+  await page.getByRole('button', { name: /new run|neuer run/i }).click();
+  await expect(page.locator('.rb-map')).toBeVisible();
+  // The pre-selected start node enters with one click; others need two (mis-tap guard).
+  await page.locator('.rb-node.available.selected').click();
+  await page.waitForFunction(() => window.__riftbrand?.mode() === 'room');
+  await page.waitForFunction(() => (window.__riftbrand?.enemiesAlive() ?? 0) > 0, null, {
+    timeout: 15_000,
+  });
+  // The run is saved on room entry, so a reload offers to continue.
+  await page.reload();
+  await page.waitForFunction(() => window.__riftbrand?.ready === true);
+  await expect(page.getByRole('button', { name: /continue run|run fortsetzen/i })).toBeVisible();
+  expect(errors).toEqual([]);
+});

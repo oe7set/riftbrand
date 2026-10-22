@@ -19,6 +19,7 @@ import {
 import { DebugDraw } from './render/debug-draw';
 import { EntityView } from './render/entity-view';
 import { PALETTE } from './render/palette';
+import { RoomView } from './render/room-view';
 import { type BakedTextures, bakeTextures } from './render/textures';
 import { DamageNumbers } from './vfx/damage-numbers';
 import { Effects } from './vfx/effects';
@@ -54,6 +55,8 @@ export class GameView {
   private readonly worldLayer = new Container();
   private readonly hudLayer = new Container();
   private readonly arena = new ArenaView();
+  private readonly roomView: RoomView;
+  private readonly exitScreen = { x: 0, y: 0 };
   private readonly fxParticles = new ParticleSystem(PARTICLE_CAPACITY);
   private readonly groundParticles = new ParticleSystem(PARTICLE_CAPACITY / 2);
   private readonly touchControls = new TouchControlsView();
@@ -70,12 +73,14 @@ export class GameView {
   private constructor(readonly renderer: Renderer) {
     this.textures = bakeTextures(renderer);
     this.entities = new EntityView(this.textures);
+    this.roomView = new RoomView(this.textures);
     this.effects = new Effects(this.fxParticles, this.groundParticles, this.textures);
-    this.hud = new HudView(this.textures.white, this.textures.vignette);
+    this.hud = new HudView(this.textures.white, this.textures.vignette, this.textures.spark);
     this.fxParticles.root.blendMode = 'add';
     this.groundParticles.root.blendMode = 'add';
     this.worldLayer.addChild(
       this.arena.root,
+      this.roomView.root,
       this.groundParticles.root,
       this.entities.groundLayer,
       this.entities.bodyLayer,
@@ -156,8 +161,10 @@ export class GameView {
     realDtSec: number,
     touch: TouchInput,
     device: InputDevice,
+    hudVisible = true,
   ): void {
     const cam = this.camera;
+    this.hudLayer.visible = hudVisible;
     this.zoomPunch = Math.max(
       0,
       this.zoomPunch - this.zoomPunch * ZOOM_PUNCH_DECAY_PER_SEC * realDtSec,
@@ -208,12 +215,14 @@ export class GameView {
     );
 
     this.arena.sync(sim.arenaWidthPx, sim.arenaHeightPx);
+    this.roomView.sync(sim.room, realDtSec);
     this.entities.sync(sim, alpha, realDtSec);
     this.fxParticles.update(realDtSec);
     this.groundParticles.update(realDtSec);
     this.damageNumbers.update(realDtSec);
     this.debugDraw.sync(sim, alpha);
-    this.hud.sync(sim, realDtSec);
+    worldToScreen(cam, sim.room.exitX, sim.room.exitY, this.exitScreen);
+    this.hud.sync(sim, realDtSec, this.exitScreen);
     this.touchControls.sync(touch, device === 'touch');
     this.renderer.render(this.stage);
   }

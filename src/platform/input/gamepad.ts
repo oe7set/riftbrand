@@ -5,12 +5,25 @@ import {
   detectGamepadFamily,
   GAMEPAD_BUTTON,
   type GamepadFamily,
+  MenuAction,
 } from './bindings';
 import type { DeviceSink } from './keyboard-mouse';
 import { applyRadialDeadzone } from './stick';
 
 const MAX_BUTTONS = 20;
 const TRIGGER_THRESHOLD = 0.5;
+const MENU_STICK_THRESHOLD = 0.6;
+const MENU_REPEAT_DELAY_MS = 380;
+const MENU_REPEAT_INTERVAL_MS = 140;
+
+const MENU_BUTTONS: ReadonlyArray<[number, number]> = [
+  [GAMEPAD_BUTTON.DpadUp, MenuAction.Up],
+  [GAMEPAD_BUTTON.DpadDown, MenuAction.Down],
+  [GAMEPAD_BUTTON.DpadLeft, MenuAction.Left],
+  [GAMEPAD_BUTTON.DpadRight, MenuAction.Right],
+  [GAMEPAD_BUTTON.A, MenuAction.Confirm],
+  [GAMEPAD_BUTTON.B, MenuAction.Back],
+];
 
 /** Polled once per rendered frame via the Gamepad API. */
 export class GamepadInput {
@@ -22,6 +35,10 @@ export class GamepadInput {
   family: GamepadFamily = 'generic';
   private readonly prevDown = new Uint8Array(MAX_BUTTONS);
   private readonly scratch = vec2();
+  /** Menu actions pressed since the app last consumed them. */
+  menuPressed = 0;
+  private stickMenuDir = 0;
+  private stickRepeatAtMs = 0;
 
   constructor(private readonly sink: DeviceSink) {}
 
@@ -64,7 +81,47 @@ export class GamepadInput {
       if (i === GAMEPAD_BUTTON.Select) this.sink.appAction('debug');
     }
     this.heldMask = held;
+    this.pollMenu(pad);
     if (active) this.sink.used('gamepad');
+  }
+
+  /** D-pad, stick (with key-repeat) and A/B as menu navigation. */
+  private pollMenu(pad: Gamepad): void {
+    for (const [index, action] of MENU_BUTTONS) {
+      const button = pad.buttons[index];
+      const down = button?.pressed === true;
+      // Own edge state, so menu presses never interfere with gameplay button latching.
+      const bit = 1 << index;
+      if (down && (this.menuHeld & bit) === 0) this.menuPressed |= action;
+      this.menuHeld = down ? this.menuHeld | bit : this.menuHeld & ~bit;
+    }
+    const x = pad.axes[0] ?? 0;
+    const y = pad.axes[1] ?? 0;
+    let dir = 0;
+    if (Math.abs(x) > Math.abs(y)) {
+      if (x > MENU_STICK_THRESHOLD) dir = MenuAction.Right;
+      else if (x < -MENU_STICK_THRESHOLD) dir = MenuAction.Left;
+    } else if (y > MENU_STICK_THRESHOLD) dir = MenuAction.Down;
+    else if (y < -MENU_STICK_THRESHOLD) dir = MenuAction.Up;
+    const now = performance.now();
+    if (dir !== this.stickMenuDir) {
+      this.stickMenuDir = dir;
+      if (dir !== 0) {
+        this.menuPressed |= dir;
+        this.stickRepeatAtMs = now + MENU_REPEAT_DELAY_MS;
+      }
+    } else if (dir !== 0 && now >= this.stickRepeatAtMs) {
+      this.menuPressed |= dir;
+      this.stickRepeatAtMs = now + MENU_REPEAT_INTERVAL_MS;
+    }
+  }
+
+  private menuHeld = 0;
+
+  consumeMenu(): number {
+    const m = this.menuPressed;
+    this.menuPressed = 0;
+    return m;
   }
 
   private pickGamepad(): Gamepad | null {

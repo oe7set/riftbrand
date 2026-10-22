@@ -76,6 +76,8 @@ export const TUNING = {
   arenaHeightPx: 1200,
   firstWaveDelaySec: 1.0,
   waveIntermissionSec: 1.5,
+  /** Pause between waves inside one room (encounter mode). */
+  encounterWaveGapSec: 0.7,
   waveBaseBudget: 3,
   waveBudgetPerWave: 1.5,
   spawnPortalSec: 0.8,
@@ -126,7 +128,7 @@ registerTunables(
   SOURCE,
   TUNING,
   {},
-  keysWithPrefix('arena', 'wave', 'firstWave', 'spawn'),
+  keysWithPrefix('arena', 'wave', 'firstWave', 'spawn', 'encounter'),
 );
 registerTunables('stress & devices', SOURCE, TUNING, {}, [
   ...keysWithPrefix('drifter', 'separation', 'touch', 'gamepad'),

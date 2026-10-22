@@ -36,6 +36,10 @@ export function hashSim(state: SimState): number {
   h = mixFloat(h, p.stamina);
   h = fnv1a(h, w.wave);
   h = fnv1a(h, w.pendingCount);
+  h = fnv1a(h, state.room.waveIndex);
+  h = fnv1a(h, state.room.hordeTicksLeft);
+  h = fnv1a(h, state.room.cleared ? 1 : 0);
+  h = fnv1a(h, state.room.exitReached ? 1 : 0);
   for (let eid = 0; eid < world.highWater; eid++) {
     const mask = world.masks[eid] as number;
     h = fnv1a(h, mask);

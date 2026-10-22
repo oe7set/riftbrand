@@ -1,5 +1,6 @@
 import { TUNING } from '../../content/tuning';
 import { C } from '../ecs/components';
+import { pushOut, pushOutOfObstacles } from '../room';
 import type { SimState } from '../sim';
 import { TICK_DT_SEC } from '../time';
 
@@ -19,6 +20,15 @@ export function movementSystem(state: SimState): void {
     c.kbX[eid] = Math.abs(kbX) < 1 ? 0 : kbX * kbDecay;
     c.kbY[eid] = Math.abs(kbY) < 1 ? 0 : kbY * kbDecay;
     const r = c.radius[eid] as number;
+    // Projectiles pass into obstacles and are destroyed by the projectile system instead.
+    if (
+      (state.room.rectCount > 0 || state.room.circleCount > 0) &&
+      ((masks[eid] as number) & C.Projectile) === 0
+    ) {
+      pushOutOfObstacles(state.room, x, y, r);
+      x = pushOut.x;
+      y = pushOut.y;
+    }
     if (x < r) x = r;
     else if (x > state.arenaWidthPx - r) x = state.arenaWidthPx - r;
     if (y < r) y = r;

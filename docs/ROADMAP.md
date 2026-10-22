@@ -59,37 +59,46 @@ M0 Fundament ─▶ M1 Prototyp ─▶ M2 Vertical Slice ─▶ M3 Alpha ─▶ 
 
 _Hinweis: Wurf- und Ultimate-Button sind sichtbar, aber erst ab M2 belegt._
 
-**Playtest-Checkliste (Abnahme durch den Product Owner):**
-- [ ] Jeder Treffer fühlt sich „knackig“ an, man spürt ihn.
-- [ ] Der Dash fühlt sich sicher und reaktionsschnell an, ein perfekter Dash ist befriedigend.
-- [ ] Jeder Treffer, den ich einstecke, war lesbar. Ich weiß, was ich hätte tun sollen.
-- [ ] Die drei Gegner verlangen unterschiedliches Verhalten.
-- [ ] Touch-Steuerung auf dem OnePlus 13: Ich verfehle selten Buttons, die Zielhilfe hilft und stört nicht.
-- [ ] Ich will nach dem Tod sofort nochmal spielen.
-- [ ] Stabile Darstellung, auch mit 4-facher CPU-Drosselung in den Chrome DevTools ≥ 55 FPS bei 40 Gegnern.
-- [ ] Entscheidung: Hochformat behalten oder nur Querformat?
+**Playtest-Checkliste (Abnahme durch den Product Owner):** ✅ bestanden (2026-10-22: „Spielt sich gut“)
+- [x] Jeder Treffer fühlt sich „knackig“ an, man spürt ihn.
+- [x] Der Dash fühlt sich sicher und reaktionsschnell an, ein perfekter Dash ist befriedigend.
+- [x] Jeder Treffer, den ich einstecke, war lesbar. Ich weiß, was ich hätte tun sollen.
+- [x] Die drei Gegner verlangen unterschiedliches Verhalten.
+- [x] Touch-Steuerung auf dem OnePlus 13: Ich verfehle selten Buttons, die Zielhilfe hilft und stört nicht.
+- [x] Ich will nach dem Tod sofort nochmal spielen.
+- [x] Stabile Darstellung, auch mit 4-facher CPU-Drosselung in den Chrome DevTools ≥ 55 FPS bei 40 Gegnern.
+- [x] Entscheidung: Hochformat behalten oder nur Querformat? → **beide bleiben**
 
 ---
 
 ## M2: Vertical Slice
 **Ziel:** Ein vollständiger Run durch **ein Biom**, inklusive Hub, Meta-Schleife und Speichern. Die Qualität entspricht dem Endprodukt.
 
-- [ ] **Map-Generierung** (Slay-the-Spire-Stil) für die Aschefelder, Map-Ansicht, Pfadwahl
-- [ ] Raumtypen: Kampf, Elite, Altar, Horde, Shop, Rast, Ereignis (2–3 Ereignisse), Boss
-- [ ] 6 Gegnertypen und 3 Elite-Modifikatoren, Raumvorlagen (ca. 8)
+- [x] **Map-Generierung** (Slay-the-Spire-Stil) für die Aschefelder, Map-Ansicht, Pfadwahl
+- [ ] Raumtypen: Kampf, Elite, Altar, Horde, Shop, Rast, Ereignis (2–3 Ereignisse), Boss _(M2.1: Kampf, Elite, Horde, Rast, Platzhalter-Boss)_
+- [ ] 6 Gegnertypen und 3 Elite-Modifikatoren, Raumvorlagen (ca. 8) _(M2.1: 8 Raumvorlagen)_
 - [ ] **Boss: Der Glutwächter** (2 Phasen)
 - [ ] **Effekt-System** (deklarativ) mit Triggern und Aktionen, plus Tests
 - [ ] **2 Wesen** (Ignara, Vaelis) mit je ca. 8 Segen, 1 Duo-Segen
 - [ ] **12 Relikte** (darunter 2 Fluch-Relikte), Stapeln, Tags
 - [ ] **1 Evolution** (Phönixklinge), Riss-Geschoss (Wurf), Brandausbruch (Ultimate)
 - [ ] Meta: Glut und Rissstaub, Glutbaum (ca. 8 Knoten), Zuflucht als einfacher Hub mit 2 Figuren und Dialogsystem (ca. 30 Zeilen)
-- [ ] **Speichern:** Profil, Einstellungen, Run-Zwischenstand, Migrationen, Export/Import
-- [ ] **i18n** EN/DE, Menü-Oberfläche (Preact): Titel, Hub, Belohnungs-Auswahl, Pause mit Build-Übersicht, Ergebnis bzw. Tod mit Fortschrittsbalken
+- [ ] **Speichern:** Profil, Einstellungen, Run-Zwischenstand, Migrationen, Export/Import _(M2.1: Run-Zwischenstand mit Versionierung)_
+- [ ] **i18n** EN/DE, Menü-Oberfläche (Preact): Titel, Hub, Belohnungs-Auswahl, Pause mit Build-Übersicht, Ergebnis bzw. Tod mit Fortschrittsbalken _(M2.1: Titel, Map, Rast, Sieg)_
 - [ ] Musik: 2 Tracks mit Schichten (Erkundung bzw. Kampf, Boss)
 - [ ] Headless-Simulator v1 mit Bot und Balancing-Bericht
 - [ ] Lokales Run-Log mit Export
 - [ ] Touch-Layout-Editor
 - [ ] Erster Upload auf itch.io als „Early Prototype“ (unveröffentlicht oder öffentlich, nach deiner Entscheidung)
+
+**Pakete (je ein PR):**
+1. ✅ **M2.1 Run-Gerüst:** Map-Generierung und Map-Ansicht, Raumvorlagen mit Hindernissen, Raumtypen Kampf/Elite/Horde/Rast/Boss (Platzhalter-Boss), Ausgang nach dem Raum-Clear, Titelbildschirm, Run-Zwischenstand speichern und fortsetzen, Sieg-Bildschirm, Debug-Button im Pause-Menü
+2. **M2.2 Effekt-System und Segen:** deklarative Effekte, Ignara und Vaelis (je ~8 Segen), Altar-Raum, Belohnungs-Auswahl
+3. **M2.3 Relikte, Shop, Ereignisse:** 12 Relikte (2 Fluch), Scherben, Shop, 2–3 Ereignisse, Build-Übersicht im Pause-Menü
+4. **M2.4 Neue Aktionen:** Riss-Geschoss, Brandausbruch, Duo-Segen, Evolution Phönixklinge
+5. **M2.5 Gegner und Boss:** 3 weitere Gegner, 3 Elite-Modifikatoren, Boss „Der Glutwächter“ (2 Phasen)
+6. **M2.6 Meta:** Zuflucht (Hub), Glut und Rissstaub, Glutbaum, Dialoge, Profil-Speicherstand, Export/Import
+7. **M2.7 Abrundung:** Musik, Headless-Simulator v1, Run-Log, Touch-Layout-Editor, itch.io
 
 **Abnahme:** Ein Run durch Biom 1 dauert 6–8 Minuten und macht Spaß. Ein Tod motiviert zum nächsten Run. Mindestens 3 externe Tester spielen 3 oder mehr Runs freiwillig. Der Simulator zeigt keine offensichtlichen Ausreißer.
 

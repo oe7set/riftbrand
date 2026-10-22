@@ -355,7 +355,16 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Einstellungen** liegen in `localStorage` (klein, synchron; IndexedDB kommt mit den Spielständen in M2), validiert und repariert über ein Zod-Schema.
 - **Audio:** `platform/audio/synth.ts` rendert die Rezepte aus `content/audio/sfx.ts` beim ersten Nutzer-Tippen in `AudioBuffer`s. Abgespielt wird mit Variation in Tonhöhe und Lautstärke, Stimmenlimit und Stereo-Panorama nach Bildschirmposition.
 
-## 20. Risiken und Gegenmaßnahmen
+## 20. Stand nach M2.1 (Run-Gerüst)
+- **Run vs. Raum:** `sim/run/` enthält den Run-Zustand zwischen den Räumen (`RunState`: Map, Position, Leben, Statistik), reine Funktionen und JSON-serialisierbar. Jeder Raum ist eine eigene `SimState`, erzeugt mit `createSim(roomSeed, roomSetupFor(run, node))`. Raumvorlage und Gegnerwellen werden aus dem Seed abgeleitet und nicht gespeichert.
+- **Map** (`sim/run/map.ts`): Ebenen-Map. Jeder Knoten verbindet sich mit einem zusammenhängenden Bereich der nächsten Ebene, dadurch entstehen keine Kreuzungen und jeder Knoten ist erreichbar. Regeln: Start mit Kampf, vor dem Boss eine Rast-Ebene, mindestens eine Horde, Elite erst ab Ebene 2.
+- **Raummodi** (`sim/room.ts`, `sim/systems/waves.ts`): `arena` (endlos, Debug/Tuning), `waves` (feste Wellen aus dem Encounter-Budget), `horde` (Timer; danach zerfallen alle Gegner). Ein Clear öffnet den Ausgang, `Ev.ExitReached` beendet den Raum.
+- **Hindernisse:** Rechtecke und Kreise in Typed Arrays, Kreis-Push-out in Bewegung und Separation. Geschosse verglühen an Hindernissen, Spawns meiden sie.
+- **Speichern:** `platform/storage/run-save.ts` speichert den `RunState` beim Betreten jedes Knotens (`localStorage`, versioniert, Zod-validiert, Migrationskette vorbereitet). Beim Fortsetzen startet ein angefangener Raum neu. IndexedDB folgt mit dem Profil-Speicherstand in M2.6.
+- **Menüs:** Preact (TSX) in `src/view/ui/`. `Ui.show(screen)` rendert einen Screen aus einer Union (`title`, `map`, `rest`, `victory`) mit Callbacks in die App. Gamepad und Pfeiltasten navigieren räumlich (`spatial-nav.ts`), Tastatur-Gameplay ist in Menüs deaktiviert.
+- **App-Ablauf** (`app/game.ts`): Modi `title → map ⇄ room/rest → victory`, plus `arena`. `?seed=…` in der URL startet direkt die Arena.
+
+## 21. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

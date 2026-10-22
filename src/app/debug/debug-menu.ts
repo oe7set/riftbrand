@@ -15,6 +15,7 @@ export interface DebugHooks {
   clearDrifters(): void;
   spawnEnemy(type: number): void;
   killAllEnemies(): void;
+  clearRoom(): void;
   nextWave(): void;
   setWaves(enabled: boolean): void;
   setGodMode(enabled: boolean): void;
@@ -104,6 +105,7 @@ export class DebugMenu {
         ),
         el('div', { className: 'rb-debug-row' }, [
           this.button('Kill all', () => this.hooks.killAllEnemies()),
+          this.button('Clear room', () => this.hooks.clearRoom()),
           this.button('Next wave', () => this.hooks.nextWave()),
         ]),
       ]),
@@ -117,7 +119,9 @@ export class DebugMenu {
       this.section('Run', false, [
         el('div', { className: 'rb-debug-row' }, [
           this.seedInput,
-          this.button('Restart', () => this.hooks.restart(Number(this.seedInput.value) >>> 0)),
+          this.button('Arena with seed', () =>
+            this.hooks.restart(Number(this.seedInput.value) >>> 0),
+          ),
         ]),
       ]),
       this.section('Tuning export', true, [
