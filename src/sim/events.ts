@@ -30,6 +30,21 @@ export const Ev = {
   RoomCleared: 18,
   /** Player stepped into the open exit. */
   ExitReached: 19,
+  /** value = status (StatusCode), amount = stacks now. */
+  StatusApplied: 20,
+  Frozen: 21,
+  /** Effect area burst; amount = radius, value = StatusCode (0 = none). */
+  Nova: 22,
+  /** Player healed; amount = HP. */
+  Heal: 23,
+} as const;
+
+/** Numeric status codes for event payloads. */
+export const StatusCode = {
+  None: 0,
+  Burn: 1,
+  Chill: 2,
+  Freeze: 3,
 } as const;
 
 export type EventType = (typeof Ev)[keyof typeof Ev];
@@ -38,6 +53,8 @@ export const EvFlag = {
   Crit: 1 << 0,
   Heavy: 1 << 1,
   Killed: 1 << 2,
+  /** Damage over time (burn tick): no hitstop, shake or stagger. */
+  Dot: 1 << 3,
 } as const;
 
 export interface SimEvent {

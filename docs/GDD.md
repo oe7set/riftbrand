@@ -278,6 +278,27 @@ Jeder Boss hat 2–3 Phasen, 4–6 Muster pro Phase, eine zornige Phase unter 30
 - **Duo-Segen:** Sie erscheinen, wenn man Voraussetzungen von zwei Wesen erfüllt, z. B. Ignara + Vaelis = **Dampfbruch** (Einfrieren und Brennen am selben Ziel ergibt eine Explosion). Ziel: 10 Duo-Segen (alle Paare der 5 Wesen).
 - **Legendäre Segen:** einer pro Wesen, mit Voraussetzungen, und Build-definierend.
 
+**Umgesetzt (M2.2):**
+
+| Wesen | Slot | Segen | Effekt (Seltenheit erhöht die Werte) |
+|---|---|---|---|
+| Ignara | Angriff | Sengender Schlag | Angriffe verursachen Brand |
+| Ignara | Spezial | Inferno-Wirbel | Glutwirbel: +Schaden, viel Brand |
+| Ignara | Dash | Funkenschweif | Dash-Start: Funken-Nova mit Schaden und Brand |
+| Ignara | Passiv | Zündung | Gegner mit 3+ Brand explodieren beim Tod |
+| Ignara | Passiv | Glutherz | +Schaden gegen brennende Gegner |
+| Ignara | Passiv | Lodernde Wut | +Angriffsschaden |
+| Ignara | Passiv | Asche zu Asche | +Brand-Schaden |
+| Ignara | Passiv | Phönixglut | Heilung beim Töten brennender Gegner |
+| Vaelis | Angriff | Frostschlag | Angriffe verursachen Kälte (5 = gefroren) |
+| Vaelis | Spezial | Gletscherwirbel | Glutwirbel: +Schaden, Kälte |
+| Vaelis | Dash | Frostschritt | Dash-Start kühlt Gegner im Umkreis ab |
+| Vaelis | Passiv | Kalter Griff | Gefrieren dauert länger |
+| Vaelis | Passiv | Zerschmettern | +Schaden gegen gefrorene Gegner |
+| Vaelis | Passiv | Eiszeit | Perfekter Dash friert Gegner in der Nähe ein |
+| Vaelis | Passiv | Gletscherhaut | Getroffen werden kühlt Gegner im Umkreis ab |
+| Vaelis | Passiv | Beißende Kälte | +Schaden pro Kälte-Stufe |
+
 ### 7.2 Relikte (stapelbar)
 - Gefunden in Elite-Räumen, im Shop, bei Ereignissen und als Kampfbelohnung.
 - **Stapeln:** Jede Kopie verstärkt den Effekt. Chancen skalieren hyperbolisch (wie in Risk of Rain), damit 100 % nie ganz erreicht werden. Flache Werte skalieren linear.

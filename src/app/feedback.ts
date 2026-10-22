@@ -3,7 +3,8 @@ import { TUNING } from '../content/tuning';
 import { BRAND_BLADE } from '../content/weapons/brand-blade';
 import type { AudioEngine } from '../platform/audio/audio-engine';
 import type { Haptics } from '../platform/haptics';
-import { Ev, type EventBuffer, EvFlag, type SimEvent } from '../sim/events';
+import { C } from '../sim/ecs/components';
+import { Ev, type EventBuffer, EvFlag, type SimEvent, StatusCode } from '../sim/events';
 import { PlayerAction } from '../sim/player-state';
 import type { SimState } from '../sim/sim';
 import type { GameView } from '../view/game-view';
@@ -13,6 +14,9 @@ import { BAKE_RADIUS_PX } from '../view/render/textures';
 /** Combo hits climb in pitch so a full combo "sings" (GDD §4.7). */
 const COMBO_PITCH_STEP = 1.06;
 const AFTERIMAGE_INTERVAL_SEC = 1 / 45;
+/** Ember emission rate per burn stack (per second), capped per enemy. */
+const EMBERS_PER_STACK_PER_SEC = 3;
+const MAX_EMBERS_PER_SEC = 18;
 
 /** Requests from feedback to the game loop. */
 export interface SlowMoRequest {
@@ -46,8 +50,9 @@ export class FeedbackDirector {
     for (let i = 0; i < events.count; i++) this.handle(events.items[i] as SimEvent);
   }
 
-  /** Continuous, per-frame feedback (dash afterimages). */
+  /** Continuous, per-frame feedback (dash afterimages, embers on burning enemies). */
   update(sim: SimState, dtSec: number): void {
+    this.emitEmbers(sim, dtSec);
     const p = sim.player;
     if (p.action !== PlayerAction.Dash) {
       this.afterimageTimer = 0;
@@ -63,6 +68,24 @@ export class FeedbackDirector {
       Math.atan2(p.dirY, p.dirX),
       TUNING.playerRadiusPx / BAKE_RADIUS_PX,
     );
+  }
+
+  private emitEmbers(sim: SimState, dtSec: number): void {
+    if (dtSec <= 0) return;
+    const { world, c } = sim;
+    for (let eid = 0; eid < world.highWater; eid++) {
+      const stacks = c.burnStacks[eid] as number;
+      if (stacks === 0 || ((world.masks[eid] as number) & C.Enemy) === 0) continue;
+      // Poisson-ish: expected embers this frame, resolved with a random draw (cosmetic only).
+      const expected = Math.min(MAX_EMBERS_PER_SEC, stacks * EMBERS_PER_STACK_PER_SEC) * dtSec;
+      if (Math.random() < expected) {
+        this.view.effects.ember(
+          c.posX[eid] as number,
+          c.posY[eid] as number,
+          c.radius[eid] as number,
+        );
+      }
+    }
   }
 
   private handle(e: SimEvent): void {
@@ -82,6 +105,18 @@ export class FeedbackDirector {
         shake.add(TUNING.shakeLightTrauma);
         break;
       case Ev.Hit: {
+        if ((e.flags & EvFlag.Dot) !== 0) {
+          // Burn ticks: quiet, small orange numbers only.
+          this.view.entities.hit(e.eid, 0, 0);
+          this.view.damageNumbers.spawnText(
+            e.x,
+            e.y,
+            String(Math.round(e.amount)),
+            PALETTE.burnText,
+            0.38,
+          );
+          break;
+        }
         const crit = (e.flags & EvFlag.Crit) !== 0;
         const heavy = (e.flags & EvFlag.Heavy) !== 0;
         const color = ENEMIES[e.value]?.visual.color ?? PALETTE.ember;
@@ -165,6 +200,47 @@ export class FeedbackDirector {
         break;
       case Ev.ProjectileExpired:
         fx.shotPop(e.x, e.y);
+        break;
+      case Ev.StatusApplied:
+        if (e.value === StatusCode.Burn) {
+          fx.statusPuff(e.x, e.y, PALETTE.ember);
+          this.audio.play('burnApply', { pan: this.pan(e.x), volume: 0.6 });
+        } else {
+          fx.statusPuff(e.x, e.y, PALETTE.frost);
+          this.audio.play('chillApply', {
+            pan: this.pan(e.x),
+            volume: 0.6,
+            pitch: 1 + e.amount * 0.05,
+          });
+        }
+        break;
+      case Ev.Frozen:
+        fx.freezeBurst(e.x, e.y, 24);
+        shake.add(TUNING.shakeLightTrauma);
+        this.audio.play('freeze', { pan: this.pan(e.x) });
+        this.haptics.pulse(15, 0.4);
+        break;
+      case Ev.Nova: {
+        const color =
+          e.value === StatusCode.Burn
+            ? PALETTE.ember
+            : e.value === StatusCode.None
+              ? PALETTE.playerSlash
+              : PALETTE.frost;
+        fx.nova(e.x, e.y, e.amount, color);
+        this.audio.play('nova', { pan: this.pan(e.x) });
+        break;
+      }
+      case Ev.Heal:
+        fx.heal(e.x, e.y);
+        this.view.damageNumbers.spawnText(
+          e.x,
+          e.y - 10,
+          `+${Math.round(e.amount)}`,
+          PALETTE.heal,
+          0.55,
+        );
+        this.audio.play('heal');
         break;
       case Ev.WaveStart:
         this.view.hud.onWaveStart(e.value, e.amount);

@@ -1,8 +1,9 @@
 import { ENEMIES } from '../../content/enemies';
-import type { HitstopLevel } from '../../content/schema';
+import type { HitSource, HitstopLevel } from '../../content/schema';
 import { TUNING } from '../../content/tuning';
 import { AiState, Token } from '../ecs/components';
 import { destroyEntity } from '../ecs/world';
+import { fireOnDamaged, fireOnHit, fireOnKill, fireOnPerfectDash } from '../effects/runtime';
 import { Ev, EvFlag, pushEvent } from '../events';
 import { PlayerAction } from '../player-state';
 import { nextFloat } from '../rng/rng';
@@ -58,6 +59,21 @@ export interface PlayerHitSpec {
   dirY: number;
   crit: boolean;
   swingId: number;
+  /** Effect damage never retriggers onHit boons (no infinite loops). */
+  source: HitSource;
+}
+
+/** Damage multiplier from the build and the target's status (GDD §7). */
+function damageMultiplier(state: SimState, eid: number, source: HitSource): number {
+  const c = state.c;
+  const stats = state.build.stats;
+  let mult = 1;
+  if (source === 'attack') mult += stats.attackDamage;
+  else if (source === 'special') mult += stats.specialDamage;
+  if ((c.burnStacks[eid] as number) > 0) mult += stats.damageVsBurning;
+  if ((c.frozenTicks[eid] as number) > 0) mult += TUNING.frozenDamageBonus + stats.damageVsFrozen;
+  mult += (c.chillStacks[eid] as number) * stats.damageVsChilledPerStack;
+  return mult;
 }
 
 /** Applies a player hit to an enemy. Returns false if this swing already hit it. */
@@ -68,7 +84,10 @@ export function damageEnemy(state: SimState, eid: number, spec: PlayerHitSpec): 
   const def = ENEMIES[c.enemyType[eid] as number];
   if (!def) return false;
 
-  const damage = spec.damage * (spec.crit ? TUNING.critMultiplier : 1);
+  const damage =
+    spec.damage *
+    (spec.crit ? TUNING.critMultiplier : 1) *
+    damageMultiplier(state, eid, spec.source);
   const hp = (c.hp[eid] as number) - damage;
   c.hp[eid] = hp;
   const killed = hp <= 0;
@@ -110,11 +129,39 @@ export function damageEnemy(state: SimState, eid: number, spec: PlayerHitSpec): 
     killed ? Math.max(TUNING.hitstopKillSec, hitstopSec(spec.hitstop)) : hitstopSec(spec.hitstop),
   );
   if (killed) killEnemy(state, eid, spec.dirX, spec.dirY);
+  else if (spec.source !== 'effect') fireOnHit(state, eid, spec.source);
   return true;
 }
 
-export function killEnemy(state: SimState, eid: number, dirX: number, dirY: number): void {
+/** Burn ticks: no hitstop, knockback, stagger or onHit triggers. */
+export function damageEnemyDot(state: SimState, eid: number, amount: number): void {
   const c = state.c;
+  const damage = amount * damageMultiplier(state, eid, 'effect');
+  const hp = (c.hp[eid] as number) - damage;
+  c.hp[eid] = hp;
+  const e = pushEvent(state.events, Ev.Hit, c.posX[eid] as number, c.posY[eid] as number);
+  if (e) {
+    e.eid = eid;
+    e.amount = damage;
+    e.value = c.enemyType[eid] as number;
+    e.flags = EvFlag.Dot | (hp <= 0 ? EvFlag.Killed : 0);
+  }
+  if (hp <= 0) killEnemy(state, eid, 0, -1);
+}
+
+/** `triggerEffects` is off for scripted removals (horde end, debug) so they don't farm onKill boons. */
+export function killEnemy(
+  state: SimState,
+  eid: number,
+  dirX: number,
+  dirY: number,
+  triggerEffects = true,
+): void {
+  const c = state.c;
+  const x = c.posX[eid] as number;
+  const y = c.posY[eid] as number;
+  const burn = c.burnStacks[eid] as number;
+  const frozen = (c.frozenTicks[eid] as number) > 0;
   releaseToken(state, eid);
   const e = pushEvent(state.events, Ev.Kill, c.posX[eid] as number, c.posY[eid] as number);
   if (e) {
@@ -126,6 +173,7 @@ export function killEnemy(state: SimState, eid: number, dirX: number, dirY: numb
   destroyEntity(state.world, eid);
   state.enemiesAlive--;
   state.player.kills++;
+  if (triggerEffects) fireOnKill(state, x, y, burn, frozen);
 }
 
 export type PlayerDamageResult = 'hit' | 'dodged' | 'ignored';
@@ -150,6 +198,7 @@ export function damagePlayer(
       p.guaranteedCrit = true;
       p.stamina = Math.min(TUNING.staminaMax, p.stamina + TUNING.perfectDashStaminaRefund);
       pushEvent(state.events, Ev.PerfectDash, px, py);
+      fireOnPerfectDash(state);
     }
     return 'dodged';
   }
@@ -179,6 +228,7 @@ export function damagePlayer(
     e.flags = hp <= 0 ? EvFlag.Killed : 0;
   }
   applyHitstop(state, TUNING.hitstopPlayerHitSec);
+  if (hp > 0) fireOnDamaged(state);
   if (hp <= 0) {
     c.hp[eid] = 0;
     p.action = PlayerAction.Dead;

@@ -36,6 +36,13 @@ describe('run save', () => {
     expect(migrateRunSave({ version: RUN_SAVE_VERSION, run: won })).toBeNull();
   });
 
+  it('migrates v1 saves (no boons yet) to the current version', () => {
+    const { boons: _boons, ...v1Run } = createRun(42);
+    const migrated = migrateRunSave({ version: 1, run: v1Run });
+    expect(migrated?.boons).toEqual([]);
+    expect(migrated?.seed).toBe(42);
+  });
+
   it('clears the save', () => {
     const store = memoryStore();
     saveRun(store, createRun(5));

@@ -110,7 +110,7 @@ const obstacleSchema = z.discriminatedUnion('kind', [
 
 const point = z.object({ x: px, y: px });
 
-export const roomTypeSchema = z.enum(['combat', 'elite', 'horde', 'rest', 'boss']);
+export const roomTypeSchema = z.enum(['combat', 'elite', 'horde', 'rest', 'boss', 'altar']);
 
 export const roomTemplateSchema = z.object({
   id,
@@ -137,10 +137,12 @@ export const biomeSchema = z.object({
     elite: z.number(),
     horde: z.number(),
     rest: z.number(),
+    altar: z.number(),
   }),
   /** Earliest layer (0-based) where elites may appear. */
   eliteMinLayer: z.number().int().min(0),
   restMinLayer: z.number().int().min(0),
+  altarMinLayer: z.number().int().min(0),
   /** Enemy types (indices into ENEMIES) that may appear here. */
   enemyPool: z.array(z.number().int().min(0)),
   combatBudgetBase: z.number().positive(),
@@ -151,6 +153,118 @@ export const biomeSchema = z.object({
   hordeSpawnIntervalSec: z.number().positive(),
   restHealFraction: z.number().min(0).max(1),
 });
+
+// ── Boons (GDD §7.1) ──────────────────────────────────────────────────────
+
+export const beingIdSchema = z.enum(['ignara', 'vaelis']);
+export const boonSlotSchema = z.enum(['attack', 'special', 'dash', 'passive']);
+export const raritySchema = z.enum(['common', 'rare', 'epic', 'heroic']);
+export const statusIdSchema = z.enum(['burn', 'chill']);
+/** Additive stat bonuses; +0.15 means +15 %. */
+export const statIdSchema = z.enum([
+  'attackDamage',
+  'specialDamage',
+  'damageVsBurning',
+  'damageVsFrozen',
+  'damageVsChilledPerStack',
+  'burnDamage',
+  'freezeDuration',
+]);
+
+/** A number, or the name of an entry in the boon's `values` (which scales with rarity). */
+const valueRef = z.union([z.number(), z.string()]);
+
+const effectActionSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('applyStatus'), status: statusIdSchema, stacks: valueRef }),
+  z.object({
+    type: z.literal('nova'),
+    /** Centre on the player or on the enemy that triggered the effect. */
+    at: z.enum(['player', 'target']),
+    radiusPx: valueRef,
+    damage: valueRef,
+    status: statusIdSchema.optional(),
+    stacks: valueRef.optional(),
+    freeze: z.boolean().optional(),
+  }),
+  z.object({ type: z.literal('heal'), amount: valueRef }),
+  z.object({ type: z.literal('refundStamina'), amount: valueRef }),
+]);
+
+const effectConditionSchema = z.object({
+  targetBurnStacksAtLeast: valueRef.optional(),
+  targetFrozen: z.boolean().optional(),
+});
+
+export const effectTriggerSchema = z.enum([
+  'onHit',
+  'onKill',
+  'onDash',
+  'onPerfectDash',
+  'onDamaged',
+]);
+export const hitSourceSchema = z.enum(['attack', 'special', 'effect']);
+
+export const effectSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('trigger'),
+    trigger: effectTriggerSchema,
+    /** onHit only: which kind of hit fires it. Effect damage never retriggers onHit. */
+    source: z.enum(['attack', 'special', 'any']).optional(),
+    chance: valueRef.optional(),
+    condition: effectConditionSchema.optional(),
+    action: effectActionSchema,
+  }),
+  z.object({ kind: z.literal('stat'), stat: statIdSchema, add: valueRef }),
+]);
+
+const boonValueSchema = z.object({
+  base: z.number(),
+  /** Added per rarity step above common. */
+  step: z.number(),
+  int: z.boolean().optional(),
+  /** Shown as a percentage in descriptions (0.15 → "15%"). */
+  percent: z.boolean().optional(),
+});
+
+export const boonSchema = z.object({
+  id,
+  being: beingIdSchema,
+  slot: boonSlotSchema,
+  tags: z.array(z.string()),
+  values: z.record(z.string(), boonValueSchema),
+  effects: z.array(effectSchema).min(1),
+});
+
+export type BeingId = z.infer<typeof beingIdSchema>;
+export type BoonSlot = z.infer<typeof boonSlotSchema>;
+export type Rarity = z.infer<typeof raritySchema>;
+export type StatusId = z.infer<typeof statusIdSchema>;
+export type StatId = z.infer<typeof statIdSchema>;
+export type EffectDef = z.infer<typeof effectSchema>;
+export type EffectAction = z.infer<typeof effectActionSchema>;
+export type EffectTrigger = z.infer<typeof effectTriggerSchema>;
+export type HitSource = z.infer<typeof hitSourceSchema>;
+export type BoonDef = z.infer<typeof boonSchema>;
+
+/** Validates the schema and that every value reference names an existing value. */
+export function defineBoon(def: BoonDef): BoonDef {
+  const boon = boonSchema.parse(def);
+  const check = (v: unknown) => {
+    if (typeof v === 'string' && !(v in boon.values)) {
+      throw new Error(`boon ${boon.id}: unknown value "${v}"`);
+    }
+  };
+  for (const e of boon.effects) {
+    if (e.kind === 'stat') check(e.add);
+    else {
+      check(e.chance);
+      check(e.condition?.targetBurnStacksAtLeast);
+      const a = e.action as Record<string, unknown>;
+      for (const key of ['stacks', 'radiusPx', 'damage', 'amount']) check(a[key]);
+    }
+  }
+  return boon;
+}
 
 export type MeleeHitDef = z.infer<typeof meleeHitSchema>;
 export type RoomTemplateDef = z.infer<typeof roomTemplateSchema>;

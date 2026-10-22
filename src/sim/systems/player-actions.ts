@@ -5,6 +5,7 @@ import { Button, type InputFrame } from '../../shared/input-frame';
 import { queryRect } from '../collision/spatial-hash';
 import { damageEnemy, type PlayerHitSpec, rollCrit } from '../combat/damage';
 import { C } from '../ecs/components';
+import { fireOnDash } from '../effects/runtime';
 import { Ev, pushEvent } from '../events';
 import { Buffered, type BufferedId, PlayerAction } from '../player-state';
 import type { SimState } from '../sim';
@@ -22,6 +23,7 @@ const hitSpec: PlayerHitSpec = {
   dirY: 0,
   crit: false,
   swingId: 0,
+  source: 'attack',
 };
 
 function approach(current: number, target: number, maxDelta: number): number {
@@ -166,6 +168,7 @@ function startAction(state: SimState, next: BufferedId, input: InputFrame): void
       e.dirX = p.dirX;
       e.dirY = p.dirY;
     }
+    fireOnDash(state);
   } else {
     resolveAttackDir(state, input, dirScratch);
     p.dirX = dirScratch.x;
@@ -234,6 +237,7 @@ function meleeSweep(
   knockback: number,
   poiseDamage: number,
   hitstop: MeleeHitDef['hitstop'],
+  source: 'attack' | 'special',
 ): void {
   const p = state.player;
   const eid = state.playerEid;
@@ -269,6 +273,7 @@ function meleeSweep(
     hitSpec.dirY = dist > 0 ? ey / dist : p.dirY;
     hitSpec.crit = rollCrit(state, p.swingCrit);
     hitSpec.swingId = p.swingId;
+    hitSpec.source = source;
     damageEnemy(state, e, hitSpec);
   }
 }
@@ -361,6 +366,7 @@ export function playerActionSystem(state: SimState, input: InputFrame): void {
           hit.knockback,
           hit.poiseDamage,
           hit.hitstop,
+          'attack',
         );
       } else {
         controlMovement(state, input, BRAND_BLADE.attackMoveFactor);
@@ -379,7 +385,16 @@ export function playerActionSystem(state: SimState, input: InputFrame): void {
       const [w, a, r] = specialPhaseTicks();
       controlMovement(state, input, s.moveFactor);
       if (t >= w && t < w + a) {
-        meleeSweep(state, s.radiusPx, 360, s.damage, s.knockback, s.poiseDamage, 'heavy');
+        meleeSweep(
+          state,
+          s.radiusPx,
+          360,
+          s.damage,
+          s.knockback,
+          s.poiseDamage,
+          'heavy',
+          'special',
+        );
       }
       if (t + 1 >= w + a + r) p.action = PlayerAction.Idle;
       break;

@@ -21,6 +21,8 @@ export interface DebugHooks {
   setGodMode(enabled: boolean): void;
   setTimeScale(scale: number): void;
   setHitboxes(enabled: boolean): void;
+  giveBoon(id: string): void;
+  clearBoons(): void;
 }
 
 export interface DebugStats {
@@ -71,6 +73,7 @@ export class DebugMenu {
     private readonly hooks: DebugHooks,
     enemyNames: readonly string[],
     private readonly version: string,
+    boonIds: readonly string[] = [],
   ) {
     this.fpsChip = el('div', { className: 'rb-fps' });
     this.fpsChip.hidden = true;
@@ -107,6 +110,12 @@ export class DebugMenu {
           this.button('Kill all', () => this.hooks.killAllEnemies()),
           this.button('Clear room', () => this.hooks.clearRoom()),
           this.button('Next wave', () => this.hooks.nextWave()),
+        ]),
+      ]),
+      this.section('Boons (rare)', false, [
+        el('div', { className: 'rb-debug-row' }, [
+          ...boonIds.map((id) => this.button(id, () => this.hooks.giveBoon(id))),
+          this.button('Clear boons', () => this.hooks.clearBoons()),
         ]),
       ]),
       this.section('Stress test', false, [

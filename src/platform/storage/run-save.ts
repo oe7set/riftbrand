@@ -3,13 +3,13 @@ import type { RunState } from '../../sim/run/run-state';
 import type { KeyValueStore } from './settings';
 
 const STORAGE_KEY = 'riftbrand.run';
-export const RUN_SAVE_VERSION = 1;
+export const RUN_SAVE_VERSION = 2;
 
 const mapNodeSchema = z.object({
   id: z.number().int().min(0),
   layer: z.number().int().min(0),
   x: z.number(),
-  type: z.enum(['combat', 'elite', 'horde', 'rest', 'boss']),
+  type: z.enum(['combat', 'elite', 'horde', 'rest', 'boss', 'altar']),
   next: z.array(z.number().int().min(0)),
 });
 
@@ -25,6 +25,9 @@ const runSchema = z.object({
   kills: z.number().int().min(0),
   roomsCleared: z.number().int().min(0),
   playTimeSec: z.number().min(0),
+  boons: z.array(
+    z.object({ id: z.string(), rarity: z.enum(['common', 'rare', 'epic', 'heroic']) }),
+  ),
 });
 
 const saveSchema = z.object({
@@ -36,11 +39,17 @@ const saveSchema = z.object({
  * Upgrades older saves step by step (vN → vN+1). Unknown or broken data yields null:
  * a lost mid-run save is annoying, a crash on load is worse.
  */
+/** v1 → v2: boons were added (M2.2). Old runs simply have none yet. */
+function migrate1to2(raw: { version: number; run?: Record<string, unknown> }): unknown {
+  return { ...raw, version: 2, run: { ...raw.run, boons: [] } };
+}
+
 export function migrateRunSave(raw: unknown): RunState | null {
   if (typeof raw !== 'object' || raw === null) return null;
-  const data = raw as { version?: unknown };
-  // Future migrations go here, e.g. if (data.version === 1) raw = migrate1to2(raw).
+  let data = raw as { version?: unknown; run?: Record<string, unknown> };
+  if (data.version === 1) data = migrate1to2(data as { version: number }) as typeof data;
   if (data.version !== RUN_SAVE_VERSION) return null;
+  raw = data;
   const parsed = saveSchema.safeParse(raw);
   if (!parsed.success) return null;
   const run = parsed.data.run;

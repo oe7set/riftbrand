@@ -80,6 +80,13 @@ export interface Components {
   token: Uint8Array;
   poise: Float64Array;
   poiseRegenTicks: Int32Array;
+  // Status effects
+  burnStacks: Uint8Array;
+  burnTicks: Int32Array;
+  burnTickTimer: Int32Array;
+  chillStacks: Uint8Array;
+  chillTicks: Int32Array;
+  frozenTicks: Int32Array;
   // Projectile
   projDamage: Float64Array;
   projLifeTicks: Int32Array;
@@ -116,6 +123,12 @@ export function createComponents(capacity: number): Components {
     token: new Uint8Array(capacity),
     poise: new Float64Array(capacity),
     poiseRegenTicks: new Int32Array(capacity),
+    burnStacks: new Uint8Array(capacity),
+    burnTicks: new Int32Array(capacity),
+    burnTickTimer: new Int32Array(capacity),
+    chillStacks: new Uint8Array(capacity),
+    chillTicks: new Int32Array(capacity),
+    frozenTicks: new Int32Array(capacity),
     projDamage: new Float64Array(capacity),
     projLifeTicks: new Int32Array(capacity),
     wanderTicks: new Int32Array(capacity),

@@ -51,6 +51,9 @@ export function hashSim(state: SimState): number {
     h = mixFloat(h, c.hp[eid] as number);
     h = fnv1a(h, c.aiState[eid] as number);
     h = fnv1a(h, c.aiTicks[eid] as number);
+    h = fnv1a(h, c.burnStacks[eid] as number);
+    h = fnv1a(h, c.chillStacks[eid] as number);
+    h = fnv1a(h, c.frozenTicks[eid] as number);
   }
   return h;
 }

@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { RoomType } from '../../content/schema';
-import { t } from '../../shared/i18n';
+import { boonById, boonDescParams } from '../../content/boons';
+import { BEINGS } from '../../content/boons/beings';
+import type { BoonSlot, RoomType } from '../../content/schema';
+import { type TranslationKey, t } from '../../shared/i18n';
 import type { MapNode } from '../../sim/run/map';
+import {
+  type BoonOffer,
+  type BoonOption,
+  rewardBeing,
+  rewardRarityBonus,
+} from '../../sim/run/rewards';
 import { availableNodes, type RunState } from '../../sim/run/run-state';
 import { NodeIcon } from './icons';
 
@@ -20,7 +28,8 @@ export type Screen =
     }
   | { kind: 'map'; run: RunState; onEnter(nodeId: number): void }
   | { kind: 'rest'; run: RunState; healAmount: number; onRest(): void }
-  | { kind: 'victory'; run: RunState; onTitle(): void };
+  | { kind: 'victory'; run: RunState; onTitle(): void }
+  | { kind: 'boon'; offer: BoonOffer; onPick(option: BoonOption): void };
 
 function formatTime(sec: number): string {
   const m = Math.floor(sec / 60);
@@ -28,13 +37,17 @@ function formatTime(sec: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function Autofocus({ children }: { children: preact.ComponentChildren }) {
+function Autofocus({ children, wide }: { children: preact.ComponentChildren; wide?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     // Focus the default action so keyboard/gamepad users can confirm immediately.
     ref.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus({ preventScroll: true });
   }, []);
-  return <div ref={ref}>{children}</div>;
+  return (
+    <div ref={ref} class={wide ? 'rb-wide' : undefined}>
+      {children}
+    </div>
+  );
 }
 
 function TitleScreen(props: Extract<Screen, { kind: 'title' }>) {
@@ -79,7 +92,8 @@ function nodeState(run: RunState, node: MapNode, available: Set<number>): string
   return 'locked';
 }
 
-const NODE_NAME_KEYS: Record<RoomType, Parameters<typeof t>[0]> = {
+const NODE_NAME_KEYS: Record<RoomType, TranslationKey> = {
+  altar: 'node.altar.name',
   combat: 'node.combat.name',
   elite: 'node.elite.name',
   horde: 'node.horde.name',
@@ -87,7 +101,8 @@ const NODE_NAME_KEYS: Record<RoomType, Parameters<typeof t>[0]> = {
   boss: 'node.boss.name',
 };
 
-const NODE_DESC_KEYS: Record<RoomType, Parameters<typeof t>[0]> = {
+const NODE_DESC_KEYS: Record<RoomType, TranslationKey> = {
+  altar: 'node.altar.desc',
   combat: 'node.combat.desc',
   elite: 'node.elite.desc',
   horde: 'node.horde.desc',
@@ -135,6 +150,7 @@ function MapScreen({ run, onEnter }: Extract<Screen, { kind: 'map' }>) {
           </span>
         </div>
       </header>
+      <BoonChips run={run} />
       <div class="rb-map-scroll" ref={scrollRef}>
         <div class="rb-map-canvas" style={{ height: `${height}px` }}>
           <svg
@@ -184,6 +200,12 @@ function MapScreen({ run, onEnter }: Extract<Screen, { kind: 'map' }>) {
                 onFocus={() => state === 'available' && setSelected(n.id)}
               >
                 <NodeIcon type={n.type} />
+                {rewardRarityBonus(n.type) !== null && (
+                  <span
+                    class="rb-node-reward"
+                    style={{ background: BEINGS[rewardBeing(run.seed, n.id)].css }}
+                  />
+                )}
               </button>
             );
           })}
@@ -208,6 +230,81 @@ function MapScreen({ run, onEnter }: Extract<Screen, { kind: 'map' }>) {
           <div class="rb-map-info">{t('map.choose')}</div>
         )}
       </footer>
+    </div>
+  );
+}
+
+/** Compact list of owned boons, coloured by being. */
+function BoonChips({ run }: { run: RunState }) {
+  if (run.boons.length === 0)
+    return <div class="rb-chips rb-chips-empty">{t('map.boons_none')}</div>;
+  return (
+    <div class="rb-chips">
+      {run.boons.map((b) => {
+        const def = boonById(b.id);
+        if (!def) return null;
+        return (
+          <span
+            class={`rb-chip rarity-${b.rarity}`}
+            style={{ borderColor: BEINGS[def.being].css }}
+            key={b.id}
+          >
+            {t(`boon.${b.id}.name` as TranslationKey)}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+const SLOT_KEYS: Record<BoonSlot, TranslationKey> = {
+  attack: 'slot.attack',
+  special: 'slot.special',
+  dash: 'slot.dash',
+  passive: 'slot.passive',
+};
+
+/** Three boon cards from one rift being (GDD §7.1). */
+function BoonScreen({ offer, onPick }: Extract<Screen, { kind: 'boon' }>) {
+  const being = BEINGS[offer.being];
+  return (
+    <div class="rb-screen rb-center rb-boon-screen" style={{ '--being': being.css }}>
+      <div class="rb-being">
+        <div class="rb-being-name">{t(`being.${offer.being}.name` as TranslationKey)}</div>
+        <div class="rb-being-title">{t(`being.${offer.being}.title` as TranslationKey)}</div>
+        <div class="rb-being-quote">„{t(`being.${offer.being}.quote` as TranslationKey)}“</div>
+      </div>
+      <div class="rb-overlay-hint">{t('reward.choose')}</div>
+      <Autofocus wide>
+        <div class="rb-cards">
+          {offer.options.map((o, i) => {
+            const def = boonById(o.id);
+            if (!def) return null;
+            const replaced = o.replaces ? t(`boon.${o.replaces}.name` as TranslationKey) : null;
+            return (
+              <button
+                type="button"
+                class={`rb-card rarity-${o.rarity}`}
+                data-autofocus={i === 0 ? true : undefined}
+                onClick={() => onPick(o)}
+                key={o.id}
+              >
+                <div class="rb-card-head">
+                  <span class="rb-card-slot">{t(SLOT_KEYS[def.slot])}</span>
+                  <span class="rb-card-rarity">{t(`rarity.${o.rarity}` as TranslationKey)}</span>
+                </div>
+                <div class="rb-card-name">{t(`boon.${o.id}.name` as TranslationKey)}</div>
+                <div class="rb-card-desc">
+                  {t(`boon.${o.id}.desc` as TranslationKey, boonDescParams(def, o.rarity))}
+                </div>
+                {replaced && (
+                  <div class="rb-card-replaces">{t('reward.replaces', { name: replaced })}</div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </Autofocus>
     </div>
   );
 }
@@ -262,6 +359,8 @@ export function UiRoot({ screen }: { screen: Screen }) {
       return <RestScreen {...screen} />;
     case 'victory':
       return <VictoryScreen {...screen} />;
+    case 'boon':
+      return <BoonScreen {...screen} />;
     case 'none':
       return null;
   }

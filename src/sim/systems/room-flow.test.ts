@@ -14,7 +14,7 @@ const OPEN = ROOMS.find((r) => r.id === 'open_ash') as RoomTemplateDef;
 const PILLARS = ROOMS.find((r) => r.id === 'central_altar') as RoomTemplateDef;
 
 function roomSim(encounter: Encounter, template = OPEN, seed = 4): SimState {
-  return createSim(seed, { template, encounter, playerHp: 80, playerMaxHp: 100 });
+  return createSim(seed, { template, encounter, playerHp: 80, playerMaxHp: 100, boons: [] });
 }
 
 function step(sim: SimState, ticks: number, onEvent?: (type: number) => void): void {
