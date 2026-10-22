@@ -59,6 +59,20 @@ export const GAMEPAD_BUTTON = {
   RT: 7,
   Select: 8,
   Start: 9,
+  DpadUp: 12,
+  DpadDown: 13,
+  DpadLeft: 14,
+  DpadRight: 15,
+} as const;
+
+/** Menu navigation actions, independent of the device. */
+export const MenuAction = {
+  Up: 1 << 0,
+  Down: 1 << 1,
+  Left: 1 << 2,
+  Right: 1 << 3,
+  Confirm: 1 << 4,
+  Back: 1 << 5,
 } as const;
 
 export const DEFAULT_GAMEPAD_BINDINGS: Record<number, ButtonBit> = {

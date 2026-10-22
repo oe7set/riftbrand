@@ -23,6 +23,8 @@ export class KeyboardMouseInput {
   /** Pointer position in CSS pixels relative to the canvas. */
   readonly pointer = { x: 0, y: 0, inside: false };
   private readonly cleanup: Array<() => void> = [];
+  /** Off while a menu is open: keys then belong to the DOM (focus, Enter, arrows). */
+  gameplayEnabled = true;
 
   constructor(
     private readonly canvas: HTMLElement,
@@ -53,6 +55,15 @@ export class KeyboardMouseInput {
     const bit = buttons[e.code];
     const action = app[e.code];
     if (dir === undefined && bit === undefined && action === undefined) return;
+    if (!this.gameplayEnabled) {
+      // Menus and the pause screen still get app actions (Esc resumes); the rest is the DOM's.
+      // Tab stays with the browser for focus navigation in menus.
+      if (action !== undefined && !e.repeat && e.code !== 'Tab') {
+        e.preventDefault();
+        this.sink.appAction(action);
+      }
+      return;
+    }
     // Bound keys must not scroll the page, move focus (Tab) or trigger browser shortcuts.
     e.preventDefault();
     this.sink.used('keyboardMouse');

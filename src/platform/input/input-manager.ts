@@ -76,6 +76,17 @@ export class InputManager implements DeviceSink {
     return this.appActions.delete(action);
   }
 
+  /** Menus own the keyboard while gameplay input is off. */
+  setGameplayEnabled(enabled: boolean): void {
+    if (this.keyboardMouse.gameplayEnabled === enabled) return;
+    this.keyboardMouse.gameplayEnabled = enabled;
+    this.releaseAll();
+  }
+
+  consumeMenuActions(): number {
+    return this.gamepad.consumeMenu();
+  }
+
   /** Drops held state, e.g. when the game pauses, so nothing stays "stuck". */
   releaseAll(): void {
     this.keyboardMouse.releaseAll();
