@@ -382,7 +382,17 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
   - Elite und Altar verschieben die Seltenheit nach oben.
 - **Speicherstand v2:** Der `RunState` enthält jetzt `boons`. Die Migration v1 → v2 ergänzt eine leere Liste.
 
-## 22. Risiken und Gegenmaßnahmen
+## 22. Stand nach M2.3 (Relikte, Scherben, Shop, Ereignisse)
+- **Relikte** (`content/relics/`): Sie nutzen dasselbe Effekt-Schema wie Segen, ihre Werte hängen aber von der **Stapelzahl** ab. Normale Werte wachsen linear; Chancen wachsen hyperbolisch nach `1 − 1/(1 + k·Stapel)` und erreichen nie 100 %. `compileBuild(boons, relics)` fasst beides zusammen.
+- **Neue Stats:** `allDamage`, `critChance`, `critDamage`, `moveSpeed`, `staminaRegen`, `healing` (mindestens 10 %), `shardGain`, `maxHp`. `maxHp` wirkt auf Run-Ebene (`applyMaxHp`): Gewinne heilen mit, Verluste kappen nur das aktuelle Leben.
+- **Neuer Trigger `onRoomClear`** (zum Beispiel „Zweiter Atem“).
+- **Scherben:** Gegner haben einen `shardValue`. Kills füllen `SimState.shards`, der Raum startet mit den Scherben des Runs, und `completeRoom` übernimmt den Endstand plus den Clear-Bonus. Skript-Kills (Horde-Ende, Debug) geben nichts.
+- **Belohnungen pro Knoten** (`sim/run/economy.ts` → `nodeReward`): Kampf ergibt Segen (60 %), Relikt (25 %) oder Scherben (15 %). Elite gibt immer ein Relikt mit Seltenheits-Bonus, Horde und Altar einen Segen. Auf der Map sind die Belohnungen als Marker sichtbar.
+- **Shop:** Das Sortiment hängt deterministisch von Seed und Knoten ab: 2 Relikte, 1 Fluch-Relikt mit Rabatt, 1 Segen, 1 Heiltrank. Käufe werden in `RunState.shopBought` gespeichert, damit ein Neuladen nicht neu auffüllt.
+- **Ereignisse** (`content/events/`): Optionen mit Bedingungen (`requiresShards`, `requiresHpAbove`) und Ergebnissen (`heal`, `damage`, `shards`, `relic`, `maxHp`). `applyOutcomes` wendet sie an und gibt sie für die Anzeige aufgelöst zurück.
+- **Speicherstand v3** mit Migrationskette v1 → v2 → v3.
+
+## 23. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |
