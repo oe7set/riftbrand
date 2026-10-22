@@ -15,19 +15,27 @@ M0 Fundament ─▶ M1 Prototyp ─▶ M2 Vertical Slice ─▶ M3 Alpha ─▶ 
 ## M0: Fundament
 **Ziel:** Die technische Basis steht, ein leerer Raum mit einem steuerbaren Platzhalter läuft auf GitHub Pages und auf dem Handy.
 
-- [ ] Projekt-Setup: pnpm, Vite, TypeScript (strict), Biome, Vitest, Ordnerstruktur nach TECH_DESIGN
-- [ ] CI-Workflow (Lint, Typecheck, Test, Build) und Deploy-Workflow (`main` → Pages, Branch → `dev/<branch>`)
-- [ ] PWA-Grundgerüst (Manifest, Icons als Platzhalter, Service Worker nur auf `main`)
-- [ ] Game Loop: fester 60-Hz-Takt, Interpolation, Pause bei Fokusverlust
-- [ ] Seed-RNG mit Unterströmen und Tests
-- [ ] ECS-Benchmark: bitECS gegen eigenes minimales ECS (500 Entities, Bewegung und Kollision), Entscheidung als ADR
-- [ ] Eingabe: Action-Mapping für Tastatur/Maus, Gamepad und Touch (Floating Joystick, Buttons), Geräteerkennung
-- [ ] PixiJS-Setup: Ebenen, Kamera, Skalierung für Hoch- und Querformat, Auflösungsobergrenze
-- [ ] Debug-Menü (Grundgerüst): FPS bzw. Frame-Zeit, Tuning-Regler, Hitbox-Anzeige, Zeitlupe
-- [ ] Architekturtest: `sim/` importiert nichts Verbotenes
-- [ ] Determinismustest: gleicher Seed und gleiche Eingaben ergeben denselben Zustands-Hash
+- [x] Projekt-Setup: pnpm, Vite, TypeScript (strict), Biome, Vitest, Ordnerstruktur nach TECH_DESIGN
+- [x] CI-Workflow (Lint, Typecheck, Test, Build) und Deploy-Workflow (`main` → Pages, Branch → `dev/<branch>`)
+- [x] PWA-Grundgerüst (Manifest, Icons als Platzhalter, Service Worker nur auf `main`)
+- [x] Game Loop: fester 60-Hz-Takt, Interpolation, Pause bei Fokusverlust
+- [x] Seed-RNG mit Unterströmen und Tests
+- [x] ECS-Benchmark: bitECS gegen eigenes minimales ECS (500 Entities, Bewegung und Kollision), Entscheidung als ADR ([0001](./adr/0001-eigenes-ecs.md))
+- [x] Eingabe: Action-Mapping für Tastatur/Maus, Gamepad und Touch (Floating Joystick, Buttons), Geräteerkennung
+- [x] PixiJS-Setup: Ebenen, Kamera, Skalierung für Hoch- und Querformat, Auflösungsobergrenze
+- [x] Debug-Menü (Grundgerüst): FPS bzw. Frame-Zeit, Tuning-Regler, Hitbox-Anzeige, Zeitlupe
+- [x] Architekturtest: `sim/` importiert nichts Verbotenes
+- [x] Determinismustest: gleicher Seed und gleiche Eingaben ergeben denselben Zustands-Hash
 
 **Abnahme:** Ein Kreis lässt sich auf dem OnePlus 13 per Touch und am PC per Tastatur und Gamepad flüssig mit 120 Hz Darstellung bewegen. Die CI ist grün, die Testversion läuft unter `/riftbrand/dev/...`.
+
+**Abnahme-Checkliste (Product Owner):**
+- [ ] OnePlus 13: Joystick reagiert sofort, Figur bewegt sich flüssig (FPS-Overlay im Debug-Menü zeigt ~120)
+- [ ] Hoch- und Querformat: Steuerung erreichbar, Drehen im laufenden Spiel funktioniert
+- [ ] PC: WASD/Pfeiltasten, Maus-Zielen (die Spitze zeigt zum Cursor), Gamepad-Sticks
+- [ ] App-Wechsel bzw. Tab-Wechsel pausiert automatisch
+- [ ] Stresstest: „+500 drifters“ im Debug-Menü bleibt flüssig
+- [ ] Testversion unter `/riftbrand/dev/<branch>/` und Hauptversion nach dem Merge erreichbar
 
 ---
 

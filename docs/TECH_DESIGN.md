@@ -23,15 +23,15 @@
 | Paketmanager | **pnpm** | schnell, strikt bei Abhängigkeiten |
 | Rendering | **PixiJS v8** (WebGL, optional WebGPU) | schnellster 2D-Renderer, Filter und Shader, kleine Bundle-Größe |
 | Filter | **pixi-filters** (Bloom/Glow, Farbmatrix) | Neon-Look |
-| ECS | **bitECS** *oder* eigenes minimales ECS, Entscheidung per Benchmark in M0 | Leistung bei 300+ Gegnern, deterministische Iteration |
+| ECS | **eigenes minimales ECS** (Bitmasken und Typed Arrays), siehe [ADR 0001](./adr/0001-eigenes-ecs.md) | deterministische Iteration, leicht zu hashen und zu serialisieren, weit unter Budget |
 | Validierung | **Zod** | Content-Schemas, Speicherstand-Validierung |
-| Menü-Oberfläche | **Preact + Signals** (DOM-Overlay) | Text, Scrollen, i18n, Barrierefreiheit und Formulare sind im DOM besser als im Canvas |
+| Menü-Oberfläche | **Preact + Signals** (DOM-Overlay), ab M2. Debug-Menü und Pause-Overlay sind bis dahin schlankes DOM ohne Framework | Text, Scrollen, i18n, Barrierefreiheit und Formulare sind im DOM besser als im Canvas |
 | Audio | **Web Audio API** direkt, eigener ZzFX-artiger Synthesizer | volle Kontrolle, keine Abhängigkeit, klein |
 | Speicher | **IndexedDB** (dünner Wrapper, z. B. `idb-keyval`), Fallback `localStorage` | robust, großer Speicherplatz |
 | PWA | **vite-plugin-pwa** (Workbox) | offline, installierbar |
 | Tests | **Vitest** (Unit- und Simulationstests), **Playwright** (Smoke-Test) | schnell, versteht TypeScript direkt |
 | Lint/Format | **Biome** | ein Werkzeug, sehr schnell |
-| CI/CD | **GitHub Actions**, Veröffentlichung auf **GitHub Pages** (`gh-pages`-Branch) | kostenlos, Branch-Testversionen möglich |
+| CI/CD | **GitHub Actions**, Veröffentlichung auf **GitHub Pages** (`gh-pages`-Branch), siehe [ADR 0002](./adr/0002-deployment-gh-pages.md) | kostenlos, Branch-Testversionen möglich |
 
 **Warum nicht Phaser bzw. Godot?** Siehe die Diskussion in der Planungsphase. Kurz gesagt: Determinismus und Headless-Simulation erfordern eine saubere Trennung von Logik und Darstellung. Phaser verflicht beides, und der Web-Export von Godot ist für Mobile zu schwer.
 
@@ -83,6 +83,7 @@ Eingabegeräte ──▶ InputMapper ──▶ InputFrame (pro Tick, aufzeichenb
 ## 4. Game Loop und Zeit
 
 - **Fester Simulationstakt: 60 Hz** (`TICK = 1/60 s`). Ein Akkumulator sammelt die echte Zeit. Pro Frame laufen höchstens 5 Ticks, danach wird abgebrochen, damit die Simulation nicht in eine Aufholspirale gerät.
+- **Rendering ohne PixiJS-`Application`:** Ein eigener `requestAnimationFrame`-Loop (`src/app/game.ts`) ruft `renderer.render()` selbst auf, damit Simulation und Darstellung in einer klar definierten Reihenfolge laufen.
 - **Rendering mit Bildschirmfrequenz** (z. B. 120 Hz auf dem OnePlus 13) mit **Interpolation** der Positionen zwischen den Ticks. Das sorgt für flüssige Darstellung ohne Änderung der Logik.
 - **Hitstop** ist Teil des Simulationszustands (`freezeTicks`). Die Simulation überspringt Gameplay-Systeme, während Darstellung, Partikel und Shake weiterlaufen. Damit ist Hitstop deterministisch.
 - **Zeitlupe** (perfekter Dash, letzter Gegner) wird als `timeScale` umgesetzt. Sie verändert, **wie viele Ticks pro echter Sekunde** laufen, nicht `dt`. Die Simulation sieht immer dasselbe `dt`, damit bleibt der Determinismus erhalten.
