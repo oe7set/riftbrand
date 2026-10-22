@@ -1,4 +1,5 @@
 import { EMBER_WASTES } from '../content/biomes/ember-wastes';
+import { BOONS } from '../content/boons';
 import { ENEMIES } from '../content/enemies';
 import { AudioEngine } from '../platform/audio/audio-engine';
 import {
@@ -25,11 +26,15 @@ import { debugClearRoom, debugKillAllEnemies, debugNextWave, debugSpawnEnemy } f
 import { C } from '../sim/ecs/components';
 import { Ev, type EventBuffer } from '../sim/events';
 import { hashSim } from '../sim/hash';
+import { addBoon, type BoonOffer } from '../sim/run/rewards';
 import {
+  completeAltar,
   completeRoom,
   createRun,
   enterNode,
   failRun,
+  offerFor,
+  pickBoon,
   type RunState,
   rest,
   roomSeed,
@@ -40,6 +45,7 @@ import {
   createSim,
   drainEvents,
   type SimState,
+  setBuild,
   spawnDrifters,
   stepSim,
 } from '../sim/sim';
@@ -65,7 +71,7 @@ const EXIT_TRANSITION_SEC = 0.35;
 const RESTART_BUTTONS = Button.Attack | Button.Dash | Button.Interact;
 
 /** Where the player is in the game flow (title → map ⇄ room/rest → victory or death). */
-type Mode = 'title' | 'map' | 'rest' | 'room' | 'arena' | 'victory';
+type Mode = 'title' | 'map' | 'rest' | 'reward' | 'room' | 'arena' | 'victory';
 
 function randomSeed(): number {
   return crypto.getRandomValues(new Uint32Array(1))[0] ?? 1;
@@ -171,9 +177,19 @@ export class Game {
         setHitboxes: (on) => {
           this.view.debugDraw.enabled = on;
         },
+        giveBoon: (id) => {
+          const boons = addBoon(this.sim.boons, { id, rarity: 'rare' });
+          setBuild(this.sim, boons);
+          if (this.run) this.run.boons = boons;
+        },
+        clearBoons: () => {
+          setBuild(this.sim, []);
+          if (this.run) this.run.boons = [];
+        },
       },
       ENEMIES.map((e) => e.id),
       this.version,
+      BOONS.map((b) => b.id),
     );
     this.pauseOverlay = new PauseOverlay(
       root,
@@ -292,6 +308,7 @@ export class Game {
     // Saved on room entry: the room restarts from its entry state.
     if (run.status === 'room' && node) {
       if (node.type === 'rest') this.showRest();
+      else if (node.type === 'altar') this.showAltar();
       else this.startRoom();
     } else this.showMap();
   }
@@ -310,7 +327,39 @@ export class Game {
     const node = enterNode(run, nodeId);
     saveRun(this.store, run);
     if (node.type === 'rest') this.showRest();
+    else if (node.type === 'altar') this.showAltar();
     else this.startRoom();
+  }
+
+  /** Altar: no fight, just a (better) boon choice. */
+  private showAltar(): void {
+    const run = this.run;
+    const node = run?.map.nodes[run.currentNodeId];
+    const offer = run && node ? offerFor(run, node) : null;
+    if (!run || !offer) {
+      this.showMap();
+      return;
+    }
+    this.showBoonChoice(offer, () => completeAltar(run));
+  }
+
+  /** Shows a boon offer; `beforeSave` runs after the pick (e.g. marking the node done). */
+  private showBoonChoice(offer: BoonOffer, beforeSave?: () => void): void {
+    const run = this.run;
+    if (!run) return;
+    if (this.mode === 'room') this.loadSim(this.backdropSim());
+    this.setMode('reward');
+    this.ui.show({
+      kind: 'boon',
+      offer,
+      onPick: (option) => {
+        pickBoon(run, option);
+        beforeSave?.();
+        saveRun(this.store, run);
+        this.audio.play('boonPick', { pitchVariation: 0 });
+        this.showMap();
+      },
+    });
   }
 
   private showRest(): void {
@@ -359,6 +408,12 @@ export class Game {
       this.loadSim(this.backdropSim());
       this.setMode('victory');
       this.ui.show({ kind: 'victory', run, onTitle: () => this.showTitle() });
+      return;
+    }
+    const node = run.map.nodes[run.currentNodeId];
+    const offer = node ? offerFor(run, node) : null;
+    if (offer) {
+      this.showBoonChoice(offer);
       return;
     }
     saveRun(this.store, run);
