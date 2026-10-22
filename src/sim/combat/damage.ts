@@ -1,8 +1,9 @@
 import { BRAND_BURST } from '../../content/abilities';
+import { eliteOf } from '../../content/elites';
 import { ENEMIES } from '../../content/enemies';
 import type { HitSource, HitstopLevel } from '../../content/schema';
 import { TUNING } from '../../content/tuning';
-import { AiState, Token } from '../ecs/components';
+import { AiState, C, Token } from '../ecs/components';
 import { destroyEntity } from '../ecs/world';
 import { fireOnDamaged, fireOnHit, fireOnKill, fireOnPerfectDash } from '../effects/runtime';
 import { Ev, EvFlag, pushEvent } from '../events';
@@ -10,6 +11,7 @@ import { PlayerAction } from '../player-state';
 import { nextFloat } from '../rng/rng';
 import type { SimState } from '../sim';
 import { secondsToTicks } from '../time';
+import { spawnHazard } from './hazards';
 
 export function hitstopSec(level: HitstopLevel): number {
   if (level === 'heavy') return TUNING.hitstopHeavySec;
@@ -94,6 +96,19 @@ function damageMultiplier(state: SimState, eid: number, source: HitSource): numb
   return mult;
 }
 
+/**
+ * Shielded elites (GDD §5.1): a hit whose attacker stands inside the shield cone in front of
+ * the enemy is mostly absorbed. `dirX/dirY` push away from the attacker.
+ */
+function shieldBlocks(state: SimState, eid: number, dirX: number, dirY: number): boolean {
+  const elite = eliteOf(state.c.eliteMod[eid] as number);
+  if (!elite || elite.shieldArcDeg <= 0) return false;
+  // Frozen enemies drop their guard.
+  if ((state.c.frozenTicks[eid] as number) > 0) return false;
+  const facing = -dirX * (state.c.facingX[eid] as number) - dirY * (state.c.facingY[eid] as number);
+  return facing >= Math.cos(((elite.shieldArcDeg / 2) * Math.PI) / 180);
+}
+
 /** Applies a player hit to an enemy. Returns false if this swing already hit it. */
 export function damageEnemy(state: SimState, eid: number, spec: PlayerHitSpec): boolean {
   const c = state.c;
@@ -102,17 +117,27 @@ export function damageEnemy(state: SimState, eid: number, spec: PlayerHitSpec): 
   const def = ENEMIES[c.enemyType[eid] as number];
   if (!def) return false;
 
+  const blocked = shieldBlocks(state, eid, spec.dirX, spec.dirY);
   const damage =
     spec.damage *
     (spec.crit ? TUNING.critMultiplier + state.build.stats.critDamage : 1) *
-    damageMultiplier(state, eid, spec.source);
+    damageMultiplier(state, eid, spec.source) *
+    (blocked ? (eliteOf(c.eliteMod[eid] as number)?.shieldDamageFactor ?? 1) : 1);
+  if (blocked) {
+    const b = pushEvent(state.events, Ev.ShieldBlock, c.posX[eid] as number, c.posY[eid] as number);
+    if (b) {
+      b.eid = eid;
+      b.dirX = spec.dirX;
+      b.dirY = spec.dirY;
+    }
+  }
   const hp = (c.hp[eid] as number) - damage;
   c.hp[eid] = hp;
   const killed = hp <= 0;
   if (spec.source !== 'ultimate') gainUltCharge(state, damage / BRAND_BURST.chargeDamageDealt);
 
-  let knockback = spec.knockback * (1 - def.weight);
-  if (!killed) {
+  let knockback = blocked ? 0 : spec.knockback * (1 - def.weight);
+  if (!killed && !blocked) {
     if (def.poise > 0) {
       c.poise[eid] = (c.poise[eid] as number) - spec.poiseDamage;
       c.poiseRegenTicks[eid] = secondsToTicks(def.poiseRegenDelaySec);
@@ -184,15 +209,28 @@ export function killEnemy(
   const y = c.posY[eid] as number;
   const burn = c.burnStacks[eid] as number;
   const frozen = (c.frozenTicks[eid] as number) > 0;
+  const type = c.enemyType[eid] as number;
+  const elite = eliteOf(c.eliteMod[eid] as number);
   releaseToken(state, eid);
   const e = pushEvent(state.events, Ev.Kill, c.posX[eid] as number, c.posY[eid] as number);
   if (e) {
     e.eid = eid;
     e.dirX = dirX;
     e.dirY = dirY;
-    e.value = c.enemyType[eid] as number;
+    e.value = type;
+    e.flags = c.eliteMod[eid] as number;
   }
   destroyEntity(state.world, eid);
+  if (triggerEffects && elite && elite.deathBlastRadiusPx > 0) {
+    spawnHazard(
+      state,
+      x,
+      y,
+      elite.deathBlastRadiusPx,
+      elite.deathBlastDamage,
+      elite.deathBlastFuseSec,
+    );
+  }
   state.enemiesAlive--;
   state.player.kills++;
   if (triggerEffects) {
@@ -206,6 +244,18 @@ export function killEnemy(
     }
   }
   if (triggerEffects) fireOnKill(state, x, y, burn, frozen);
+  if (ENEMIES[type]?.role === 'boss') defeatBoss(state, type, x, y);
+}
+
+/** The boss falls: its summons crumble with it and pending spawns are cancelled. */
+function defeatBoss(state: SimState, type: number, x: number, y: number): void {
+  const e = pushEvent(state.events, Ev.BossDefeated, x, y);
+  if (e) e.value = type;
+  state.waves.pendingCount = 0;
+  const { world } = state;
+  for (let other = 0; other < world.highWater; other++) {
+    if (((world.masks[other] as number) & C.Enemy) !== 0) killEnemy(state, other, 0, -1, false);
+  }
 }
 
 export type PlayerDamageResult = 'hit' | 'dodged' | 'ignored';

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { EMBER_WASTES } from '../../content/biomes/ember-wastes';
 import { ENEMIES } from '../../content/enemies';
+import { eliteFromCode, enemyTypeFromCode } from '../enemy-code';
 import { createRng } from '../rng/rng';
 import { buildEncounter } from './encounter';
 import { generateMap } from './map';
@@ -80,10 +81,30 @@ describe('encounters', () => {
     for (const t of early.waves.flat()) expect(ENEMIES[t]?.minWave).toBe(1);
   });
 
-  it('puts a brute into elite rooms', () => {
+  it('puts an elite brute into elite rooms, plus more elites', () => {
     const e = buildEncounter(createRng(9), EMBER_WASTES, 'elite', 3);
     if (e.kind !== 'waves') throw new Error('expected waves');
-    expect(e.waves[0]?.some((t) => ENEMIES[t]?.id === 'brute')).toBe(true);
+    const anchor = e.waves[0]?.[0] ?? 0;
+    expect(ENEMIES[enemyTypeFromCode(anchor)]?.id).toBe('brute');
+    expect(eliteFromCode(anchor)).toBeGreaterThan(0);
+    const elites = e.waves.flat().filter((code) => eliteFromCode(code) > 0);
+    expect(elites).toHaveLength(EMBER_WASTES.elitesPerRoom);
+  });
+
+  it('the boss node fights the Glutwächter', () => {
+    const e = buildEncounter(createRng(1), EMBER_WASTES, 'boss', 7);
+    if (e.kind !== 'waves') throw new Error('expected waves');
+    expect(e.waves.flat().map((c) => ENEMIES[enemyTypeFromCode(c)]?.id)).toContain('ember_warden');
+  });
+
+  it('never puts the boss into normal rooms or hordes', () => {
+    for (let seed = 1; seed < 30; seed++) {
+      for (const type of ['combat', 'elite', 'horde'] as const) {
+        const e = buildEncounter(createRng(seed), EMBER_WASTES, type, 7);
+        const codes = e.kind === 'waves' ? e.waves.flat() : e.kind === 'horde' ? e.pool : [];
+        for (const code of codes) expect(ENEMIES[enemyTypeFromCode(code)]?.role).not.toBe('boss');
+      }
+    }
   });
 });
 

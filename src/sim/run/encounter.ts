@@ -1,7 +1,10 @@
+import { ELITES } from '../../content/elites';
 import { ENEMIES } from '../../content/enemies';
 import type { BiomeDef, RoomType } from '../../content/schema';
-import { nextFloat, type Rng } from '../rng/rng';
+import { packEnemy } from '../enemy-code';
+import { nextFloat, nextInt, type Rng } from '../rng/rng';
 
+/** Wave entries are packed enemy codes (type + elite modifier, see sim/enemy-code). */
 export type Encounter =
   | { kind: 'waves'; waves: number[][] }
   | { kind: 'horde'; durationSec: number; spawnIntervalSec: number; pool: number[] }
@@ -33,6 +36,22 @@ function fillWave(
   return wave;
 }
 
+/**
+ * Elite rooms (GDD §5.1): the anchor of the first wave becomes an elite, then random enemies of
+ * later waves, each with a random modifier.
+ */
+function makeElites(rng: Rng, waves: number[][], count: number): void {
+  let made = 0;
+  for (let w = 0; w < waves.length && made < count; w++) {
+    const wave = waves[w] as number[];
+    if (wave.length === 0) continue;
+    const i = w === 0 ? 0 : nextInt(rng, 0, wave.length);
+    const mod = nextInt(rng, 0, ELITES.length) + 1;
+    wave[i] = packEnemy(wave[i] as number, mod);
+    made++;
+  }
+}
+
 /** Turns a map node into concrete enemy waves (budget grows with the layer, GDD §9). */
 export function buildEncounter(
   rng: Rng,
@@ -52,30 +71,28 @@ export function buildEncounter(
     }
     case 'elite': {
       const total = budget * biome.eliteBudgetFactor;
-      return {
-        kind: 'waves',
-        waves: [
-          fillWave(rng, biome, total / 2, layer, bruteType),
-          fillWave(rng, biome, total / 2, layer),
-        ],
-      };
+      const waves = [
+        fillWave(rng, biome, total / 2, layer, bruteType),
+        fillWave(rng, biome, total / 2, layer),
+      ];
+      makeElites(rng, waves, biome.elitesPerRoom);
+      return { kind: 'waves', waves };
     }
-    case 'boss':
-      // Placeholder until the Glutwächter arrives (ROADMAP M2.5): a hard final gauntlet.
-      return {
-        kind: 'waves',
-        waves: [
-          fillWave(rng, biome, biome.bossBudget / 3, layer, bruteType),
-          fillWave(rng, biome, biome.bossBudget / 3, layer, bruteType),
-          fillWave(rng, biome, biome.bossBudget / 3, layer, bruteType),
-        ],
-      };
+    case 'boss': {
+      const first = [packEnemy(biome.boss)];
+      if (biome.bossBudget > 0) first.push(...fillWave(rng, biome, biome.bossBudget, layer));
+      return { kind: 'waves', waves: [first] };
+    }
     case 'horde':
       return {
         kind: 'horde',
         durationSec: biome.hordeDurationSec,
         spawnIntervalSec: biome.hordeSpawnIntervalSec,
-        pool: biome.enemyPool.filter((t) => ENEMIES[t]?.role !== 'bruiser'),
+        // Hordes are about numbers: no slow bruisers, no healers dragging it out.
+        pool: biome.enemyPool.filter((t) => {
+          const role = ENEMIES[t]?.role;
+          return role !== 'bruiser' && role !== 'support' && role !== 'boss';
+        }),
       };
     case 'rest':
     case 'altar':

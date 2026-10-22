@@ -58,6 +58,10 @@ export function hashSim(state: SimState): number {
     h = fnv1a(h, c.burnStacks[eid] as number);
     h = fnv1a(h, c.chillStacks[eid] as number);
     h = fnv1a(h, c.frozenTicks[eid] as number);
+    h = fnv1a(h, c.eliteMod[eid] as number);
+    h = fnv1a(h, c.aiPhase[eid] as number);
+    h = fnv1a(h, c.aiPattern[eid] as number);
+    h = fnv1a(h, c.projLifeTicks[eid] as number);
   }
   return h;
 }

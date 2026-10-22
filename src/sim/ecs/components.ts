@@ -11,6 +11,8 @@ export const C = {
   Projectile: 1 << 8,
   /** Pushed apart from other bodies by the separation system. */
   Crowd: 1 << 9,
+  /** Delayed ground blast (mines, volatile elites): fuse in projLifeTicks, blast radius = radius. */
+  Hazard: 1 << 10,
 } as const;
 
 /** What the view should draw for an entity; the sim never references textures. */
@@ -22,6 +24,7 @@ export const RenderKind = {
   EnemyProjectile: 4,
   RiftShot: 5,
   Firebird: 6,
+  Hazard: 7,
 } as const;
 
 export type RenderKindId = (typeof RenderKind)[keyof typeof RenderKind];
@@ -82,6 +85,11 @@ export interface Components {
   token: Uint8Array;
   poise: Float64Array;
   poiseRegenTicks: Int32Array;
+  /** Elite modifier id (0 = none, see content/elites). */
+  eliteMod: Uint8Array;
+  /** Bosses: current phase and the attack pattern picked for the current attack. */
+  aiPhase: Uint8Array;
+  aiPattern: Uint8Array;
   // Status effects
   burnStacks: Uint8Array;
   burnTicks: Int32Array;
@@ -104,6 +112,8 @@ export interface Components {
   projIsCast: Uint8Array;
   /** Hit id shared by all hits of one projectile, so piercing shots hit each enemy once. */
   projSwing: Int32Array;
+  /** Hazards: total fuse, so the view can show how close the blast is. */
+  hazFuseTotal: Int32Array;
   /** Drifter AI: ticks until a new wander direction is chosen. */
   wanderTicks: Int32Array;
 }
@@ -137,6 +147,9 @@ export function createComponents(capacity: number): Components {
     token: new Uint8Array(capacity),
     poise: new Float64Array(capacity),
     poiseRegenTicks: new Int32Array(capacity),
+    eliteMod: new Uint8Array(capacity),
+    aiPhase: new Uint8Array(capacity),
+    aiPattern: new Uint8Array(capacity),
     burnStacks: new Uint8Array(capacity),
     burnTicks: new Int32Array(capacity),
     burnTickTimer: new Int32Array(capacity),
@@ -152,6 +165,7 @@ export function createComponents(capacity: number): Components {
     projStacks: new Uint8Array(capacity),
     projIsCast: new Uint8Array(capacity),
     projSwing: new Int32Array(capacity),
+    hazFuseTotal: new Int32Array(capacity),
     wanderTicks: new Int32Array(capacity),
   };
 }

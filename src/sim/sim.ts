@@ -1,8 +1,10 @@
 import { RIFT_SHOT } from '../content/abilities';
-import { ENEMIES } from '../content/enemies';
+import { ELITES, eliteOf } from '../content/elites';
+import { attackOf, ENEMIES } from '../content/enemies';
 import { TUNING } from '../content/tuning';
 import type { InputFrame } from '../shared/input-frame';
 import { createSpatialHash, type SpatialHash } from './collision/spatial-hash';
+import { hazardSystem } from './combat/hazards';
 import {
   AiState,
   C,
@@ -170,9 +172,17 @@ function spawnPlayer(state: SimState, x: number, y: number): number {
   return eid;
 }
 
-export function spawnEnemy(state: SimState, type: number, x: number, y: number): number {
+/** Spawns an enemy; `eliteMod` (1-based, see content/elites) makes it an elite. */
+export function spawnEnemy(
+  state: SimState,
+  type: number,
+  x: number,
+  y: number,
+  eliteMod = 0,
+): number {
   const def = ENEMIES[type];
   if (!def) return -1;
+  const elite = eliteMod > 0 && eliteMod <= ELITES.length ? eliteOf(eliteMod) : undefined;
   const eid = spawnEntity(state, x, y);
   if (eid === -1) return -1;
   addComponents(
@@ -181,24 +191,28 @@ export function spawnEnemy(state: SimState, type: number, x: number, y: number):
     C.Transform | C.Velocity | C.Collider | C.Renderable | C.Health | C.Enemy | C.Crowd,
   );
   const c = state.c;
-  c.radius[eid] = def.radiusPx;
+  const hp = def.maxHp * (elite?.hpMultiplier ?? 1);
+  c.radius[eid] = def.radiusPx * (elite?.radiusMultiplier ?? 1);
   c.renderKind[eid] = RenderKind.Enemy;
   c.team[eid] = Team.Enemy;
-  c.hp[eid] = def.maxHp;
-  c.maxHp[eid] = def.maxHp;
+  c.hp[eid] = hp;
+  c.maxHp[eid] = hp;
   c.enemyType[eid] = type;
+  c.eliteMod[eid] = elite ? eliteMod : 0;
   c.aiState[eid] = AiState.Position;
   c.poise[eid] = def.poise;
   c.aiStrafeSign[eid] = nextRange(state.rng.ai, 0, 1) < 0.5 ? -1 : 1;
+  const atk = attackOf(def, 0, 0);
   // A short grace period so freshly spawned enemies never attack on their first frame.
   c.aiCooldownTicks[eid] = secondsToTicks(
-    nextRange(state.rng.ai, def.attack.cooldownMinSec, def.attack.cooldownMaxSec) * 0.5,
+    nextRange(state.rng.ai, atk.cooldownMinSec, atk.cooldownMaxSec) * 0.5,
   );
   state.enemiesAlive++;
   const e = pushEvent(state.events, Ev.Spawn, x, y);
   if (e) {
     e.eid = eid;
     e.value = type;
+    e.flags = c.eliteMod[eid] as number;
   }
   return eid;
 }
@@ -267,6 +281,7 @@ export function stepSim(state: SimState, input: InputFrame): void {
   drifterAiSystem(state);
   movementSystem(state);
   projectileSystem(state);
+  hazardSystem(state);
   separationSystem(state);
   waveSystem(state);
 }
