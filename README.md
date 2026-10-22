@@ -15,7 +15,10 @@ pnpm dev        # http://localhost:5173 und im LAN fürs Handy
 pnpm test
 ```
 
-## Steuerung (Stand M1)
+## Spielablauf (Stand M2.1)
+Titel → **Neuer Run** → Map (Pfad wählen) → Raum (alle Wellen schaffen, dann in das Portal laufen) → Map … → Boss. Der Run wird beim Betreten jedes Knotens gespeichert. **Arena (endlos)** auf dem Titel ist der Tuning-Modus aus M1. `?seed=123` startet direkt die Arena.
+
+## Steuerung (Stand M2.1)
 | | Tastatur/Maus | Gamepad | Touch |
 |---|---|---|---|
 | Bewegen | WASD / Pfeiltasten | linker Stick | Joystick (linke Hälfte) |

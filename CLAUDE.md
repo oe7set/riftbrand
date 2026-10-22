@@ -52,6 +52,10 @@ pnpm icons        # PWA-Icons aus public/icons/icon.svg rendern
 - Kommentare erklären das *Warum*, nicht das *Was*.
 - Einheiten in Namen bzw. Kommentaren klar halten: Pixel, Sekunden und Ticks nie mischen (`durationTicks`, `speedPxPerSec`).
 
+## Menüs (Preact)
+- Menü-Screens leben in `src/view/ui/` als TSX (Preact). Sie bekommen Daten und Callbacks über die `Screen`-Union, sie verändern weder Simulation noch `RunState` direkt.
+- Jeder Screen muss mit Touch, Maus, Tastatur (Pfeiltasten, Enter, Esc) und Gamepad (D-Pad/Stick, A/B) bedienbar sein. Die Standardaktion bekommt `data-autofocus`.
+
 ## Texte und i18n
 - **Keine fest kodierten Texte für Spieler.** Ausnahme: das Debug-Menü (nur für Entwicklung, Englisch). Alles über `t('key')`, Schlüssel in `src/locales/en.json` (Basis) und `de.json`.
 - Schlüssel-Schema: `bereich.id.feld`, z. B. `relic.spark_ring.name`. Die Dateien sind flach (`"pause.title": "…"`).
