@@ -1,0 +1,8 @@
+{
+  "boot.loading": "Lädt…",
+  "boot.error": "Riftbrand konnte nicht starten. Bitte lade die Seite neu.",
+  "pause.title": "Pausiert",
+  "pause.resume_touch": "Tippen zum Fortfahren",
+  "pause.resume_keyboard": "Esc drücken oder klicken zum Fortfahren",
+  "pause.resume_gamepad": "Start drücken zum Fortfahren"
+}

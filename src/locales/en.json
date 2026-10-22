@@ -1,0 +1,8 @@
+{
+  "boot.loading": "Loading…",
+  "boot.error": "Riftbrand could not start. Please reload the page.",
+  "pause.title": "Paused",
+  "pause.resume_touch": "Tap to continue",
+  "pause.resume_keyboard": "Press Esc or click to continue",
+  "pause.resume_gamepad": "Press Start to continue"
+}
