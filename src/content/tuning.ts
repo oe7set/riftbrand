@@ -44,6 +44,21 @@ export const TUNING = {
   /** Exponential decay rate of knockback velocity per second. */
   knockbackDecayPerSec: 12,
 
+  // Status effects (GDD §2.4: Ignara burns, Vaelis chills and freezes)
+  burnDurationSec: 3,
+  burnTickSec: 0.5,
+  burnDamagePerStackPerSec: 3,
+  burnMaxStacks: 10,
+  chillDurationSec: 4,
+  chillMaxStacks: 5,
+  /** Movement slow per chill stack. */
+  chillSlowPerStack: 0.1,
+  freezeDurationSec: 1.6,
+  /** Extra damage taken while frozen ("shatter"), before boons. */
+  frozenDamageBonus: 0.3,
+  /** Safety cap on chained effect triggers per tick (TECH_DESIGN §6.5). */
+  effectBudgetPerTick: 64,
+
   // Hitstop (GDD §4.7)
   hitstopLightSec: 0.045,
   hitstopHeavySec: 0.08,
@@ -121,6 +136,13 @@ registerTunables(
 registerTunables('combat & input', SOURCE, TUNING, {}, [
   ...keysWithPrefix('input', 'aimAssist', 'crit', 'knockback', 'hitstop'),
 ]);
+registerTunables(
+  'status effects',
+  SOURCE,
+  TUNING,
+  {},
+  keysWithPrefix('burn', 'chill', 'freeze', 'frozen', 'effect'),
+);
 registerTunables('feel', SOURCE, TUNING, {}, keysWithPrefix('shake', 'hitFlash', 'squash', 'last'));
 registerTunables('camera', SOURCE, TUNING, {}, keysWithPrefix('camera', 'viewArea'));
 registerTunables(

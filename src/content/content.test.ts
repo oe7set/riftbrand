@@ -33,3 +33,25 @@ describe('content', () => {
     expect(exportTunablesDiff()).toBe('// No tuning changes.');
   });
 });
+
+describe('boon content', () => {
+  it('has unique ids, names and descriptions in every locale, and resolvable placeholders', async () => {
+    const { BOONS, boonDescParams } = await import('./boons');
+    const { LOCALES } = await import('../shared/i18n');
+    const ids = BOONS.map((b) => b.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const boon of BOONS) {
+      for (const [locale, table] of Object.entries(LOCALES)) {
+        const strings = table as Record<string, string>;
+        const name = strings[`boon.${boon.id}.name`];
+        const desc = strings[`boon.${boon.id}.desc`];
+        expect(name, `${locale} ${boon.id}`).toBeTruthy();
+        expect(desc, `${locale} ${boon.id}`).toBeTruthy();
+        const params = boonDescParams(boon, 'common');
+        for (const placeholder of desc?.match(/\{(\w+)\}/g) ?? []) {
+          expect(params[placeholder.slice(1, -1)], `${boon.id} ${placeholder}`).toBeDefined();
+        }
+      }
+    }
+  });
+});
