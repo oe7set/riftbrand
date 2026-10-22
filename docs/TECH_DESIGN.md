@@ -364,7 +364,25 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Menüs:** Preact (TSX) in `src/view/ui/`. `Ui.show(screen)` rendert einen Screen aus einer Union (`title`, `map`, `rest`, `victory`) mit Callbacks in die App. Gamepad und Pfeiltasten navigieren räumlich (`spatial-nav.ts`), Tastatur-Gameplay ist in Menüs deaktiviert.
 - **App-Ablauf** (`app/game.ts`): Modi `title → map ⇄ room/rest → victory`, plus `arena`. `?seed=…` in der URL startet direkt die Arena.
 
-## 21. Risiken und Gegenmaßnahmen
+## 21. Stand nach M2.2 (Effekt-System und Segen)
+- **Segen-Daten** (`content/boons/`): Jeder Segen hat benannte `values` (Basiswert plus Schritt pro Seltenheit, optional ganzzahlig bzw. als Prozent) und deklarative `effects`. Ein Effekt ist entweder `stat` (additiver Bonus) oder `trigger` (`onHit`, `onKill`, `onDash`, `onPerfectDash`, `onDamaged`) mit Bedingung, Chance und Aktion (`applyStatus`, `nova`, `heal`, `refundStamina`). Zahlen in Effekten dürfen auf `values` verweisen, `defineBoon` prüft diese Verweise.
+- **Kompilieren** (`sim/effects/build.ts`): Aus den Segen eines Runs wird beim Raumstart ein `CompiledBuild` (Stat-Summen plus Trigger-Listen mit aufgelösten Zahlen). Während des Kampfs gibt es keine Objekt-Allokationen und kein Nachschlagen.
+- **Laufzeit** (`sim/effects/runtime.ts`): Die Trigger sitzen in der Schadens-Pipeline (`damageEnemy`, `killEnemy`, `damagePlayer`) und beim Dash-Start. Schutz vor Endlosschleifen:
+  - Effekt-Schaden (`source: 'effect'`) löst keine `onHit`-Trigger aus.
+  - maximale Tiefe 3
+  - Budget pro Tick (`TUNING.effectBudgetPerTick`)
+  - eigener Abfrage-Puffer pro Tiefe, damit verschachtelte Novas äußere Schleifen nicht überschreiben
+- **Status** (`sim/effects/status.ts`):
+  - **Brand:** stapelbar, Schaden pro Takt, wird bei neuen Stapeln aufgefrischt.
+  - **Kälte:** verlangsamt pro Stapel. Bei vollen Stapeln **gefriert** der Gegner: keine Aktion, der Angriff wird abgebrochen, er nimmt Bonusschaden.
+  - Die Schadens-Multiplikatoren aus Build und Status bündelt `damageMultiplier()`.
+- **Belohnungen** (`sim/run/rewards.ts`):
+  - Kampf-, Elite-, Horde- und Altar-Knoten bringen einen Segen. Das Wesen hängt deterministisch von Seed und Knoten ab und ist als Farbpunkt auf der Map sichtbar.
+  - Das Angebot umfasst 3 Segen eines Wesens, ohne bereits besessene. Slot-Segen ersetzen den bisherigen im selben Slot.
+  - Elite und Altar verschieben die Seltenheit nach oben.
+- **Speicherstand v2:** Der `RunState` enthält jetzt `boons`. Die Migration v1 → v2 ergänzt eine leere Liste.
+
+## 22. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

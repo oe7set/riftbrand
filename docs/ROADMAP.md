@@ -75,16 +75,16 @@ _Hinweis: Wurf- und Ultimate-Button sind sichtbar, aber erst ab M2 belegt._
 **Ziel:** Ein vollständiger Run durch **ein Biom**, inklusive Hub, Meta-Schleife und Speichern. Die Qualität entspricht dem Endprodukt.
 
 - [x] **Map-Generierung** (Slay-the-Spire-Stil) für die Aschefelder, Map-Ansicht, Pfadwahl
-- [ ] Raumtypen: Kampf, Elite, Altar, Horde, Shop, Rast, Ereignis (2–3 Ereignisse), Boss _(M2.1: Kampf, Elite, Horde, Rast, Platzhalter-Boss)_
+- [ ] Raumtypen: Kampf, Elite, Altar, Horde, Shop, Rast, Ereignis (2–3 Ereignisse), Boss _(bisher: Kampf, Elite, Horde, Rast, Altar, Platzhalter-Boss)_
 - [ ] 6 Gegnertypen und 3 Elite-Modifikatoren, Raumvorlagen (ca. 8) _(M2.1: 8 Raumvorlagen)_
 - [ ] **Boss: Der Glutwächter** (2 Phasen)
-- [ ] **Effekt-System** (deklarativ) mit Triggern und Aktionen, plus Tests
-- [ ] **2 Wesen** (Ignara, Vaelis) mit je ca. 8 Segen, 1 Duo-Segen
+- [x] **Effekt-System** (deklarativ) mit Triggern und Aktionen, plus Tests
+- [ ] **2 Wesen** (Ignara, Vaelis) mit je ca. 8 Segen, 1 Duo-Segen _(M2.2: je 8 Segen; Duo-Segen folgt in M2.4)_
 - [ ] **12 Relikte** (darunter 2 Fluch-Relikte), Stapeln, Tags
 - [ ] **1 Evolution** (Phönixklinge), Riss-Geschoss (Wurf), Brandausbruch (Ultimate)
 - [ ] Meta: Glut und Rissstaub, Glutbaum (ca. 8 Knoten), Zuflucht als einfacher Hub mit 2 Figuren und Dialogsystem (ca. 30 Zeilen)
 - [ ] **Speichern:** Profil, Einstellungen, Run-Zwischenstand, Migrationen, Export/Import _(M2.1: Run-Zwischenstand mit Versionierung)_
-- [ ] **i18n** EN/DE, Menü-Oberfläche (Preact): Titel, Hub, Belohnungs-Auswahl, Pause mit Build-Übersicht, Ergebnis bzw. Tod mit Fortschrittsbalken _(M2.1: Titel, Map, Rast, Sieg)_
+- [ ] **i18n** EN/DE, Menü-Oberfläche (Preact): Titel, Hub, Belohnungs-Auswahl, Pause mit Build-Übersicht, Ergebnis bzw. Tod mit Fortschrittsbalken _(bisher: Titel, Map, Rast, Sieg, Segen-Auswahl)_
 - [ ] Musik: 2 Tracks mit Schichten (Erkundung bzw. Kampf, Boss)
 - [ ] Headless-Simulator v1 mit Bot und Balancing-Bericht
 - [ ] Lokales Run-Log mit Export
@@ -93,7 +93,7 @@ _Hinweis: Wurf- und Ultimate-Button sind sichtbar, aber erst ab M2 belegt._
 
 **Pakete (je ein PR):**
 1. ✅ **M2.1 Run-Gerüst:** Map-Generierung und Map-Ansicht, Raumvorlagen mit Hindernissen, Raumtypen Kampf/Elite/Horde/Rast/Boss (Platzhalter-Boss), Ausgang nach dem Raum-Clear, Titelbildschirm, Run-Zwischenstand speichern und fortsetzen, Sieg-Bildschirm, Debug-Button im Pause-Menü
-2. **M2.2 Effekt-System und Segen:** deklarative Effekte, Ignara und Vaelis (je ~8 Segen), Altar-Raum, Belohnungs-Auswahl
+2. ✅ **M2.2 Effekt-System und Segen:** deklarative Effekte, Ignara und Vaelis (je ~8 Segen), Altar-Raum, Belohnungs-Auswahl
 3. **M2.3 Relikte, Shop, Ereignisse:** 12 Relikte (2 Fluch), Scherben, Shop, 2–3 Ereignisse, Build-Übersicht im Pause-Menü
 4. **M2.4 Neue Aktionen:** Riss-Geschoss, Brandausbruch, Duo-Segen, Evolution Phönixklinge
 5. **M2.5 Gegner und Boss:** 3 weitere Gegner, 3 Elite-Modifikatoren, Boss „Der Glutwächter“ (2 Phasen)
