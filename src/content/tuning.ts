@@ -78,6 +78,9 @@ export const TUNING = {
   lastEnemySlowMoSec: 0.5,
   lastEnemyTimeScale: 0.3,
   lastEnemyZoomPunch: 0.08,
+  /** Slow motion right after the ultimate blast. */
+  ultimateSlowMoSec: 0.35,
+  ultimateTimeScale: 0.35,
 
   // Camera
   cameraFollowSharpness: 10,
@@ -143,7 +146,13 @@ registerTunables(
   {},
   keysWithPrefix('burn', 'chill', 'freeze', 'frozen', 'effect'),
 );
-registerTunables('feel', SOURCE, TUNING, {}, keysWithPrefix('shake', 'hitFlash', 'squash', 'last'));
+registerTunables(
+  'feel',
+  SOURCE,
+  TUNING,
+  {},
+  keysWithPrefix('shake', 'hitFlash', 'squash', 'last', 'ultimate'),
+);
 registerTunables('camera', SOURCE, TUNING, {}, keysWithPrefix('camera', 'viewArea'));
 registerTunables(
   'arena & waves',

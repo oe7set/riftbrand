@@ -1,11 +1,15 @@
 import { Container, Graphics } from 'pixi.js';
+import { RIFT_SHOT } from '../../content/abilities';
 import { TUNING } from '../../content/tuning';
 import type { TouchInput } from '../../platform/input/touch';
 import type { TouchButtonLayout, TouchLayout } from '../../platform/input/touch-layout';
+import type { PlayerState } from '../../sim/player-state';
 import { PALETTE } from '../render/palette';
 
 const IDLE_ALPHA = 0.35;
 const PRESSED_ALPHA = 0.85;
+/** Buttons whose resource is empty fade further so "not ready" reads at a glance. */
+const EMPTY_ALPHA = 0.15;
 
 function drawIcon(g: Graphics, b: TouchButtonLayout): void {
   const s = b.radius * 0.42;
@@ -52,6 +56,12 @@ export class TouchControlsView {
   private readonly joystickKnob = new Graphics();
   private layout: TouchLayout | null = null;
   private joystickRadius = 0;
+  /** Cast charge dots and the ultimate fill disc; built with the layout, only toggled/scaled. */
+  private castDots: Graphics[] = [];
+  private ultFill: Graphics | null = null;
+  private castIndex = -1;
+  private ultIndex = -1;
+  private time = 0;
 
   constructor() {
     this.root.addChild(this.buttons, this.joystickBase, this.joystickKnob);
@@ -59,12 +69,32 @@ export class TouchControlsView {
 
   private rebuild(layout: TouchLayout): void {
     this.layout = layout;
-    for (const child of this.buttons.removeChildren()) child.destroy();
+    for (const child of this.buttons.removeChildren()) child.destroy({ children: true });
+    this.castDots = [];
+    this.ultFill = null;
+    this.castIndex = layout.buttons.findIndex((b) => b.id === 'cast');
+    this.ultIndex = layout.buttons.findIndex((b) => b.id === 'ultimate');
     for (const b of layout.buttons) {
       const g = new Graphics();
+      if (b.id === 'ultimate') {
+        // Fill disc grows with the meter (scaled per frame, never redrawn).
+        const fill = new Graphics();
+        fill.circle(0, 0, b.radius).fill({ color: PALETTE.ultimate, alpha: 0.35 });
+        g.addChild(fill);
+        this.ultFill = fill;
+      }
       g.circle(0, 0, b.radius).fill({ color: PALETTE.touchBase, alpha: 0.08 });
       g.circle(0, 0, b.radius).stroke({ color: PALETTE.touchBase, width: 2, alpha: 0.6 });
       drawIcon(g, b);
+      if (b.id === 'cast') {
+        for (let i = 0; i < RIFT_SHOT.charges; i++) {
+          const dot = new Graphics();
+          const spread = (i - (RIFT_SHOT.charges - 1) / 2) * b.radius * 0.38;
+          dot.circle(spread, -b.radius * 1.22, b.radius * 0.13).fill({ color: PALETTE.riftShot });
+          g.addChild(dot);
+          this.castDots.push(dot);
+        }
+      }
       g.position.set(b.x, b.y);
       g.alpha = IDLE_ALPHA;
       this.buttons.addChild(g);
@@ -85,9 +115,10 @@ export class TouchControlsView {
       .stroke({ color: PALETTE.touchAccent, width: 2, alpha: 0.9 });
   }
 
-  sync(touch: TouchInput, visible: boolean): void {
+  sync(touch: TouchInput, visible: boolean, player: PlayerState, dtSec: number): void {
     this.root.visible = visible;
     if (!visible) return;
+    this.time += dtSec;
     if (touch.layout !== this.layout) this.rebuild(touch.layout);
     if (TUNING.touchJoystickRadiusPx !== this.joystickRadius) {
       this.rebuildJoystick(TUNING.touchJoystickRadiusPx);
@@ -95,8 +126,21 @@ export class TouchControlsView {
     const children = this.buttons.children;
     for (let i = 0; i < children.length; i++) {
       const child = children[i];
-      if (child) child.alpha = (touch.pressedButtons & (1 << i)) !== 0 ? PRESSED_ALPHA : IDLE_ALPHA;
+      if (!child) continue;
+      const pressed = (touch.pressedButtons & (1 << i)) !== 0;
+      let idle = IDLE_ALPHA;
+      if (i === this.castIndex && player.castCharges < 1) idle = EMPTY_ALPHA;
+      if (i === this.ultIndex) {
+        // A full meter pulses to invite the press.
+        idle = player.ultCharge >= 1 ? 0.6 + 0.3 * Math.sin(this.time * 6) : EMPTY_ALPHA + 0.15;
+      }
+      child.alpha = pressed ? PRESSED_ALPHA : idle;
     }
+    for (let i = 0; i < this.castDots.length; i++) {
+      const dot = this.castDots[i] as Graphics;
+      dot.alpha = i < player.castCharges ? 1 : 0.15;
+    }
+    if (this.ultFill) this.ultFill.scale.set(Math.max(0.001, player.ultCharge));
     const j = touch.joystick;
     this.joystickBase.visible = j.active;
     this.joystickKnob.visible = j.active;

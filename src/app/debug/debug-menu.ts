@@ -26,6 +26,9 @@ export interface DebugHooks {
   clearBoons(): void;
   giveRelic(id: string): void;
   giveShards(amount: number): void;
+  fillUltimate(): void;
+  refillCast(): void;
+  giveEvolution(id: string): void;
 }
 
 export interface DebugStats {
@@ -78,6 +81,7 @@ export class DebugMenu {
     private readonly version: string,
     boonIds: readonly string[] = [],
     relicIds: readonly string[] = [],
+    evolutionIds: readonly string[] = [],
   ) {
     this.fpsChip = el('div', { className: 'rb-fps' });
     this.fpsChip.hidden = true;
@@ -127,6 +131,15 @@ export class DebugMenu {
         el('div', { className: 'rb-debug-row' }, [
           ...relicIds.map((id) => this.button(id, () => this.hooks.giveRelic(id))),
           this.button('+100 shards', () => this.hooks.giveShards(100)),
+        ]),
+      ]),
+      this.section('Cast, ultimate & evolutions', false, [
+        el('div', { className: 'rb-debug-row' }, [
+          this.button('Fill ultimate', () => this.hooks.fillUltimate()),
+          this.button('Refill cast', () => this.hooks.refillCast()),
+          ...evolutionIds.map((id) =>
+            this.button(`Evolve: ${id}`, () => this.hooks.giveEvolution(id)),
+          ),
         ]),
       ]),
       this.section('Stress test', false, [

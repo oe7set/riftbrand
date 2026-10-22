@@ -9,6 +9,11 @@ export interface TouchButtonLayout {
   radius: number;
   /** Dragging from this button aims manually (GDD §4.4). */
   aimDrag: boolean;
+  /**
+   * Fires when the thumb lifts instead of on touch, so a drag can aim first (cast). A tap
+   * still fires with aim assist.
+   */
+  fireOnRelease: boolean;
 }
 
 export interface TouchLayout {
@@ -44,11 +49,40 @@ export function computeTouchLayout(width: number, height: number): TouchLayout {
   const ultimate = onArc(50, arc + smallR * 2 + 10 * unit);
 
   const buttons: TouchButtonLayout[] = [
-    { id: 'attack', bit: Button.Attack, x: ax, y: ay, radius: attackR, aimDrag: true },
-    { id: 'dash', bit: Button.Dash, ...dash, radius: smallR * 1.15, aimDrag: false },
-    { id: 'special', bit: Button.Special, ...special, radius: smallR, aimDrag: false },
-    { id: 'cast', bit: Button.Cast, ...cast, radius: smallR, aimDrag: true },
-    { id: 'ultimate', bit: Button.Ultimate, ...ultimate, radius: smallR * 0.9, aimDrag: false },
+    {
+      id: 'attack',
+      bit: Button.Attack,
+      x: ax,
+      y: ay,
+      radius: attackR,
+      aimDrag: true,
+      fireOnRelease: false,
+    },
+    {
+      id: 'dash',
+      bit: Button.Dash,
+      ...dash,
+      radius: smallR * 1.15,
+      aimDrag: false,
+      fireOnRelease: false,
+    },
+    {
+      id: 'special',
+      bit: Button.Special,
+      ...special,
+      radius: smallR,
+      aimDrag: false,
+      fireOnRelease: false,
+    },
+    { id: 'cast', bit: Button.Cast, ...cast, radius: smallR, aimDrag: true, fireOnRelease: true },
+    {
+      id: 'ultimate',
+      bit: Button.Ultimate,
+      ...ultimate,
+      radius: smallR * 0.9,
+      aimDrag: false,
+      fireOnRelease: false,
+    },
     {
       id: 'pause',
       bit: 0,
@@ -56,6 +90,7 @@ export function computeTouchLayout(width: number, height: number): TouchLayout {
       y: 30 * unit,
       radius: 20 * unit,
       aimDrag: false,
+      fireOnRelease: false,
     },
   ];
 
