@@ -15,6 +15,7 @@ export const SPITTER = defineEnemy({
   keepDistanceMaxPx: 350,
   token: 'ranged',
   waveCost: 1.5,
+  shardValue: 3,
   minWave: 2,
   attack: {
     kind: 'volley',

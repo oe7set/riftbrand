@@ -15,6 +15,7 @@ export const SLAG = defineEnemy({
   keepDistanceMaxPx: 110,
   token: 'melee',
   waveCost: 1,
+  shardValue: 2,
   minWave: 1,
   attack: {
     kind: 'lunge',

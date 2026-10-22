@@ -15,6 +15,7 @@ export const BRUTE = defineEnemy({
   keepDistanceMaxPx: 90,
   token: 'melee',
   waveCost: 4,
+  shardValue: 8,
   minWave: 3,
   attack: {
     kind: 'slam',
