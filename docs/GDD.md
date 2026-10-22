@@ -307,6 +307,14 @@ Jeder Boss hat 2–3 Phasen, 4–6 Muster pro Phase, eine zornige Phase unter 30
 - **Fluch-Relikte:** stark und mit Nachteil, z. B. „Gieriges Herz: +50 % Schaden, Heilung halbiert“ oder „Glasknochen: Kritische Treffer ×3, maximales Leben −40 %“. Sie werden immer klar als Fluch markiert und **nie aufgezwungen**, außer man wählt ein Ereignis, das ein Fluch-Relikt als Risiko ankündigt.
 - Startumfang: 40 Relikte in der Alpha, 80 oder mehr in Version 1.0.
 
+**Umgesetzt (M2.3), 12 Relikte:**
+- **Gewöhnlich:** Glutstein (+Schaden), Herzsplitter (+max. Leben), Leichte Sohlen (+Tempo), Schleifstein (+Krit-Chance), Zweiter Atem (Heilung beim Raum-Clear)
+- **Selten:** Funkenring (Kill-Explosion, Chance), Kalter Kern (Kälte bei Treffern, Chance), Henkersmal (+Krit-Schaden), Atemstein (+Ausdauer-Regeneration)
+- **Episch:** Blutegel-Amulett (Heilung pro Kill)
+- **Fluch:** Gieriges Herz (+Schaden, weniger Heilung), Glasknochen (+Krit, weniger max. Leben)
+
+Fluch-Relikte gibt es nur im Shop (günstig) und bei Ereignissen, nie als normale Belohnung.
+
 ### 7.3 Run-Währung
 **Scherben** werden nur im Run verwendet (Shop) und verfallen beim Tod.
 

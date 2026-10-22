@@ -39,6 +39,7 @@ export function generateMap(rng: Rng, biome: BiomeDef): RunMap {
   const last = biome.layers - 1;
   const restLayer = last - 1;
 
+  let shops = 0;
   for (let layer = 0; layer < biome.layers; layer++) {
     let count: number;
     if (layer === last) count = 1;
@@ -60,7 +61,13 @@ export function generateMap(rng: Rng, biome: BiomeDef): RunMap {
         if (layer >= biome.restMinLayer && layer < restLayer - 1)
           weights.push(['rest', biome.typeWeights.rest]);
         if (layer >= biome.altarMinLayer) weights.push(['altar', biome.typeWeights.altar]);
+        if (layer >= biome.eventMinLayer) weights.push(['event', biome.typeWeights.event]);
+        // GDD §6.1: at most two shops per biome.
+        if (layer >= biome.shopMinLayer && shops < biome.maxShops) {
+          weights.push(['shop', biome.typeWeights.shop]);
+        }
         type = pickWeighted(rng, weights);
+        if (type === 'shop') shops++;
       }
       const slot = (i + 0.5) / count;
       const jitter = count > 1 ? (nextFloat(rng) - 0.5) * (0.5 / count) : 0;

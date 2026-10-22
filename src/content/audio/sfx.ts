@@ -436,6 +436,25 @@ export const SFX = {
       delaySec: 0.12,
     },
   ],
+  shard: [
+    {
+      wave: 'sine',
+      freq: 1568,
+      attackSec: 0.002,
+      sustainSec: 0.02,
+      releaseSec: 0.12,
+      volume: 0.12,
+    },
+    {
+      wave: 'sine',
+      freq: 2093,
+      attackSec: 0.002,
+      sustainSec: 0.02,
+      releaseSec: 0.1,
+      volume: 0.08,
+      delaySec: 0.03,
+    },
+  ],
 } satisfies Record<string, SfxRecipe>;
 
 export type SfxId = keyof typeof SFX;

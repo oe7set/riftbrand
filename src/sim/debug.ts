@@ -21,3 +21,13 @@ export function debugNextWave(state: SimState): void {
 export function debugClearRoom(state: SimState): void {
   forceClearRoom(state);
 }
+
+/** Puts the player onto the exit portal (if open), skipping the walk. */
+export function debugWarpToExit(state: SimState): void {
+  if (!state.room.exitOpen) return;
+  const p = state.playerEid;
+  state.c.posX[p] = state.room.exitX;
+  state.c.posY[p] = state.room.exitY;
+  state.c.prevX[p] = state.room.exitX;
+  state.c.prevY[p] = state.room.exitY;
+}

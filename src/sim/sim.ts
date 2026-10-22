@@ -12,7 +12,7 @@ import {
   Team,
 } from './ecs/components';
 import { addComponents, createEntity, createWorld, destroyEntity, type World } from './ecs/world';
-import { type CompiledBuild, compileBuild, type OwnedBoon } from './effects/build';
+import { type CompiledBuild, compileBuild, type OwnedBoon, type OwnedRelic } from './effects/build';
 import { MAX_EFFECT_DEPTH } from './effects/runtime';
 import { statusSystem } from './effects/status';
 import { clearEvents, createEventBuffer, Ev, type EventBuffer, pushEvent } from './events';
@@ -55,7 +55,10 @@ export interface SimState {
   readonly room: RoomState;
   /** Owned boons and their compiled form (stats + trigger lists). */
   boons: OwnedBoon[];
+  relics: OwnedRelic[];
   build: CompiledBuild;
+  /** Run currency carried into the room plus everything picked up here. */
+  shards: number;
   /** Nesting depth of effects triggering effects, and the per-tick budget used. */
   effectDepth: number;
   effectsThisTick: number;
@@ -96,7 +99,9 @@ export function createSim(seed: number, setup?: RoomSetup): SimState {
     waves: createWaveState(),
     room: createRoomState(),
     boons: [],
+    relics: [],
     build: compileBuild([]),
+    shards: 0,
     effectDepth: 0,
     effectsThisTick: 0,
     effectQueryBuffers: Array.from({ length: MAX_EFFECT_DEPTH + 1 }, () => new Int32Array(512)),
@@ -110,7 +115,8 @@ export function createSim(seed: number, setup?: RoomSetup): SimState {
     debug: { godMode: false, wavesEnabled: true },
   };
   if (setup) {
-    setBuild(state, setup.boons);
+    setBuild(state, setup.boons, setup.relics);
+    state.shards = setup.shards;
     const t = setup.template;
     loadObstacles(state.room, t.obstacles);
     loadSpawnPoints(state.room, t.spawnPoints);
@@ -221,9 +227,14 @@ export function clearDrifters(state: SimState): void {
 }
 
 /** Replaces the player's boons and recompiles the build (room start, debug). */
-export function setBuild(state: SimState, boons: readonly OwnedBoon[]): void {
+export function setBuild(
+  state: SimState,
+  boons: readonly OwnedBoon[],
+  relics: readonly OwnedRelic[] = state.relics,
+): void {
   state.boons = boons.map((b) => ({ ...b }));
-  state.build = compileBuild(state.boons);
+  state.relics = relics.map((r) => ({ ...r }));
+  state.build = compileBuild(state.boons, state.relics);
 }
 
 /** Advances the simulation by exactly one fixed tick. */

@@ -447,6 +447,26 @@ export class Effects {
     });
   }
 
+  /** Gold glints rising from a kill: shards gained. */
+  shards(x: number, y: number, amount: number): void {
+    const count = Math.min(8, 2 + amount);
+    for (let i = 0; i < count; i++) {
+      this.fx.emit({
+        texture: this.tex.spark,
+        x: x + rand(-10, 10),
+        y: y + rand(-10, 10),
+        vx: rand(-40, 40),
+        vy: rand(-160, -90),
+        rotation: Math.PI / 2,
+        lifeSec: rand(0.4, 0.6),
+        color: PALETTE.shard,
+        scaleStart: 0.35,
+        dragPerSec: 0.1,
+        flags: PFlag.Shrink,
+      });
+    }
+  }
+
   heal(x: number, y: number): void {
     for (let i = 0; i < 8; i++) {
       this.fx.emit({

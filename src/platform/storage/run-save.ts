@@ -3,13 +3,13 @@ import type { RunState } from '../../sim/run/run-state';
 import type { KeyValueStore } from './settings';
 
 const STORAGE_KEY = 'riftbrand.run';
-export const RUN_SAVE_VERSION = 2;
+export const RUN_SAVE_VERSION = 3;
 
 const mapNodeSchema = z.object({
   id: z.number().int().min(0),
   layer: z.number().int().min(0),
   x: z.number(),
-  type: z.enum(['combat', 'elite', 'horde', 'rest', 'boss', 'altar']),
+  type: z.enum(['combat', 'elite', 'horde', 'rest', 'boss', 'altar', 'shop', 'event']),
   next: z.array(z.number().int().min(0)),
 });
 
@@ -28,6 +28,10 @@ const runSchema = z.object({
   boons: z.array(
     z.object({ id: z.string(), rarity: z.enum(['common', 'rare', 'epic', 'heroic']) }),
   ),
+  relics: z.array(z.object({ id: z.string(), stacks: z.number().int().min(1) })),
+  shards: z.number().int().min(0),
+  shopBought: z.array(z.number().int().min(0)),
+  maxHpBonus: z.number().int(),
 });
 
 const saveSchema = z.object({
@@ -44,10 +48,20 @@ function migrate1to2(raw: { version: number; run?: Record<string, unknown> }): u
   return { ...raw, version: 2, run: { ...raw.run, boons: [] } };
 }
 
+/** v2 → v3: relics, shards and shop purchases were added (M2.3). */
+function migrate2to3(raw: { version: number; run?: Record<string, unknown> }): unknown {
+  return {
+    ...raw,
+    version: 3,
+    run: { ...raw.run, relics: [], shards: 0, shopBought: [], maxHpBonus: 0 },
+  };
+}
+
 export function migrateRunSave(raw: unknown): RunState | null {
   if (typeof raw !== 'object' || raw === null) return null;
   let data = raw as { version?: unknown; run?: Record<string, unknown> };
   if (data.version === 1) data = migrate1to2(data as { version: number }) as typeof data;
+  if (data.version === 2) data = migrate2to3(data as { version: number }) as typeof data;
   if (data.version !== RUN_SAVE_VERSION) return null;
   raw = data;
   const parsed = saveSchema.safeParse(raw);

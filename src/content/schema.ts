@@ -86,6 +86,8 @@ export const enemySchema = z.object({
   keepDistanceMaxPx: px,
   token: z.enum(['melee', 'ranged']),
   waveCost: z.number().positive(),
+  /** Shards dropped on death (run currency, GDD §7.3). */
+  shardValue: z.number().int().min(0),
   minWave: z.number().int().min(1),
   attack: enemyAttackSchema,
   visual: z.object({
@@ -110,7 +112,16 @@ const obstacleSchema = z.discriminatedUnion('kind', [
 
 const point = z.object({ x: px, y: px });
 
-export const roomTypeSchema = z.enum(['combat', 'elite', 'horde', 'rest', 'boss', 'altar']);
+export const roomTypeSchema = z.enum([
+  'combat',
+  'elite',
+  'horde',
+  'rest',
+  'boss',
+  'altar',
+  'shop',
+  'event',
+]);
 
 export const roomTemplateSchema = z.object({
   id,
@@ -138,11 +149,16 @@ export const biomeSchema = z.object({
     horde: z.number(),
     rest: z.number(),
     altar: z.number(),
+    shop: z.number(),
+    event: z.number(),
   }),
   /** Earliest layer (0-based) where elites may appear. */
   eliteMinLayer: z.number().int().min(0),
   restMinLayer: z.number().int().min(0),
   altarMinLayer: z.number().int().min(0),
+  shopMinLayer: z.number().int().min(0),
+  maxShops: z.number().int().min(0),
+  eventMinLayer: z.number().int().min(0),
   /** Enemy types (indices into ENEMIES) that may appear here. */
   enemyPool: z.array(z.number().int().min(0)),
   combatBudgetBase: z.number().positive(),
@@ -169,6 +185,17 @@ export const statIdSchema = z.enum([
   'damageVsChilledPerStack',
   'burnDamage',
   'freezeDuration',
+  // Relic stats (M2.3)
+  'allDamage',
+  'critChance',
+  'critDamage',
+  'moveSpeed',
+  'staminaRegen',
+  /** Flat max HP (applied by the run, not the room). */
+  'maxHp',
+  /** Multiplies all healing; negative values are curses. */
+  'healing',
+  'shardGain',
 ]);
 
 /** A number, or the name of an entry in the boon's `values` (which scales with rarity). */
@@ -201,6 +228,7 @@ export const effectTriggerSchema = z.enum([
   'onDash',
   'onPerfectDash',
   'onDamaged',
+  'onRoomClear',
 ]);
 export const hitSourceSchema = z.enum(['attack', 'special', 'effect']);
 
@@ -246,15 +274,18 @@ export type EffectTrigger = z.infer<typeof effectTriggerSchema>;
 export type HitSource = z.infer<typeof hitSourceSchema>;
 export type BoonDef = z.infer<typeof boonSchema>;
 
-/** Validates the schema and that every value reference names an existing value. */
-export function defineBoon(def: BoonDef): BoonDef {
-  const boon = boonSchema.parse(def);
+/** Every value reference in effects must name an existing value. */
+function checkValueRefs(
+  owner: string,
+  values: Record<string, unknown>,
+  effects: readonly EffectDef[],
+): void {
   const check = (v: unknown) => {
-    if (typeof v === 'string' && !(v in boon.values)) {
-      throw new Error(`boon ${boon.id}: unknown value "${v}"`);
+    if (typeof v === 'string' && !(v in values)) {
+      throw new Error(`${owner}: unknown value "${v}"`);
     }
   };
-  for (const e of boon.effects) {
+  for (const e of effects) {
     if (e.kind === 'stat') check(e.add);
     else {
       check(e.chance);
@@ -263,7 +294,78 @@ export function defineBoon(def: BoonDef): BoonDef {
       for (const key of ['stacks', 'radiusPx', 'damage', 'amount']) check(a[key]);
     }
   }
+}
+
+export function defineBoon(def: BoonDef): BoonDef {
+  const boon = boonSchema.parse(def);
+  checkValueRefs(`boon ${boon.id}`, boon.values, boon.effects);
   return boon;
+}
+
+// ── Relics (GDD §7.2) ─────────────────────────────────────────────────────
+
+export const relicRaritySchema = z.enum(['common', 'rare', 'epic', 'curse']);
+
+const relicValueSchema = z.object({
+  base: z.number(),
+  /** Added per extra stack (linear stacking). */
+  perStack: z.number(),
+  /** Chance-style stacking (Risk of Rain): 1 − 1/(1 + base·stacks); never reaches 100 %. */
+  hyperbolic: z.boolean().optional(),
+  int: z.boolean().optional(),
+  percent: z.boolean().optional(),
+});
+
+export const relicSchema = z.object({
+  id,
+  rarity: relicRaritySchema,
+  tags: z.array(z.string()),
+  /** Shop price in shards before the shop's rarity markup. */
+  price: z.number().int().positive(),
+  values: z.record(z.string(), relicValueSchema),
+  effects: z.array(effectSchema).min(1),
+});
+
+export type RelicRarity = z.infer<typeof relicRaritySchema>;
+export type RelicDef = z.infer<typeof relicSchema>;
+
+export function defineRelic(def: RelicDef): RelicDef {
+  const relic = relicSchema.parse(def);
+  checkValueRefs(`relic ${relic.id}`, relic.values, relic.effects);
+  return relic;
+}
+
+// ── Events (GDD §6.2) ─────────────────────────────────────────────────────
+
+const eventOutcomeSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('heal'), fraction: z.number().min(0).max(1) }),
+  z.object({ type: z.literal('damage'), amount: z.number().positive() }),
+  z.object({ type: z.literal('shards'), amount: z.number().int() }),
+  z.object({ type: z.literal('relic'), pool: z.enum(['common', 'rare', 'epic', 'curse']) }),
+  z.object({ type: z.literal('maxHp'), amount: z.number().int() }),
+]);
+
+export const eventSchema = z.object({
+  id,
+  options: z
+    .array(
+      z.object({
+        id,
+        outcomes: z.array(eventOutcomeSchema),
+        /** Option is disabled unless the player can pay. */
+        requiresShards: z.number().int().min(0).optional(),
+        requiresHpAbove: z.number().int().min(0).optional(),
+      }),
+    )
+    .min(1)
+    .max(4),
+});
+
+export type EventDef = z.infer<typeof eventSchema>;
+export type EventOutcome = z.infer<typeof eventOutcomeSchema>;
+
+export function defineEvent(def: EventDef): EventDef {
+  return eventSchema.parse(def);
 }
 
 export type MeleeHitDef = z.infer<typeof meleeHitSchema>;

@@ -286,7 +286,8 @@ function controlMovement(state: SimState, input: InputFrame, speedFactor: number
   const dirX = moving ? input.moveX / len : 0;
   const dirY = moving ? input.moveY / len : 0;
   // Analog sticks may report slightly more than 1 on diagonals.
-  const speed = TUNING.playerSpeedPxPerSec * speedFactor * Math.min(len, 1);
+  const speed =
+    TUNING.playerSpeedPxPerSec * (1 + state.build.stats.moveSpeed) * speedFactor * Math.min(len, 1);
   const targetX = dirX * speed;
   const targetY = dirY * speed;
   const rampSec = moving ? TUNING.playerAccelSec : TUNING.playerDecelSec;
@@ -326,7 +327,9 @@ export function playerActionSystem(state: SimState, input: InputFrame): void {
   else if (p.stamina < TUNING.staminaMax) {
     p.stamina = Math.min(
       TUNING.staminaMax,
-      p.stamina + 1 / Math.max(1, secondsToTicks(TUNING.staminaRegenSecPerSegment)),
+      p.stamina +
+        (1 + state.build.stats.staminaRegen) /
+          Math.max(1, secondsToTicks(TUNING.staminaRegenSecPerSegment)),
     );
   }
   if (p.action === PlayerAction.Idle && p.comboWindowTicks > 0) p.comboWindowTicks--;

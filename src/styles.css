@@ -38,7 +38,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* "safe" keeps the top reachable when the content is taller than the screen. */
+  justify-content: safe center;
   gap: 14px;
   padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
   background: rgba(7, 6, 13, 0.72);
@@ -282,7 +283,8 @@ body {
 .rb-center,
 .rb-title {
   align-items: center;
-  justify-content: center;
+  justify-content: safe center;
+  overflow-y: auto;
   gap: 16px;
   text-align: center;
 }
@@ -664,4 +666,141 @@ body {
   width: 100%;
   display: flex;
   justify-content: center;
+}
+
+/* ── Relics, shop, events ──────────────────────────────────────────── */
+
+.rb-node-reward.is-relic {
+  background: #ffe6b0;
+  border-radius: 2px;
+  transform: rotate(45deg);
+}
+
+.rb-node-reward.is-shards {
+  background: #ffd36b;
+}
+
+.rb-shards {
+  font:
+    14px ui-monospace,
+    monospace;
+  color: #ffd36b;
+}
+
+.rb-shards-big {
+  font-size: 18px;
+}
+
+.rb-relic {
+  --being: #ffe6b0;
+}
+
+.relic-rare .rb-card-rarity {
+  color: #6bff9a;
+}
+
+.relic-epic .rb-card-rarity {
+  color: #c88bff;
+}
+
+.relic-curse {
+  --being: #ff4d6d;
+}
+
+.relic-curse .rb-card-rarity {
+  color: #ff6b81;
+}
+
+.rb-shop-item {
+  --being: #c46bff;
+}
+
+.rb-shop-item.relic-curse {
+  --being: #ff4d6d;
+}
+
+.rb-card:disabled {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
+}
+
+.rb-card.is-sold {
+  opacity: 0.25;
+}
+
+.rb-event-text {
+  max-width: 520px;
+  line-height: 1.5;
+  opacity: 0.9;
+}
+
+.rb-event-options {
+  width: min(460px, 90vw);
+}
+
+.rb-event-option {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  font-size: 16px;
+}
+
+.rb-event-option small {
+  font-size: 12px;
+  font-weight: 400;
+  color: #ff8a6b;
+}
+
+.rb-event-result {
+  font-size: 17px;
+  color: #ffd36b;
+}
+
+.rb-build {
+  gap: 6px;
+}
+
+.rb-build-shards {
+  color: #ffd36b;
+  font:
+    13px ui-monospace,
+    monospace;
+}
+
+.rb-build-heading {
+  margin-top: 6px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.rb-build-empty {
+  opacity: 0.5;
+  font-size: 14px;
+}
+
+.rb-build-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 8px;
+  padding: 6px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.rb-build-name {
+  font-weight: 700;
+}
+
+.rb-build-meta {
+  font-size: 12px;
+  opacity: 0.6;
+  align-self: center;
+}
+
+.rb-build-desc {
+  grid-column: 1 / -1;
+  font-size: 14px;
+  opacity: 0.85;
 }

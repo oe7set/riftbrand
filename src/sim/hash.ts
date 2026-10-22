@@ -25,6 +25,7 @@ export function hashSim(state: SimState): number {
   h = fnv1a(h, state.swingCounter);
   h = fnv1a(h, state.enemiesAlive);
   h = fnv1a(h, state.gameOver ? 1 : 0);
+  h = fnv1a(h, state.shards);
   for (const stream of Object.values(state.rng)) {
     for (const word of stream.state) h = fnv1a(h, word);
   }

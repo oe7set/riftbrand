@@ -55,3 +55,27 @@ describe('boon content', () => {
     }
   });
 });
+
+describe('relic and event content', () => {
+  it('has texts for every relic, event and option in every locale', async () => {
+    const { RELICS, relicDescParams } = await import('./relics');
+    const { EVENTS } = await import('./events');
+    const { LOCALES } = await import('../shared/i18n');
+    for (const table of Object.values(LOCALES)) {
+      const strings = table as Record<string, string>;
+      for (const relic of RELICS) {
+        expect(strings[`relic.${relic.id}.name`], relic.id).toBeTruthy();
+        const desc = strings[`relic.${relic.id}.desc`] ?? '';
+        const params = relicDescParams(relic, 1);
+        for (const ph of desc.match(/\{(\w+)\}/g) ?? [])
+          expect(params[ph.slice(1, -1)], `${relic.id} ${ph}`).toBeDefined();
+      }
+      for (const event of EVENTS) {
+        expect(strings[`event.${event.id}.title`], event.id).toBeTruthy();
+        expect(strings[`event.${event.id}.text`], event.id).toBeTruthy();
+        for (const o of event.options)
+          expect(strings[`event.${event.id}.${o.id}`], `${event.id}.${o.id}`).toBeTruthy();
+      }
+    }
+  });
+});

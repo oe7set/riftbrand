@@ -5,7 +5,7 @@ import { C } from '../ecs/components';
 import { Ev, pushEvent, StatusCode } from '../events';
 import { nextFloat } from '../rng/rng';
 import type { SimState } from '../sim';
-import type { CompiledEffect } from './build';
+import { type CompiledEffect, healingFactor } from './build';
 import { applyBurn, applyChill, freeze } from './status';
 
 /** Effects that trigger effects stop at this depth (TECH_DESIGN §6.5). */
@@ -110,7 +110,10 @@ function run(state: SimState, eff: CompiledEffect, ctx: TriggerContext): void {
     case 'heal': {
       const p = state.playerEid;
       const before = c.hp[p] as number;
-      c.hp[p] = Math.min(c.maxHp[p] as number, before + a.amount);
+      c.hp[p] = Math.min(
+        c.maxHp[p] as number,
+        before + a.amount * healingFactor(state.build.stats),
+      );
       const healed = (c.hp[p] as number) - before;
       if (healed > 0) {
         const e = pushEvent(state.events, Ev.Heal, c.posX[p] as number, c.posY[p] as number);
@@ -200,4 +203,8 @@ export function fireOnPerfectDash(state: SimState): void {
 
 export function fireOnDamaged(state: SimState): void {
   firePlayer(state, state.build.onDamaged);
+}
+
+export function fireOnRoomClear(state: SimState): void {
+  firePlayer(state, state.build.onRoomClear);
 }

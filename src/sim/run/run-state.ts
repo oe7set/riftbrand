@@ -3,11 +3,12 @@ import { BEING_IDS } from '../../content/boons/beings';
 import { ROOMS } from '../../content/rooms';
 import type { Rarity, RoomTemplateDef } from '../../content/schema';
 import { TUNING } from '../../content/tuning';
-import type { OwnedBoon } from '../effects/build';
+import type { OwnedBoon, OwnedRelic } from '../effects/build';
 import { createRng, hashString, nextInt } from '../rng/rng';
+import { clearBonusShards, heal, nodeReward, runStats } from './economy';
 import { buildEncounter, type Encounter } from './encounter';
 import { generateMap, type MapNode, type RunMap } from './map';
-import { addBoon, type BoonOffer, rewardBeing, rewardRarityBonus, rollBoonOffer } from './rewards';
+import { addBoon, type BoonOffer, rewardRarityBonus, rollBoonOffer } from './rewards';
 
 export type RunStatus = 'map' | 'room' | 'won' | 'lost';
 
@@ -30,6 +31,13 @@ export interface RunState {
   /** Accumulated play time, for the result screen. */
   playTimeSec: number;
   boons: OwnedBoon[];
+  relics: OwnedRelic[];
+  /** Run currency (GDD §7.3); lost when the run ends. */
+  shards: number;
+  /** Shop item indices bought at the current node, so a reload can't restock it. */
+  shopBought: number[];
+  /** Permanent max HP gained outside relics (events); relic bonuses are recomputed. */
+  maxHpBonus: number;
 }
 
 export interface RoomSetup {
@@ -38,6 +46,8 @@ export interface RoomSetup {
   playerHp: number;
   playerMaxHp: number;
   boons: OwnedBoon[];
+  relics: OwnedRelic[];
+  shards: number;
 }
 
 export function createRun(seed: number): RunState {
@@ -56,6 +66,10 @@ export function createRun(seed: number): RunState {
     roomsCleared: 0,
     playTimeSec: 0,
     boons: [],
+    relics: [],
+    shards: 0,
+    shopBought: [],
+    maxHpBonus: 0,
   };
 }
 
@@ -73,6 +87,7 @@ export function enterNode(run: RunState, nodeId: number): MapNode {
   if (!node) throw new Error(`node ${nodeId} is not reachable`);
   run.currentNodeId = node.id;
   run.visited.push(node.id);
+  run.shopBought = [];
   run.status = 'room';
   return node;
 }
@@ -92,6 +107,8 @@ export function roomSetupFor(run: RunState, node: MapNode): RoomSetup {
     playerHp: run.hp,
     playerMaxHp: run.maxHp,
     boons: run.boons,
+    relics: run.relics,
+    shards: run.shards,
   };
 }
 
@@ -99,6 +116,8 @@ export interface RoomResult {
   hp: number;
   kills: number;
   timeSec: number;
+  /** Absolute shard count at the end of the room (the room starts with the run's shards). */
+  shards: number;
 }
 
 export function completeRoom(run: RunState, result: RoomResult): void {
@@ -107,32 +126,31 @@ export function completeRoom(run: RunState, result: RoomResult): void {
   run.playTimeSec += result.timeSec;
   run.roomsCleared++;
   const node = run.map.nodes[run.currentNodeId];
+  const bonus = node ? clearBonusShards(node.type) : 0;
+  run.shards = result.shards + Math.round(bonus * (1 + runStats(run).shardGain));
   run.status = node?.type === 'boss' ? 'won' : 'map';
 }
 
-/** Altar nodes have no fight; the boon pick completes them. */
-export function completeAltar(run: RunState): void {
+/** Altar, shop and event nodes have no fight; leaving them completes the node. */
+export function completeNonCombat(run: RunState): void {
   run.roomsCleared++;
   run.status = 'map';
 }
 
 /** Rest node: heal a fraction of max HP (the weapon-upgrade alternative comes with M2.3). */
 export function rest(run: RunState): number {
-  const healed = Math.min(
-    run.maxHp - run.hp,
-    Math.round(run.maxHp * EMBER_WASTES.restHealFraction),
-  );
-  run.hp += healed;
+  const healed = Math.round(heal(run, run.maxHp * EMBER_WASTES.restHealFraction));
   run.roomsCleared++;
   run.status = 'map';
   return healed;
 }
 
-/** The boon offer a node grants, or null if it grants none. */
+/** The boon offer a node grants, or null if its reward is not a boon. */
 export function offerFor(run: RunState, node: MapNode): BoonOffer | null {
-  const bonus = rewardRarityBonus(node.type);
-  if (bonus === null) return null;
-  const being = rewardBeing(run.seed, node.id);
+  const reward = nodeReward(run.seed, node);
+  if (reward?.kind !== 'boon') return null;
+  const bonus = rewardRarityBonus(node.type) ?? 0;
+  const being = reward.being;
   const offer = rollBoonOffer(run.seed, node.id, being, run.boons, bonus);
   if (offer.options.length > 0) return offer;
   // This being has nothing left to give: another one steps in, or there is no reward.
