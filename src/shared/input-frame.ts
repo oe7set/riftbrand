@@ -22,6 +22,8 @@ export interface InputFrame {
   aimX: number;
   aimY: number;
   hasAim: boolean;
+  /** Aim-assist half-angle in degrees; depends on the device (mouse aims precisely, touch taps don't). */
+  assistDeg: number;
   /** Buttons currently held. */
   held: number;
   /** Buttons pressed since the previous tick (edge-triggered). */
@@ -29,7 +31,16 @@ export interface InputFrame {
 }
 
 export function createInputFrame(): InputFrame {
-  return { moveX: 0, moveY: 0, aimX: 0, aimY: 0, hasAim: false, held: 0, pressed: 0 };
+  return {
+    moveX: 0,
+    moveY: 0,
+    aimX: 0,
+    aimY: 0,
+    hasAim: false,
+    assistDeg: 30,
+    held: 0,
+    pressed: 0,
+  };
 }
 
 export function copyInputFrame(out: InputFrame, src: InputFrame): InputFrame {
@@ -38,6 +49,7 @@ export function copyInputFrame(out: InputFrame, src: InputFrame): InputFrame {
   out.aimX = src.aimX;
   out.aimY = src.aimY;
   out.hasAim = src.hasAim;
+  out.assistDeg = src.assistDeg;
   out.held = src.held;
   out.pressed = src.pressed;
   return out;

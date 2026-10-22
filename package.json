@@ -21,7 +21,9 @@
     "icons": "vite-node scripts/generate-icons.ts"
   },
   "dependencies": {
-    "pixi.js": "^8.22.0"
+    "pixi-filters": "^6.1.5",
+    "pixi.js": "^8.22.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.2",
