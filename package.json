@@ -1,0 +1,37 @@
+{
+  "name": "riftbrand",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "e2e": "playwright test",
+    "bench:ecs": "vite-node scripts/ecs-bench.ts",
+    "icons": "vite-node scripts/generate-icons.ts"
+  },
+  "dependencies": {
+    "pixi.js": "^8.22.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.2",
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.5",
+    "bitecs": "^0.4.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vite-node": "^6.0.0",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.0.5"
+  }
+}

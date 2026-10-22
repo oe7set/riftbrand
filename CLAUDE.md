@@ -11,18 +11,21 @@ Riftbrand ist ein 2D-Action-Roguelike für den Browser (PWA, mobile-first, Touch
 Rollen: Claude entwickelt, der Nutzer testet (OnePlus 13 und Desktop) und entscheidet über Richtung und Merges.
 
 ## Befehle
-> Werden in M0 eingerichtet. Diesen Abschnitt aktuell halten.
-
 ```
-pnpm dev          # Dev-Server
-pnpm build        # Produktions-Build
-pnpm check        # Biome-Lint und -Format-Prüfung
+pnpm dev          # Dev-Server (auch im LAN erreichbar, zum Testen auf dem Handy)
+pnpm build        # Produktions-Build (BASE_PATH, ENABLE_PWA, GIT_SHA setzt die Deploy-Pipeline)
+pnpm preview      # Build lokal ausliefern
+pnpm check        # Biome-Lint und -Format-Prüfung (pnpm check:fix korrigiert)
 pnpm typecheck    # tsc --noEmit
-pnpm test         # Vitest
-pnpm sim          # Headless-Balancing-Simulator (scripts/sim.ts)
-pnpm e2e          # Playwright-Smoke-Test
+pnpm test         # Vitest: Unit-, Determinismus- und Architekturtests
+pnpm e2e          # Playwright-Smoke-Test (vorher pnpm build)
+pnpm bench:ecs    # ECS-Benchmark (ADR 0001)
+pnpm icons        # PWA-Icons aus public/icons/icon.svg rendern
 ```
-Vor jedem Commit: `pnpm check && pnpm typecheck && pnpm test`.
+- Vor jedem Commit: `pnpm check && pnpm typecheck && pnpm test`.
+- In der Claude-Cloud-Umgebung ist Chromium vorinstalliert: `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium pnpm e2e` (nie `playwright install` ausführen).
+- `pnpm sim` (Headless-Simulator) kommt in M2.
+- **Nie** `pkill -f "vite preview"` o. Ä. verwenden: Das Muster trifft die eigene Shell. Stattdessen die PID gezielt beenden.
 
 ## Harte Architekturregeln
 1. **`src/sim/` ist rein und deterministisch.** Keine Importe von `pixi.js`, `src/view`, `src/platform`, kein `window`, `document`, `Math.random`, `Date.now`, `performance.now`, keine asynchrone Logik. Zufall nur über die Seed-RNG-Ströme (`sim/rng`). Ein Architekturtest erzwingt das.
@@ -49,8 +52,8 @@ Vor jedem Commit: `pnpm check && pnpm typecheck && pnpm test`.
 - Einheiten in Namen bzw. Kommentaren klar halten: Pixel, Sekunden und Ticks nie mischen (`durationTicks`, `speedPxPerSec`).
 
 ## Texte und i18n
-- **Keine fest kodierten Texte für Spieler.** Alles über `t('key')`, Schlüssel in `src/locales/en.json` (Basis) und `de.json`.
-- Schlüssel-Schema: `bereich.id.feld`, z. B. `relic.spark_ring.name`.
+- **Keine fest kodierten Texte für Spieler.** Ausnahme: das Debug-Menü (nur für Entwicklung, Englisch). Alles über `t('key')`, Schlüssel in `src/locales/en.json` (Basis) und `de.json`.
+- Schlüssel-Schema: `bereich.id.feld`, z. B. `relic.spark_ring.name`. Die Dateien sind flach (`"pause.title": "…"`).
 - Der Content-Test prüft, dass alle Schlüssel in beiden Sprachen vorhanden sind.
 - Figuren-Pronomen: Die Spielfigur (Vesper) ist geschlechtsneutral.
 

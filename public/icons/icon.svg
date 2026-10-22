@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>Riftbrand</title>
+  <defs>
+    <radialGradient id="g" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ff9a4d" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#07060d" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="#07060d"/>
+  <circle cx="256" cy="256" r="200" fill="url(#g)"/>
+  <path d="M286 72 L214 236 L282 252 L222 440 L330 214 L258 200 Z" fill="none" stroke="#ff7a2f" stroke-width="18" stroke-linejoin="round"/>
+  <path d="M286 72 L214 236 L282 252 L222 440 L330 214 L258 200 Z" fill="#fff4e0" fill-opacity="0.9"/>
+</svg>
