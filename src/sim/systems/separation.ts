@@ -5,27 +5,35 @@ import type { SimState } from '../sim';
 
 const BODY_MASK = C.Transform | C.Collider;
 
-/**
- * Soft body separation so crowds spread out instead of stacking. Uses the broadphase, which
- * later also serves hitbox/hurtbox checks.
- */
-export function separationSystem(state: SimState): void {
-  const { world, c, spatial, queryBuffer } = state;
+/** Inserts every body (not projectiles) into the broadphase. Returns the largest radius. */
+export function rebuildSpatialHash(state: SimState): number {
+  const { world, c, spatial } = state;
   const masks = world.masks;
   clearSpatialHash(spatial);
   let maxRadius = 0;
   for (let eid = 0; eid < world.highWater; eid++) {
-    if (((masks[eid] as number) & BODY_MASK) !== BODY_MASK) continue;
+    const mask = masks[eid] as number;
+    if ((mask & BODY_MASK) !== BODY_MASK || (mask & C.Projectile) !== 0) continue;
     insertPoint(spatial, eid, c.posX[eid] as number, c.posY[eid] as number);
     const r = c.radius[eid] as number;
     if (r > maxRadius) maxRadius = r;
   }
+  return maxRadius;
+}
 
+/**
+ * Soft body separation so crowds spread out instead of stacking. Crowd members are pushed away
+ * from every body, including the player, but never push the player (no contact damage or shoving).
+ */
+export function separationSystem(state: SimState): void {
+  const { world, c, spatial, queryBuffer } = state;
+  const masks = world.masks;
+  const maxRadius = rebuildSpatialHash(state);
   const strength = TUNING.separationStrength;
   if (strength <= 0) return;
+  const crowdMask = BODY_MASK | C.Crowd;
   for (let a = 0; a < world.highWater; a++) {
-    // Only crowd members push; the player is never shoved by dummies.
-    if (((masks[a] as number) & (BODY_MASK | C.Drifter)) !== (BODY_MASK | C.Drifter)) continue;
+    if (((masks[a] as number) & crowdMask) !== crowdMask) continue;
     const ax = c.posX[a] as number;
     const ay = c.posY[a] as number;
     const ar = c.radius[a] as number;

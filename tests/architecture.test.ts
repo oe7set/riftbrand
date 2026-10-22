@@ -34,7 +34,10 @@ describe('architecture', () => {
   });
 
   it.each(files.map((f) => [relative(SIM_DIR, f), f]))('sim/%s stays pure', (_name, file) => {
-    const source = readFileSync(file, 'utf8');
+    // Comments may mention anything ("punish window."); only code counts.
+    const source = readFileSync(file, 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*$/gm, '');
     const violations = FORBIDDEN.filter(([pattern]) => pattern.test(source)).map(([, why]) => why);
     expect(violations).toEqual([]);
   });
