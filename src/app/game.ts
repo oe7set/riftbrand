@@ -452,6 +452,7 @@ export class Game {
       kills: this.sim.player.kills,
       timeSec: this.sim.room.elapsedTicks / TICK_RATE_HZ,
       shards: this.sim.shards,
+      ultCharge: this.sim.player.ultCharge,
     };
   }
 
