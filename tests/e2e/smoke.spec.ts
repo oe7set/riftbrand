@@ -39,3 +39,22 @@ test('Escape toggles the pause overlay', async ({ page }) => {
   await page.keyboard.press('Escape');
   await expect(page.locator('.rb-pause')).toBeHidden();
 });
+
+test('the first wave spawns enemies and the run stays error-free', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (err) => errors.push(err.message));
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') errors.push(msg.text());
+  });
+  await page.goto('/?seed=7');
+  await waitForGame(page);
+  await page.waitForFunction(() => (window.__riftbrand?.enemiesAlive() ?? 0) > 0, null, {
+    timeout: 15_000,
+  });
+  expect(await page.evaluate(() => window.__riftbrand?.wave())).toBe(1);
+  // Swing a few times; the sword must not throw even without targets in reach.
+  for (let i = 0; i < 5; i++) await page.keyboard.press('KeyJ');
+  await page.keyboard.press('Space');
+  await page.waitForTimeout(500);
+  expect(errors).toEqual([]);
+});
