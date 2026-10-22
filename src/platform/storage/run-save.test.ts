@@ -37,10 +37,29 @@ describe('run save', () => {
   });
 
   it('migrates v1 saves (no boons yet) to the current version', () => {
-    const { boons: _boons, ...v1Run } = createRun(42);
+    const {
+      boons: _b,
+      relics: _r,
+      shards: _s,
+      shopBought: _sb,
+      maxHpBonus: _m,
+      ...v1Run
+    } = createRun(42);
     const migrated = migrateRunSave({ version: 1, run: v1Run });
     expect(migrated?.boons).toEqual([]);
+    expect(migrated?.relics).toEqual([]);
     expect(migrated?.seed).toBe(42);
+  });
+
+  it('migrates v2 saves (no relics or shards yet)', () => {
+    const { relics: _r, shards: _s, shopBought: _sb, maxHpBonus: _m, ...v2Run } = createRun(7);
+    const migrated = migrateRunSave({
+      version: 2,
+      run: { ...v2Run, boons: [{ id: 'shatter', rarity: 'rare' }] },
+    });
+    expect(migrated?.boons).toHaveLength(1);
+    expect(migrated?.shards).toBe(0);
+    expect(migrated?.shopBought).toEqual([]);
   });
 
   it('clears the save', () => {
