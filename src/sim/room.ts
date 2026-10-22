@@ -1,0 +1,179 @@
+import type { ObstacleDef } from '../content/schema';
+import type { Encounter } from './run/encounter';
+
+export type RoomMode = 'arena' | 'waves' | 'horde';
+
+const MAX_RECTS = 32;
+const MAX_CIRCLES = 32;
+const MAX_SPAWN_POINTS = 16;
+
+/** Static room geometry and encounter progress, kept in typed arrays like the rest of the sim. */
+export interface RoomState {
+  mode: RoomMode;
+  /** x, y, w, h per rect. */
+  readonly rects: Float64Array;
+  rectCount: number;
+  /** x, y, r per circle. */
+  readonly circles: Float64Array;
+  circleCount: number;
+  /** x, y per preferred spawn point. */
+  readonly spawnPoints: Float64Array;
+  spawnPointCount: number;
+  exitX: number;
+  exitY: number;
+  exitOpen: boolean;
+  exitReached: boolean;
+  cleared: boolean;
+  /** Encounter waves as enemy type lists (empty in arena/horde mode). */
+  waves: number[][];
+  waveIndex: number;
+  hordeTicksLeft: number;
+  hordeSpawnIntervalTicks: number;
+  hordeSpawnTicks: number;
+  hordePool: number[];
+  /** Ticks spent in this room, for run stats. */
+  elapsedTicks: number;
+  killsAtStart: number;
+}
+
+export function createRoomState(): RoomState {
+  return {
+    mode: 'arena',
+    rects: new Float64Array(MAX_RECTS * 4),
+    rectCount: 0,
+    circles: new Float64Array(MAX_CIRCLES * 3),
+    circleCount: 0,
+    spawnPoints: new Float64Array(MAX_SPAWN_POINTS * 2),
+    spawnPointCount: 0,
+    exitX: 0,
+    exitY: 0,
+    exitOpen: false,
+    exitReached: false,
+    cleared: false,
+    waves: [],
+    waveIndex: -1,
+    hordeTicksLeft: 0,
+    hordeSpawnIntervalTicks: 0,
+    hordeSpawnTicks: 0,
+    hordePool: [],
+    elapsedTicks: 0,
+    killsAtStart: 0,
+  };
+}
+
+export function loadObstacles(room: RoomState, obstacles: readonly ObstacleDef[]): void {
+  room.rectCount = 0;
+  room.circleCount = 0;
+  for (const o of obstacles) {
+    if (o.kind === 'rect' && room.rectCount < MAX_RECTS) {
+      const i = room.rectCount++ * 4;
+      room.rects[i] = o.x;
+      room.rects[i + 1] = o.y;
+      room.rects[i + 2] = o.w;
+      room.rects[i + 3] = o.h;
+    } else if (o.kind === 'circle' && room.circleCount < MAX_CIRCLES) {
+      const i = room.circleCount++ * 3;
+      room.circles[i] = o.x;
+      room.circles[i + 1] = o.y;
+      room.circles[i + 2] = o.r;
+    }
+  }
+}
+
+export function loadSpawnPoints(
+  room: RoomState,
+  points: ReadonlyArray<{ x: number; y: number }>,
+): void {
+  room.spawnPointCount = Math.min(points.length, MAX_SPAWN_POINTS);
+  for (let i = 0; i < room.spawnPointCount; i++) {
+    room.spawnPoints[i * 2] = points[i]?.x ?? 0;
+    room.spawnPoints[i * 2 + 1] = points[i]?.y ?? 0;
+  }
+}
+
+export function loadEncounter(room: RoomState, encounter: Encounter, ticksPerSec: number): void {
+  if (encounter.kind === 'waves') {
+    room.mode = 'waves';
+    room.waves = encounter.waves.map((w) => [...w]);
+  } else if (encounter.kind === 'horde') {
+    room.mode = 'horde';
+    room.hordeTicksLeft = Math.round(encounter.durationSec * ticksPerSec);
+    room.hordeSpawnIntervalTicks = Math.max(
+      1,
+      Math.round(encounter.spawnIntervalSec * ticksPerSec),
+    );
+    room.hordePool = [...encounter.pool];
+  } else {
+    room.mode = 'waves';
+    room.waves = [];
+  }
+}
+
+/** Shared scratch output for pushOutOfObstacles, avoiding allocation in hot loops. */
+export const pushOut = { x: 0, y: 0, hit: false };
+
+/**
+ * Moves a circle (x, y, r) out of every obstacle it overlaps. Result in `pushOut`.
+ * Circle-vs-rect uses the closest point on the rect; a centre inside a rect exits via the
+ * nearest edge.
+ */
+export function pushOutOfObstacles(room: RoomState, x: number, y: number, r: number): void {
+  let px = x;
+  let py = y;
+  let hit = false;
+  for (let i = 0; i < room.rectCount; i++) {
+    const rx = room.rects[i * 4] as number;
+    const ry = room.rects[i * 4 + 1] as number;
+    const rw = room.rects[i * 4 + 2] as number;
+    const rh = room.rects[i * 4 + 3] as number;
+    const cx = Math.max(rx, Math.min(px, rx + rw));
+    const cy = Math.max(ry, Math.min(py, ry + rh));
+    let dx = px - cx;
+    let dy = py - cy;
+    const d2 = dx * dx + dy * dy;
+    if (d2 >= r * r) continue;
+    hit = true;
+    if (d2 > 0) {
+      const d = Math.sqrt(d2);
+      px = cx + (dx / d) * r;
+      py = cy + (dy / d) * r;
+      continue;
+    }
+    // Centre inside the rect: leave through the closest side.
+    const left = px - rx;
+    const right = rx + rw - px;
+    const top = py - ry;
+    const bottom = ry + rh - py;
+    const m = Math.min(left, right, top, bottom);
+    dx = m === left ? -1 : m === right ? 1 : 0;
+    dy = m === top ? -1 : m === bottom ? 1 : 0;
+    if (dx !== 0) px = dx < 0 ? rx - r : rx + rw + r;
+    else py = dy < 0 ? ry - r : ry + rh + r;
+  }
+  for (let i = 0; i < room.circleCount; i++) {
+    const ox = room.circles[i * 3] as number;
+    const oy = room.circles[i * 3 + 1] as number;
+    const minDist = (room.circles[i * 3 + 2] as number) + r;
+    const dx = px - ox;
+    const dy = py - oy;
+    const d2 = dx * dx + dy * dy;
+    if (d2 >= minDist * minDist) continue;
+    hit = true;
+    const d = Math.sqrt(d2);
+    if (d === 0) {
+      py = oy - minDist;
+      continue;
+    }
+    px = ox + (dx / d) * minDist;
+    py = oy + (dy / d) * minDist;
+  }
+  pushOut.x = px;
+  pushOut.y = py;
+  pushOut.hit = hit;
+}
+
+/** True if a point (with radius) lies inside any obstacle. */
+export function overlapsObstacle(room: RoomState, x: number, y: number, r: number): boolean {
+  pushOutOfObstacles(room, x, y, r);
+  return pushOut.hit;
+}

@@ -15,6 +15,14 @@ import { addComponents, createEntity, createWorld, destroyEntity, type World } f
 import { clearEvents, createEventBuffer, Ev, type EventBuffer, pushEvent } from './events';
 import { createPlayerState, type PlayerState } from './player-state';
 import { createRngStreams, nextRange, type RngStreams } from './rng/rng';
+import {
+  createRoomState,
+  loadEncounter,
+  loadObstacles,
+  loadSpawnPoints,
+  type RoomState,
+} from './room';
+import type { RoomSetup } from './run/run-state';
 import { drifterAiSystem } from './systems/drifter-ai';
 import { enemyAiSystem } from './systems/enemy-ai';
 import { movementSystem } from './systems/movement';
@@ -22,7 +30,7 @@ import { capturePlayerInput, playerActionSystem } from './systems/player-actions
 import { projectileSystem } from './systems/projectiles';
 import { rebuildSpatialHash, separationSystem } from './systems/separation';
 import { createWaveState, type WaveState, waveSystem } from './systems/waves';
-import { secondsToTicks } from './time';
+import { secondsToTicks, TICK_RATE_HZ } from './time';
 
 export const MAX_ENTITIES = 4096;
 
@@ -41,6 +49,7 @@ export interface SimState {
   playerEid: number;
   readonly player: PlayerState;
   readonly waves: WaveState;
+  readonly room: RoomState;
   /** Monotonic id per player attack, so one swing damages each enemy at most once. */
   swingCounter: number;
   meleeTokensInUse: number;
@@ -56,7 +65,11 @@ export interface SimState {
 export const MAX_MELEE_TOKENS = 3;
 export const MAX_RANGED_TOKENS = 4;
 
-export function createSim(seed: number): SimState {
+/**
+ * Creates a room simulation. Without `setup` it is the endless arena (debug/tuning mode);
+ * with `setup` it plays one map node of a run.
+ */
+export function createSim(seed: number, setup?: RoomSetup): SimState {
   const state: SimState = {
     seed: seed >>> 0,
     tick: 0,
@@ -70,16 +83,32 @@ export function createSim(seed: number): SimState {
     playerEid: -1,
     player: createPlayerState(),
     waves: createWaveState(),
+    room: createRoomState(),
     swingCounter: 0,
     meleeTokensInUse: 0,
     rangedTokensInUse: 0,
     enemiesAlive: 0,
     gameOver: false,
-    arenaWidthPx: TUNING.arenaWidthPx,
-    arenaHeightPx: TUNING.arenaHeightPx,
+    arenaWidthPx: setup?.template.widthPx ?? TUNING.arenaWidthPx,
+    arenaHeightPx: setup?.template.heightPx ?? TUNING.arenaHeightPx,
     debug: { godMode: false, wavesEnabled: true },
   };
-  state.playerEid = spawnPlayer(state, state.arenaWidthPx / 2, state.arenaHeightPx / 2);
+  if (setup) {
+    const t = setup.template;
+    loadObstacles(state.room, t.obstacles);
+    loadSpawnPoints(state.room, t.spawnPoints);
+    loadEncounter(state.room, setup.encounter, TICK_RATE_HZ);
+    state.room.exitX = t.exit.x;
+    state.room.exitY = t.exit.y;
+    state.playerEid = spawnPlayer(state, t.playerStart.x, t.playerStart.y);
+    state.c.maxHp[state.playerEid] = setup.playerMaxHp;
+    state.c.hp[state.playerEid] = setup.playerHp;
+    // Face into the room.
+    state.c.facingX[state.playerEid] = 0;
+    state.c.facingY[state.playerEid] = -1;
+  } else {
+    state.playerEid = spawnPlayer(state, state.arenaWidthPx / 2, state.arenaHeightPx / 2);
+  }
   state.player.stamina = TUNING.staminaMax;
   state.waves.timerTicks = secondsToTicks(TUNING.firstWaveDelaySec);
   return state;

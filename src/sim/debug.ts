@@ -1,7 +1,7 @@
 import { killEnemy } from './combat/damage';
 import { C } from './ecs/components';
 import type { SimState } from './sim';
-import { scheduleSpawn, startWave, WavePhase } from './systems/waves';
+import { forceClearRoom, scheduleSpawn, startWave, WavePhase } from './systems/waves';
 
 /** Debug-menu actions. They mutate the sim like inputs do, so they stay deterministic. */
 export function debugSpawnEnemy(state: SimState, type: number): void {
@@ -16,4 +16,8 @@ export function debugKillAllEnemies(state: SimState): void {
 
 export function debugNextWave(state: SimState): void {
   if (state.waves.phase === WavePhase.Intermission && !state.gameOver) startWave(state);
+}
+
+export function debugClearRoom(state: SimState): void {
+  forceClearRoom(state);
 }
