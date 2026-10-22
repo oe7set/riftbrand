@@ -1,9 +1,11 @@
 import { autoDetectRenderer, Container, type Renderer } from 'pixi.js';
+import { AdvancedBloomFilter } from 'pixi-filters';
 import { TUNING } from '../content/tuning';
 import type { InputDevice } from '../platform/input/input-manager';
 import type { TouchInput } from '../platform/input/touch';
 import type { Vec2 } from '../shared/math/vec2';
 import type { SimState } from '../sim/sim';
+import { HudView } from './hud/hud-view';
 import { TouchControlsView } from './hud/touch-controls-view';
 import { ArenaView } from './render/arena-view';
 import {
@@ -17,10 +19,18 @@ import {
 import { DebugDraw } from './render/debug-draw';
 import { EntityView } from './render/entity-view';
 import { PALETTE } from './render/palette';
-import { bakeTextures } from './render/textures';
+import { type BakedTextures, bakeTextures } from './render/textures';
+import { DamageNumbers } from './vfx/damage-numbers';
+import { Effects } from './vfx/effects';
+import { ParticleSystem } from './vfx/particles';
+import { ScreenShake } from './vfx/shake';
 
-/** Upper bound for the backing-store resolution; quality tiers will lower it (TECH_DESIGN §8). */
+/** Upper bound for the backing-store resolution; quality tiers lower it (TECH_DESIGN §8). */
 const MAX_RESOLUTION = 2;
+const PARTICLE_CAPACITY = 2000;
+const ZOOM_PUNCH_DECAY_PER_SEC = 6;
+
+export type GlowQuality = 'high' | 'low';
 
 export interface ViewSize {
   width: number;
@@ -32,19 +42,52 @@ export interface ViewSize {
 export class GameView {
   readonly camera: Camera = createCamera();
   readonly debugDraw = new DebugDraw();
+  readonly shake = new ScreenShake();
+  readonly entities: EntityView;
+  readonly effects: Effects;
+  readonly damageNumbers = new DamageNumbers();
+  readonly hud: HudView;
+  readonly textures: BakedTextures;
   private readonly stage = new Container();
+  /** World plus effects; the bloom filter applies here, sized to the screen. */
+  private readonly postFx = new Container();
   private readonly worldLayer = new Container();
   private readonly hudLayer = new Container();
   private readonly arena = new ArenaView();
-  private readonly entities: EntityView;
+  private readonly fxParticles = new ParticleSystem(PARTICLE_CAPACITY);
+  private readonly groundParticles = new ParticleSystem(PARTICLE_CAPACITY / 2);
   private readonly touchControls = new TouchControlsView();
+  private readonly bloom = new AdvancedBloomFilter({
+    threshold: 0.35,
+    bloomScale: 0.9,
+    brightness: 1,
+    blur: 6,
+    quality: 4,
+  });
+  private zoomPunch = 0;
   private hasSnapped = false;
 
   private constructor(readonly renderer: Renderer) {
-    this.entities = new EntityView(bakeTextures(renderer));
-    this.worldLayer.addChild(this.arena.root, this.entities.root, this.debugDraw.graphics);
-    this.hudLayer.addChild(this.touchControls.root);
-    this.stage.addChild(this.worldLayer, this.hudLayer);
+    this.textures = bakeTextures(renderer);
+    this.entities = new EntityView(this.textures);
+    this.effects = new Effects(this.fxParticles, this.groundParticles, this.textures);
+    this.hud = new HudView(this.textures.white, this.textures.vignette);
+    this.fxParticles.root.blendMode = 'add';
+    this.groundParticles.root.blendMode = 'add';
+    this.worldLayer.addChild(
+      this.arena.root,
+      this.groundParticles.root,
+      this.entities.groundLayer,
+      this.entities.bodyLayer,
+      this.fxParticles.root,
+      this.entities.overlayLayer,
+      this.damageNumbers.root,
+      this.debugDraw.graphics,
+    );
+    this.postFx.addChild(this.worldLayer);
+    this.hudLayer.addChild(this.hud.root, this.touchControls.root);
+    this.stage.addChild(this.postFx, this.hudLayer);
+    this.setGlowQuality('high');
   }
 
   static async create(size: ViewSize): Promise<GameView> {
@@ -67,10 +110,28 @@ export class GameView {
     return this.renderer.canvas as HTMLCanvasElement;
   }
 
+  get particleCount(): number {
+    return this.fxParticles.active + this.groundParticles.active;
+  }
+
+  /** "high" adds a real bloom pass; "low" relies on the baked glow halos only. */
+  setGlowQuality(quality: GlowQuality): void {
+    this.postFx.filters = quality === 'high' ? [this.bloom] : [];
+    const budget = quality === 'high' ? PARTICLE_CAPACITY : PARTICLE_CAPACITY / 2;
+    this.fxParticles.budget = budget;
+    this.groundParticles.budget = budget / 2;
+  }
+
   resize(size: ViewSize): void {
     this.renderer.resize(size.width, size.height, Math.min(size.devicePixelRatio, MAX_RESOLUTION));
     this.camera.viewWidth = size.width;
     this.camera.viewHeight = size.height;
+    this.postFx.filterArea = this.renderer.screen;
+    this.hud.resize(size.width, size.height);
+  }
+
+  addZoomPunch(amount: number): void {
+    this.zoomPunch = Math.max(this.zoomPunch, amount);
   }
 
   playerScreenPosition(sim: SimState, out: Vec2): Vec2 {
@@ -78,20 +139,32 @@ export class GameView {
     return worldToScreen(this.camera, sim.c.posX[eid] ?? 0, sim.c.posY[eid] ?? 0, out);
   }
 
+  /** Clears transient effects, e.g. on restart. */
+  resetEffects(): void {
+    this.fxParticles.clear();
+    this.groundParticles.clear();
+    this.damageNumbers.clear();
+    this.shake.trauma = 0;
+    this.zoomPunch = 0;
+    this.hasSnapped = false;
+  }
+
   render(
     sim: SimState,
     alpha: number,
-    frameDtSec: number,
+    simDtSec: number,
+    realDtSec: number,
     touch: TouchInput,
     device: InputDevice,
   ): void {
     const cam = this.camera;
-    cam.zoom = computeZoom(
-      cam.viewWidth,
-      cam.viewHeight,
-      TUNING.viewAreaWidthPx,
-      TUNING.viewAreaHeightPx,
+    this.zoomPunch = Math.max(
+      0,
+      this.zoomPunch - this.zoomPunch * ZOOM_PUNCH_DECAY_PER_SEC * realDtSec,
     );
+    cam.zoom =
+      computeZoom(cam.viewWidth, cam.viewHeight, TUNING.viewAreaWidthPx, TUNING.viewAreaHeightPx) *
+      (1 + this.zoomPunch);
 
     const eid = sim.playerEid;
     const c = sim.c;
@@ -100,7 +173,7 @@ export class GameView {
     const vx = c.velX[eid] ?? 0;
     const vy = c.velY[eid] ?? 0;
     const speed = Math.sqrt(vx * vx + vy * vy);
-    // Look-ahead scales with speed so standing still re-centres the player.
+    // Look-ahead scales with walking speed so standing still re-centres the player.
     const lookScale = Math.min(1, speed / TUNING.playerSpeedPxPerSec);
     if (!this.hasSnapped) {
       snapCamera(cam, px, py);
@@ -113,26 +186,35 @@ export class GameView {
       lookY: speed > 0 ? (vy / speed) * lookScale : 0,
       lookaheadPx: TUNING.cameraLookaheadPx,
       sharpness: TUNING.cameraFollowSharpness,
-      dtSec: frameDtSec,
+      dtSec: simDtSec,
       arenaWidth: sim.arenaWidthPx,
       arenaHeight: sim.arenaHeightPx,
     });
 
+    // Shake runs on real time so it keeps going through hitstop and slow motion.
+    this.shake.update(
+      realDtSec,
+      TUNING.shakeMaxOffsetPx,
+      (TUNING.shakeMaxRotationDeg * Math.PI) / 180,
+      TUNING.shakeDecayPerSec,
+    );
     this.worldLayer.scale.set(cam.zoom);
+    this.worldLayer.rotation = this.shake.rotation;
+    // Pivot at the camera target so shake rotation turns around the screen centre.
+    this.worldLayer.pivot.set(cam.x, cam.y);
     this.worldLayer.position.set(
-      cam.viewWidth / 2 - cam.x * cam.zoom,
-      cam.viewHeight / 2 - cam.y * cam.zoom,
+      cam.viewWidth / 2 + this.shake.offsetX,
+      cam.viewHeight / 2 + this.shake.offsetY,
     );
 
     this.arena.sync(sim.arenaWidthPx, sim.arenaHeightPx);
-    this.entities.sync(sim, alpha);
+    this.entities.sync(sim, alpha, realDtSec);
+    this.fxParticles.update(realDtSec);
+    this.groundParticles.update(realDtSec);
+    this.damageNumbers.update(realDtSec);
     this.debugDraw.sync(sim, alpha);
+    this.hud.sync(sim, realDtSec);
     this.touchControls.sync(touch, device === 'touch');
     this.renderer.render(this.stage);
-  }
-
-  /** Resets the camera snap, e.g. after restarting with a new seed. */
-  resetCamera(): void {
-    this.hasSnapped = false;
   }
 }

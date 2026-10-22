@@ -1,3 +1,4 @@
+import { TUNING } from '../../content/tuning';
 import type { ButtonBit, InputFrame } from '../../shared/input-frame';
 import { type Vec2, vec2 } from '../../shared/math/vec2';
 import { type AppAction, DEFAULT_KEY_BINDINGS, type GamepadFamily } from './bindings';
@@ -96,11 +97,16 @@ export class InputManager implements DeviceSink {
     this.considerMove(out, this.touch.readMove(this.moveScratch));
 
     out.hasAim = false;
+    // Untargeted taps and move-direction attacks get the generous cone (GDD §4.4).
+    out.assistDeg = TUNING.aimAssistTouchDeg;
     if (this.touch.hasAim && this.lastDevice === 'touch') {
       this.setAim(out, this.touch.aim.x, this.touch.aim.y);
+      out.assistDeg = TUNING.aimAssistStickDeg;
     } else if (this.gamepad.hasAim && this.lastDevice === 'gamepad') {
       this.setAim(out, this.gamepad.aim.x, this.gamepad.aim.y);
+      out.assistDeg = TUNING.aimAssistStickDeg;
     } else if (this.lastDevice === 'keyboardMouse' && this.keyboardMouse.pointer.inside) {
+      out.assistDeg = TUNING.aimAssistMouseDeg;
       const provider = this.playerScreenProvider;
       if (provider) {
         provider(this.playerScreen);

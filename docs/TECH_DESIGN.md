@@ -343,7 +343,19 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 
 ---
 
-## 19. Risiken und Gegenmaßnahmen
+## 19. Stand nach M1 (Prototyp)
+- **Spieler-Zustandsautomat** (`sim/systems/player-actions.ts`): Idle, Angriff (Combo), Spezialangriff, Dash, Tot. Eingaben laufen immer durch den Puffer (`capturePlayerInput`), auch während des Hitstops. Zielhilfe und Treffertest nutzen das räumliche Hash-Gitter.
+- **Schadens-Pipeline** (`sim/combat/damage.ts`): Krit, Poise bzw. Stagger, Rückstoß nach Gewicht, Hitstop (der längste gewinnt), Dash-i-Frames mit Erkennung des perfekten Dashs, Treffer-Unverwundbarkeit.
+- **Gegner-KI** (`sim/systems/enemy-ai.ts`): gemeinsamer Automat Position → Vorbereitung → aktiv → Erholung bzw. Stagger, parametrisiert über `EnemyDef.attack` (`lunge`, `volley`, `slam`). Angriffs-Tokens begrenzen gleichzeitige Angreifer (3 Nahkampf, 4 Fernkampf).
+- **Wellen** (`sim/systems/waves.ts`): budgetbasierter Endlosmodus mit Spawn-Portalen.
+- **Events → Feedback:** Die Simulation schreibt `SimEvent`s in einen festen Puffer. `app/feedback.ts` ist die *einzige* Stelle, die daraus Partikel, Shake, Blitze, Sound, Vibration und Zeitlupe macht.
+- **Zeitlupe** ist App-Zustand (Skalierung der Tick-Rate), die Simulation bleibt deterministisch.
+- **Tuning-Register** (`content/tunables.ts`): `TUNING`, Waffen- und Gegnerdaten registrieren ihre Zahlen. Das Debug-Menü baut daraus die Regler und den Code-Export.
+- **Content-Schemas** mit Zod (`content/schema.ts`) erzwingen unter anderem die Fairness-Regeln (Telegraph ≥ 0,4 s, gegnerische Geschosse ≤ 260 px/s).
+- **Einstellungen** liegen in `localStorage` (klein, synchron; IndexedDB kommt mit den Spielständen in M2), validiert und repariert über ein Zod-Schema.
+- **Audio:** `platform/audio/synth.ts` rendert die Rezepte aus `content/audio/sfx.ts` beim ersten Nutzer-Tippen in `AudioBuffer`s. Abgespielt wird mit Variation in Tonhöhe und Lautstärke, Stimmenlimit und Stereo-Panorama nach Bildschirmposition.
+
+## 20. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

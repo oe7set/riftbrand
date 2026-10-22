@@ -18,13 +18,24 @@ function mixFloat(hash: number, value: number): number {
  * produce the same hash; the determinism test relies on this.
  */
 export function hashSim(state: SimState): number {
-  const { world, c } = state;
+  const { world, c, player: p, waves: w } = state;
   let h = 2166136261;
   h = fnv1a(h, state.tick);
   h = fnv1a(h, state.freezeTicks);
+  h = fnv1a(h, state.swingCounter);
+  h = fnv1a(h, state.enemiesAlive);
+  h = fnv1a(h, state.gameOver ? 1 : 0);
   for (const stream of Object.values(state.rng)) {
     for (const word of stream.state) h = fnv1a(h, word);
   }
+  h = fnv1a(h, p.action);
+  h = fnv1a(h, p.actionTicks);
+  h = fnv1a(h, p.comboIndex);
+  h = fnv1a(h, p.buffered);
+  h = fnv1a(h, p.invulnTicks);
+  h = mixFloat(h, p.stamina);
+  h = fnv1a(h, w.wave);
+  h = fnv1a(h, w.pendingCount);
   for (let eid = 0; eid < world.highWater; eid++) {
     const mask = world.masks[eid] as number;
     h = fnv1a(h, mask);
@@ -33,8 +44,9 @@ export function hashSim(state: SimState): number {
     h = mixFloat(h, c.posY[eid] as number);
     h = mixFloat(h, c.velX[eid] as number);
     h = mixFloat(h, c.velY[eid] as number);
-    h = mixFloat(h, c.facingX[eid] as number);
-    h = mixFloat(h, c.facingY[eid] as number);
+    h = mixFloat(h, c.hp[eid] as number);
+    h = fnv1a(h, c.aiState[eid] as number);
+    h = fnv1a(h, c.aiTicks[eid] as number);
   }
   return h;
 }

@@ -1,0 +1,36 @@
+import { defineEnemy } from '../schema';
+
+/** Funkenspucker: keeps its distance and fires a slow three-shot fan (GDD §5.2). */
+export const SPITTER = defineEnemy({
+  id: 'spitter',
+  role: 'shooter',
+  maxHp: 22,
+  radiusPx: 12,
+  speedPxPerSec: 95,
+  poise: 0,
+  poiseRegenDelaySec: 0,
+  staggerSec: 0.3,
+  weight: 0.1,
+  keepDistanceMinPx: 250,
+  keepDistanceMaxPx: 350,
+  token: 'ranged',
+  waveCost: 1.5,
+  minWave: 2,
+  attack: {
+    kind: 'volley',
+    triggerRangePx: 420,
+    windupSec: 0.6,
+    activeSec: 0.1,
+    recoverySec: 0.5,
+    cooldownMinSec: 1.8,
+    cooldownMaxSec: 2.6,
+    damage: 10,
+    trackFraction: 0.85,
+    projectileCount: 3,
+    spreadDeg: 15,
+    projectileSpeedPxPerSec: 220,
+    projectileRadiusPx: 7,
+    projectileLifeSec: 3,
+  },
+  visual: { color: 0xffc23d, sides: 3, rotationDeg: 0 },
+});

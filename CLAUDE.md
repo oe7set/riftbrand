@@ -32,9 +32,10 @@ pnpm icons        # PWA-Icons aus public/icons/icon.svg rendern
 2. **Die View verändert nie den Simulationszustand.** Feedback (VFX, Sound, Haptik) reagiert auf `SimEvents`.
 3. **Fester Takt von 60 Hz.** Zeitlupe verändert die Anzahl der Ticks, nie `dt`. Hitstop ist Simulationszustand (`freezeTicks`).
 4. **Content ist Daten.** Neue Waffen, Gegner, Segen und Relikte kommen als Datei in `src/content/` mit `define*()`-Helfer und Zod-Schema. Systemcode nur ergänzen, wenn eine Mechanik deklarativ nicht ausdrückbar ist, dann als benannter Handler in `sim/effects/handlers/`.
-5. **Keine magischen Zahlen für Game Feel.** Tuning-Werte liegen in `src/content/tuning.ts` bzw. in den Content-Daten und sind im Debug-Menü sichtbar.
+5. **Keine magischen Zahlen für Game Feel.** Tuning-Werte liegen in `src/content/tuning.ts` bzw. in den Content-Daten und werden mit `registerTunables()` (`src/content/tunables.ts`) im Debug-Menü sichtbar.
 6. **Browser-APIs nur über `src/platform/`**, mit Stub-Implementierungen für Tests und Headless-Betrieb.
 7. **Spiellogik kennt keine Monetarisierung.** Nur Oberfläche und Meta-Ebene sprechen mit `MonetizationProvider`.
+8. **Feedback nur über Events.** Neue Ereignisse kommen als `Ev.*` in `src/sim/events.ts`. Effekte, Sound, Vibration und Zeitlupe werden ausschließlich in `src/app/feedback.ts` daraus abgeleitet.
 
 ## Leistungsregeln (Hot Paths: Systeme, Partikel, Rendering pro Frame)
 - Keine Allokationen pro Frame bzw. Tick: keine neuen Objekte, Arrays, Closures oder Spread-Operatoren, kein `map`/`filter`. Pools und vorab allozierte Puffer verwenden.

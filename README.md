@@ -15,10 +15,13 @@ pnpm dev        # http://localhost:5173 und im LAN fürs Handy
 pnpm test
 ```
 
-## Steuerung (Stand M0)
+## Steuerung (Stand M1)
 | | Tastatur/Maus | Gamepad | Touch |
 |---|---|---|---|
 | Bewegen | WASD / Pfeiltasten | linker Stick | Joystick (linke Hälfte) |
 | Zielen | Maus | rechter Stick | vom Angriffs-Button ziehen |
+| Angriff (halten = Combo) | Linksklick / J | X / □ | Schwert-Button |
+| Glutwirbel (Spezial) | Rechtsklick / K | Y / △ | Spiral-Button |
+| Dash | Leertaste / Shift | A / ✕ | Doppelpfeil-Button |
 | Pause | Esc / Tab | Start | Pause-Symbol |
 | Debug-Menü | ` oder F2 | Select | Drei-Finger-Tipp |

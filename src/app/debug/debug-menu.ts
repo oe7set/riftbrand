@@ -1,10 +1,9 @@
 import {
-  exportTuningDiff,
-  resetTuning,
-  TUNING,
-  TUNING_RANGES,
-  type TuningKey,
-} from '../../content/tuning';
+  exportTunablesDiff,
+  resetTunables,
+  type TunableGroup,
+  tunableGroups,
+} from '../../content/tunables';
 
 /**
  * Developer-only panel (not player-facing, so its labels are not localized).
@@ -14,6 +13,11 @@ export interface DebugHooks {
   restart(seed: number): void;
   spawnDrifters(count: number): void;
   clearDrifters(): void;
+  spawnEnemy(type: number): void;
+  killAllEnemies(): void;
+  nextWave(): void;
+  setWaves(enabled: boolean): void;
+  setGodMode(enabled: boolean): void;
   setTimeScale(scale: number): void;
   setHitboxes(enabled: boolean): void;
 }
@@ -26,7 +30,9 @@ export interface DebugStats {
   renderMsAvg: number;
   tick: number;
   entities: number;
+  particles: number;
   seed: number;
+  wave: number;
   device: string;
   gamepad: string;
   resolution: string;
@@ -49,7 +55,12 @@ export class DebugMenu {
   private readonly statsBox: HTMLElement;
   private readonly fpsChip: HTMLElement;
   private readonly seedInput: HTMLInputElement;
-  private readonly tuningInputs = new Map<TuningKey, [HTMLInputElement, HTMLElement]>();
+  private readonly tuningInputs: Array<{
+    group: TunableGroup;
+    key: string;
+    input: HTMLInputElement;
+    out: HTMLElement;
+  }> = [];
   private lastStatsUpdate = 0;
   private showFpsChip = false;
   open = false;
@@ -57,6 +68,7 @@ export class DebugMenu {
   constructor(
     root: HTMLElement,
     private readonly hooks: DebugHooks,
+    enemyNames: readonly string[],
     private readonly version: string,
   ) {
     this.fpsChip = el('div', { className: 'rb-fps' });
@@ -70,37 +82,54 @@ export class DebugMenu {
         this.button('✕', () => this.toggle(false)),
       ]),
       this.statsBox,
-      this.section('View', [
-        this.checkbox('Hitboxes', (on) => this.hooks.setHitboxes(on)),
-        this.checkbox('FPS overlay', (on) => {
+      this.section('View', true, [
+        this.checkbox('Hitboxes', false, (on) => this.hooks.setHitboxes(on)),
+        this.checkbox('FPS overlay', false, (on) => {
           this.showFpsChip = on;
           this.fpsChip.hidden = !on;
         }),
-        this.slider('Time scale', 0.05, 1, 0.05, 1, (v) => this.hooks.setTimeScale(v)),
+        this.slider('Time scale', { min: 0.05, max: 1, step: 0.05 }, 1, (v) =>
+          this.hooks.setTimeScale(v),
+        ),
       ]),
-      this.section('Stress test', [
+      this.section('Combat', true, [
+        this.checkbox('God mode', false, (on) => this.hooks.setGodMode(on)),
+        this.checkbox('Waves', true, (on) => this.hooks.setWaves(on)),
+        el(
+          'div',
+          { className: 'rb-debug-row' },
+          enemyNames.map((name, type) =>
+            this.button(`+ ${name}`, () => this.hooks.spawnEnemy(type)),
+          ),
+        ),
+        el('div', { className: 'rb-debug-row' }, [
+          this.button('Kill all', () => this.hooks.killAllEnemies()),
+          this.button('Next wave', () => this.hooks.nextWave()),
+        ]),
+      ]),
+      this.section('Stress test', false, [
         el('div', { className: 'rb-debug-row' }, [
           this.button('+100 drifters', () => this.hooks.spawnDrifters(100)),
           this.button('+500', () => this.hooks.spawnDrifters(500)),
           this.button('Clear', () => this.hooks.clearDrifters()),
         ]),
       ]),
-      this.section('Run', [
+      this.section('Run', false, [
         el('div', { className: 'rb-debug-row' }, [
           this.seedInput,
           this.button('Restart', () => this.hooks.restart(Number(this.seedInput.value) >>> 0)),
         ]),
       ]),
-      ...this.tuningSections(),
-      this.section('Tuning export', [
+      this.section('Tuning export', true, [
         el('div', { className: 'rb-debug-row' }, [
           this.button('Copy changes', () => void this.copyTuning()),
           this.button('Reset all', () => {
-            resetTuning();
+            resetTunables();
             this.refreshTuning();
           }),
         ]),
       ]),
+      ...tunableGroups().map((g) => this.tuningSection(g)),
       el('div', { className: 'rb-debug-version', textContent: this.version }),
     ]);
     this.panel.hidden = true;
@@ -111,12 +140,12 @@ export class DebugMenu {
     }
   }
 
-  private section(title: string, children: Node[]): HTMLElement {
+  private section(title: string, open: boolean, children: Node[]): HTMLElement {
     const details = el('details', { className: 'rb-debug-section' }, [
       el('summary', { textContent: title }),
       ...children,
     ]);
-    details.open = title === 'View' || title === 'Stress test';
+    details.open = open;
     return details;
   }
 
@@ -126,26 +155,24 @@ export class DebugMenu {
     return b;
   }
 
-  private checkbox(label: string, onChange: (on: boolean) => void): HTMLElement {
-    const input = el('input', { type: 'checkbox' });
+  private checkbox(label: string, initial: boolean, onChange: (on: boolean) => void): HTMLElement {
+    const input = el('input', { type: 'checkbox', checked: initial });
     input.addEventListener('change', () => onChange(input.checked));
     return el('label', { className: 'rb-debug-row' }, [input, label]);
   }
 
   private slider(
     label: string,
-    min: number,
-    max: number,
-    step: number,
+    range: { min: number; max: number; step: number },
     value: number,
     onInput: (v: number) => void,
   ): HTMLElement {
     const out = el('span', { className: 'rb-debug-value', textContent: String(value) });
     const input = el('input', {
       type: 'range',
-      min: String(min),
-      max: String(max),
-      step: String(step),
+      min: String(range.min),
+      max: String(range.max),
+      step: String(range.step),
       value: String(value),
     });
     input.addEventListener('input', () => {
@@ -159,32 +186,29 @@ export class DebugMenu {
     ]);
   }
 
-  private tuningSections(): HTMLElement[] {
-    const groups = new Map<string, HTMLElement[]>();
-    for (const key of Object.keys(TUNING) as TuningKey[]) {
-      const range = TUNING_RANGES[key];
-      const row = this.slider(key, range.min, range.max, range.step, TUNING[key], (v) => {
-        TUNING[key] = v;
+  private tuningSection(group: TunableGroup): HTMLElement {
+    const rows = group.keys.map((key) => {
+      const range = group.ranges[key] ?? { min: 0, max: 1, step: 0.01 };
+      const row = this.slider(key, range, group.target[key] ?? 0, (v) => {
+        group.target[key] = v;
       });
       const input = row.querySelector('input');
       const out = row.querySelector('.rb-debug-value');
-      if (input && out instanceof HTMLElement) this.tuningInputs.set(key, [input, out]);
-      const list = groups.get(range.group) ?? [];
-      list.push(row);
-      groups.set(range.group, list);
-    }
-    return [...groups].map(([group, rows]) => this.section(`Tuning: ${group}`, rows));
+      if (input && out instanceof HTMLElement) this.tuningInputs.push({ group, key, input, out });
+      return row;
+    });
+    return this.section(`Tuning: ${group.label}`, false, rows);
   }
 
   private refreshTuning(): void {
-    for (const [key, [input, out]] of this.tuningInputs) {
-      input.value = String(TUNING[key]);
-      out.textContent = String(TUNING[key]);
+    for (const { group, key, input, out } of this.tuningInputs) {
+      input.value = String(group.target[key]);
+      out.textContent = String(group.target[key]);
     }
   }
 
   private async copyTuning(): Promise<void> {
-    const text = exportTuningDiff();
+    const text = exportTunablesDiff();
     try {
       await navigator.clipboard.writeText(text);
       window.alert(`Copied to clipboard:\n\n${text}`);
@@ -212,7 +236,7 @@ export class DebugMenu {
     this.statsBox.textContent = [
       fpsLine,
       `sim ${stats.simMsAvg.toFixed(2)} ms  render ${stats.renderMsAvg.toFixed(2)} ms`,
-      `tick ${stats.tick}  entities ${stats.entities}`,
+      `tick ${stats.tick}  wave ${stats.wave}  entities ${stats.entities}  fx ${stats.particles}`,
       `seed ${stats.seed}`,
       `input ${stats.device}  pad ${stats.gamepad}`,
       `res ${stats.resolution}`,

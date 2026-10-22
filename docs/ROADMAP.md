@@ -29,13 +29,13 @@ M0 Fundament ─▶ M1 Prototyp ─▶ M2 Vertical Slice ─▶ M3 Alpha ─▶ 
 
 **Abnahme:** Ein Kreis lässt sich auf dem OnePlus 13 per Touch und am PC per Tastatur und Gamepad flüssig mit 120 Hz Darstellung bewegen. Die CI ist grün, die Testversion läuft unter `/riftbrand/dev/...`.
 
-**Abnahme-Checkliste (Product Owner):**
-- [ ] OnePlus 13: Joystick reagiert sofort, Figur bewegt sich flüssig (FPS-Overlay im Debug-Menü zeigt ~120)
-- [ ] Hoch- und Querformat: Steuerung erreichbar, Drehen im laufenden Spiel funktioniert
-- [ ] PC: WASD/Pfeiltasten, Maus-Zielen (die Spitze zeigt zum Cursor), Gamepad-Sticks
-- [ ] App-Wechsel bzw. Tab-Wechsel pausiert automatisch
-- [ ] Stresstest: „+500 drifters“ im Debug-Menü bleibt flüssig
-- [ ] Testversion unter `/riftbrand/dev/<branch>/` und Hauptversion nach dem Merge erreichbar
+**Abnahme-Checkliste (Product Owner):** ✅ bestanden (Handy-Test, 2026-10-22: „fühlt sich perfekt an“)
+- [x] OnePlus 13: Joystick reagiert sofort, Figur bewegt sich flüssig (FPS-Overlay im Debug-Menü zeigt ~120)
+- [x] Hoch- und Querformat: Steuerung erreichbar, Drehen im laufenden Spiel funktioniert
+- [x] PC: WASD/Pfeiltasten, Maus-Zielen (die Spitze zeigt zum Cursor), Gamepad-Sticks
+- [x] App-Wechsel bzw. Tab-Wechsel pausiert automatisch
+- [x] Stresstest: „+500 drifters“ im Debug-Menü bleibt flüssig
+- [x] Testversion unter `/riftbrand/dev/<branch>/` und Hauptversion nach dem Merge erreichbar
 
 ---
 
@@ -43,19 +43,21 @@ M0 Fundament ─▶ M1 Prototyp ─▶ M2 Vertical Slice ─▶ M3 Alpha ─▶ 
 **Ziel:** Ein Raum, eine Waffe, drei Gegnertypen. 10 Minuten Kämpfen sollen sich gut anfühlen. **Ohne dieses Ergebnis kommt kein weiterer Content dazu.**
 
 **Umfang:**
-- [ ] Spielfigur (Vektorform), Bewegung, **Dash mit i-Frames**, **perfekter Dash** (Zeitlupe, garantierter kritischer Treffer)
-- [ ] **Ausdauer** (3 Segmente), HUD-Grundgerüst (Leben, Ausdauer)
-- [ ] **Brandklinge:** Combo mit 3 Schlägen und Glutwirbel (Spezialangriff), Animation Cancel per Dash, Input-Puffer
-- [ ] Zielhilfe (Kegel), freies Zielen mit Maus bzw. Stick, Ziehen zum Zielen auf Touch
-- [ ] **3 Gegner:** Schlacke, Funkenspucker, Splitterkoloss, mit Telegraphs und Angriffs-Tokens
-- [ ] Schadens-Pipeline (Grundlage), Rückstoß, Poise, Treffer-Unverwundbarkeit, kein Kontaktschaden
-- [ ] **Game-Feel-Paket vollständig** (GDD 4.7): Hitstop, Trauma-Shake, Blitze, Squash und Stretch, Treffer- und Kill-Partikel, Zeitlupe beim letzten Gegner, Haptik
-- [ ] Prozeduraler Grafik-Generator, Bloom (Hoch) und vorgerenderter Glow (Niedrig)
-- [ ] **Soundeffekte** über den Synthesizer: Schlag, Treffer, Kill, Dash, perfekter Dash, Telegraph, Spieler getroffen
-- [ ] 1 Arena-Raum mit Wellen-Spawner (endloser Modus mit steigender Intensität) und Tod bzw. Neustart
-- [ ] Einstellungen (Grundgerüst): Lautstärke, Shake, Vibration
-- [ ] Debug-Menü: alle Game-Feel-Werte live tunebar und als Code exportierbar, Gegner spawnen, Unverwundbarkeit
-- [ ] **Test im Hochformat** mit eigener Kamera- und Steuerungsanordnung
+- [x] Spielfigur (Vektorform), Bewegung, **Dash mit i-Frames**, **perfekter Dash** (Zeitlupe, garantierter kritischer Treffer)
+- [x] **Ausdauer** (3 Segmente), HUD-Grundgerüst (Leben, Ausdauer)
+- [x] **Brandklinge:** Combo mit 3 Schlägen und Glutwirbel (Spezialangriff), Animation Cancel per Dash, Input-Puffer
+- [x] Zielhilfe (Kegel), freies Zielen mit Maus bzw. Stick, Ziehen zum Zielen auf Touch
+- [x] **3 Gegner:** Schlacke, Funkenspucker, Splitterkoloss, mit Telegraphs und Angriffs-Tokens
+- [x] Schadens-Pipeline (Grundlage), Rückstoß, Poise, Treffer-Unverwundbarkeit, kein Kontaktschaden
+- [x] **Game-Feel-Paket vollständig** (GDD 4.7): Hitstop, Trauma-Shake, Blitze, Squash und Stretch, Treffer- und Kill-Partikel, Zeitlupe beim letzten Gegner, Haptik
+- [x] Prozeduraler Grafik-Generator, Bloom (Hoch) und vorgerenderter Glow (Niedrig)
+- [x] **Soundeffekte** über den Synthesizer: Schlag, Treffer, Kill, Dash, perfekter Dash, Telegraph, Spieler getroffen
+- [x] 1 Arena-Raum mit Wellen-Spawner (endloser Modus mit steigender Intensität) und Tod bzw. Neustart
+- [x] Einstellungen (Grundgerüst): Lautstärke, Shake, Vibration
+- [x] Debug-Menü: alle Game-Feel-Werte live tunebar und als Code exportierbar, Gegner spawnen, Unverwundbarkeit
+- [x] **Test im Hochformat** mit eigener Kamera- und Steuerungsanordnung (Layout umgesetzt, Entscheidung in der Playtest-Checkliste)
+
+_Hinweis: Wurf- und Ultimate-Button sind sichtbar, aber erst ab M2 belegt._
 
 **Playtest-Checkliste (Abnahme durch den Product Owner):**
 - [ ] Jeder Treffer fühlt sich „knackig“ an, man spürt ihn.
