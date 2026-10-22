@@ -23,17 +23,28 @@ export class PauseOverlay {
   private readonly hint = div('rb-overlay-hint');
   private readonly settingsBox = div('rb-settings');
   private readonly resume = document.createElement('button');
+  private readonly toTitle = document.createElement('button');
+  private readonly debug = document.createElement('button');
 
   constructor(
     parent: HTMLElement,
-    onResume: () => void,
+    actions: { resume(): void; toTitle(): void; toggleDebug(): void },
     private readonly settings: Settings,
     private readonly onSettingsChange: (s: Settings) => void,
   ) {
     this.resume.type = 'button';
     this.resume.className = 'rb-button rb-primary';
-    this.resume.addEventListener('click', onResume);
-    this.root.append(this.title, this.resume, this.hint, this.settingsBox);
+    this.resume.addEventListener('click', actions.resume);
+    this.toTitle.type = 'button';
+    this.toTitle.className = 'rb-button';
+    this.toTitle.addEventListener('click', actions.toTitle);
+    // A visible way into the debug menu; the three-finger tap is easy to miss on phones.
+    this.debug.type = 'button';
+    this.debug.className = 'rb-button rb-small';
+    this.debug.addEventListener('click', actions.toggleDebug);
+    const row = div('rb-row');
+    row.append(this.toTitle, this.debug);
+    this.root.append(this.title, this.resume, this.hint, this.settingsBox, row);
     this.root.hidden = true;
     isolate(this.root);
     parent.append(this.root);
@@ -101,6 +112,8 @@ export class PauseOverlay {
   show(device: InputDevice): void {
     this.title.textContent = t('pause.title');
     this.resume.textContent = t('pause.resume');
+    this.toTitle.textContent = t('pause.to_title');
+    this.debug.textContent = t('pause.debug');
     this.hint.textContent =
       device === 'touch'
         ? ''
@@ -109,6 +122,15 @@ export class PauseOverlay {
           : t('pause.resume_keyboard');
     this.buildSettings();
     this.root.hidden = false;
+    this.resume.focus({ preventScroll: true });
+  }
+
+  get visible(): boolean {
+    return !this.root.hidden;
+  }
+
+  get element(): HTMLElement {
+    return this.root;
   }
 
   hide(): void {
@@ -140,9 +162,9 @@ export class DeathOverlay {
     return !this.root.hidden;
   }
 
-  show(wave: number, kills: number, device: InputDevice, nowMs: number): void {
+  show(stats: string, device: InputDevice, nowMs: number): void {
     this.title.textContent = t('death.title');
-    this.stats.textContent = t('death.stats', { wave, kills });
+    this.stats.textContent = stats;
     this.hint.textContent =
       device === 'touch'
         ? t('death.restart_touch')

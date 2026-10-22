@@ -167,7 +167,24 @@ export class FeedbackDirector {
         fx.shotPop(e.x, e.y);
         break;
       case Ev.WaveStart:
-        this.view.hud.onWaveStart(e.value);
+        this.view.hud.onWaveStart(e.value, e.amount);
+        break;
+      case Ev.RoomCleared:
+        // The "ahh" moment of a room: slow motion, zoom punch, chord, portal opens.
+        fx.waveCleared(e.x, e.y);
+        fx.portal(e.x, e.y, 0.6, PALETTE.player);
+        this.view.hud.onRoomCleared();
+        this.view.addZoomPunch(TUNING.lastEnemyZoomPunch);
+        this.audio.play('waveCleared', { pitchVariation: 0 });
+        this.requestSlowMo({
+          scale: TUNING.lastEnemyTimeScale,
+          durationSec: TUNING.lastEnemySlowMoSec,
+        });
+        break;
+      case Ev.ExitReached:
+        fx.perfectDash(e.x, e.y);
+        this.audio.play('spawn', { pitch: 1.4, pitchVariation: 0 });
+        this.haptics.pulse(20, 0.4);
         break;
       case Ev.WaveCleared:
         // The "ahh" moment: slow motion, zoom punch, chord.
