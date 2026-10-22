@@ -79,3 +79,34 @@ describe('relic and event content', () => {
     }
   });
 });
+
+describe('duo boons and evolutions', () => {
+  it('reference existing boons and relics and have texts in every locale', async () => {
+    const { BOONS, boonById } = await import('./boons');
+    const { EVOLUTIONS } = await import('./evolutions');
+    const { relicById } = await import('./relics');
+    const { BRAND_BLADE } = await import('./weapons/brand-blade');
+    const { LOCALES } = await import('../shared/i18n');
+    for (const duo of BOONS.filter((b) => b.partner)) {
+      for (const group of duo.requires ?? []) {
+        for (const id of group) {
+          const def = boonById(id);
+          expect(def, `${duo.id} requires ${id}`).toBeDefined();
+          // Every prerequisite belongs to one of the two beings and is not itself a duo.
+          expect([duo.being, duo.partner]).toContain(def?.being);
+          expect(def?.partner).toBeUndefined();
+        }
+      }
+    }
+    for (const evo of EVOLUTIONS) {
+      expect(evo.weapon).toBe(BRAND_BLADE.id);
+      for (const id of evo.requires.boons) expect(boonById(id), `${evo.id} ${id}`).toBeDefined();
+      for (const id of evo.requires.relics) expect(relicById(id), `${evo.id} ${id}`).toBeDefined();
+      for (const table of Object.values(LOCALES)) {
+        const strings = table as Record<string, string>;
+        expect(strings[`evolution.${evo.id}.name`], evo.id).toBeTruthy();
+        expect(strings[`evolution.${evo.id}.desc`], evo.id).toBeTruthy();
+      }
+    }
+  });
+});

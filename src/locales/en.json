@@ -181,5 +181,22 @@
   "event.result.max_hp": "Max health +{n}.",
   "event.result.nothing": "You move on.",
   "event.requires_shards": "Needs {n} shards",
-  "event.requires_hp": "Needs more than {n} health"
+  "event.requires_hp": "Needs more than {n} health",
+  "slot.cast": "Cast",
+  "boon.ember_shot.name": "Ember Shot",
+  "boon.ember_shot.desc": "Rift Shot deals +{damage} damage and applies {stacks} Burn.",
+  "boon.ice_shard.name": "Ice Shard",
+  "boon.ice_shard.desc": "Rift Shot deals +{damage} damage and applies {stacks} Chill.",
+  "boon.steam_burst.name": "Steam Burst",
+  "boon.steam_burst.desc": "Freezing a burning enemy (or burning a frozen one) consumes both and explodes for {damage} damage.",
+  "reward.duo": "Duo",
+  "evolution.phoenix_blade.name": "Phoenix Blade",
+  "evolution.phoenix_blade.desc": "Every combo finisher unleashes a firebird that pierces all enemies and burns them. +10% attack damage.",
+  "evolution.title": "Evolution",
+  "evolution.ready": "Your blade answers the flame. It wants to become more.",
+  "evolution.accept": "Evolve",
+  "evolution.later": "Not now",
+  "rest.evolve": "Instead of resting: evolve into {name}",
+  "pause.evolutions": "Evolutions",
+  "hud.ult_ready": "Brand Burst ready"
 }

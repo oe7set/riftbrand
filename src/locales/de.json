@@ -181,5 +181,22 @@
   "event.result.max_hp": "Maximales Leben +{n}.",
   "event.result.nothing": "Du ziehst weiter.",
   "event.requires_shards": "Benötigt {n} Scherben",
-  "event.requires_hp": "Benötigt mehr als {n} Leben"
+  "event.requires_hp": "Benötigt mehr als {n} Leben",
+  "slot.cast": "Wurf",
+  "boon.ember_shot.name": "Glutgeschoss",
+  "boon.ember_shot.desc": "Das Riss-Geschoss verursacht +{damage} Schaden und {stacks} Brand.",
+  "boon.ice_shard.name": "Eissplitter",
+  "boon.ice_shard.desc": "Das Riss-Geschoss verursacht +{damage} Schaden und {stacks} Kälte.",
+  "boon.steam_burst.name": "Dampfbruch",
+  "boon.steam_burst.desc": "Friert ein brennender Gegner ein (oder brennt ein gefrorener), verbraucht das beides und explodiert mit {damage} Schaden.",
+  "reward.duo": "Duo",
+  "evolution.phoenix_blade.name": "Phönixklinge",
+  "evolution.phoenix_blade.desc": "Jede Combo-Vollendung entfesselt einen Feuervogel, der alle Gegner durchdringt und sie in Brand setzt. +10 % Angriffsschaden.",
+  "evolution.title": "Evolution",
+  "evolution.ready": "Deine Klinge antwortet der Flamme. Sie will mehr werden.",
+  "evolution.accept": "Erwecken",
+  "evolution.later": "Später",
+  "rest.evolve": "Statt zu rasten: zur {name} erwecken",
+  "pause.evolutions": "Evolutionen",
+  "hud.ult_ready": "Brandausbruch bereit"
 }

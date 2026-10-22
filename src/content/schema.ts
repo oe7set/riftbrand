@@ -173,7 +173,7 @@ export const biomeSchema = z.object({
 // ── Boons (GDD §7.1) ──────────────────────────────────────────────────────
 
 export const beingIdSchema = z.enum(['ignara', 'vaelis']);
-export const boonSlotSchema = z.enum(['attack', 'special', 'dash', 'passive']);
+export const boonSlotSchema = z.enum(['attack', 'special', 'cast', 'dash', 'passive']);
 export const raritySchema = z.enum(['common', 'rare', 'epic', 'heroic']);
 export const statusIdSchema = z.enum(['burn', 'chill']);
 /** Additive stat bonuses; +0.15 means +15 %. */
@@ -185,6 +185,7 @@ export const statIdSchema = z.enum([
   'damageVsChilledPerStack',
   'burnDamage',
   'freezeDuration',
+  'castDamage',
   // Relic stats (M2.3)
   'allDamage',
   'critChance',
@@ -201,6 +202,9 @@ export const statIdSchema = z.enum([
 /** A number, or the name of an entry in the boon's `values` (which scales with rarity). */
 const valueRef = z.union([z.number(), z.string()]);
 
+/** Player projectile looks; each kind has its own texture and feedback. */
+export const projectileKindSchema = z.enum(['rift_shot', 'firebird']);
+
 const effectActionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('applyStatus'), status: statusIdSchema, stacks: valueRef }),
   z.object({
@@ -212,6 +216,20 @@ const effectActionSchema = z.discriminatedUnion('type', [
     status: statusIdSchema.optional(),
     stacks: valueRef.optional(),
     freeze: z.boolean().optional(),
+    /** Clears burn and frozen on the target first (duo combos), so it cannot re-trigger. */
+    consumeStatuses: z.boolean().optional(),
+  }),
+  z.object({
+    type: z.literal('projectile'),
+    /** Fired from the player along the current attack direction. */
+    kind: projectileKindSchema,
+    damage: valueRef,
+    speedPxPerSec: z.number().positive(),
+    radiusPx: z.number().positive(),
+    rangePx: z.number().positive(),
+    pierce: z.boolean(),
+    status: statusIdSchema.optional(),
+    stacks: valueRef.optional(),
   }),
   z.object({ type: z.literal('heal'), amount: valueRef }),
   z.object({ type: z.literal('refundStamina'), amount: valueRef }),
@@ -229,15 +247,22 @@ export const effectTriggerSchema = z.enum([
   'onPerfectDash',
   'onDamaged',
   'onRoomClear',
+  /** The last hit of the weapon combo starts. */
+  'onComboFinisher',
+  /** An enemy freezes solid. */
+  'onFreeze',
+  /** Burn is applied to an enemy. */
+  'onBurnApplied',
 ]);
-export const hitSourceSchema = z.enum(['attack', 'special', 'effect']);
+/** `ultimate` and `effect` damage never trigger onHit (no loops, no ult-charging the ult). */
+export const hitSourceSchema = z.enum(['attack', 'special', 'cast', 'ultimate', 'effect']);
 
 export const effectSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('trigger'),
     trigger: effectTriggerSchema,
     /** onHit only: which kind of hit fires it. Effect damage never retriggers onHit. */
-    source: z.enum(['attack', 'special', 'any']).optional(),
+    source: z.enum(['attack', 'special', 'cast', 'any']).optional(),
     chance: valueRef.optional(),
     condition: effectConditionSchema.optional(),
     action: effectActionSchema,
@@ -261,6 +286,10 @@ export const boonSchema = z.object({
   tags: z.array(z.string()),
   values: z.record(z.string(), boonValueSchema),
   effects: z.array(effectSchema).min(1),
+  /** Duo boons (GDD §7.1): the second being. Duos are never part of a normal offer pool. */
+  partner: beingIdSchema.optional(),
+  /** Duo prerequisites: the player must own at least one boon from every group. */
+  requires: z.array(z.array(id).min(1)).optional(),
 });
 
 export type BeingId = z.infer<typeof beingIdSchema>;
@@ -292,6 +321,7 @@ function checkValueRefs(
       check(e.condition?.targetBurnStacksAtLeast);
       const a = e.action as Record<string, unknown>;
       for (const key of ['stacks', 'radiusPx', 'damage', 'amount']) check(a[key]);
+      // Projectile geometry is plain numbers; only damage and stacks may scale.
     }
   }
 }
@@ -299,7 +329,90 @@ function checkValueRefs(
 export function defineBoon(def: BoonDef): BoonDef {
   const boon = boonSchema.parse(def);
   checkValueRefs(`boon ${boon.id}`, boon.values, boon.effects);
+  if ((boon.partner === undefined) !== (boon.requires === undefined)) {
+    throw new Error(`boon ${boon.id}: duo boons need both partner and requires`);
+  }
+  if (boon.partner === boon.being) throw new Error(`boon ${boon.id}: duo partner equals being`);
   return boon;
+}
+
+// ── Evolutions (GDD §4.9) ─────────────────────────────────────────────────
+
+export const evolutionSchema = z.object({
+  id,
+  weapon: id,
+  /** Every listed boon and relic must be owned. */
+  requires: z.object({ boons: z.array(id), relics: z.array(id) }),
+  /** Evolutions have fixed values (no rarity), so effects use plain numbers. */
+  effects: z.array(effectSchema).min(1),
+});
+
+export type EvolutionDef = z.infer<typeof evolutionSchema>;
+
+export function defineEvolution(def: EvolutionDef): EvolutionDef {
+  const evo = evolutionSchema.parse(def);
+  checkValueRefs(`evolution ${evo.id}`, {}, evo.effects);
+  return evo;
+}
+
+// ── Cast and ultimate (GDD §4.1) ──────────────────────────────────────────
+
+export const castSchema = z.object({
+  id,
+  damage: z.number().positive(),
+  speedPxPerSec: z.number().positive(),
+  radiusPx: z.number().positive(),
+  rangePx: z.number().positive(),
+  charges: z.number().int().min(1),
+  /** Time to regain one charge; charges come back one after another. */
+  rechargeSec: z.number().positive(),
+  windupSec: sec,
+  recoverySec: sec,
+  knockback: z.number().nonnegative(),
+  poiseDamage: z.number().nonnegative(),
+  /** Aim assist reaches much further than the blade's. */
+  assistRangePx: px,
+  moveFactor: z.number().min(0).max(1),
+});
+
+const burstVariantSchema = z.object({
+  radiusPx: z.number().positive(),
+  damage: z.number().nonnegative(),
+  status: statusIdSchema.optional(),
+  stacks: z.number().int().min(0),
+  freeze: z.boolean(),
+  knockback: z.number().nonnegative(),
+});
+
+export const ultimateSchema = z.object({
+  id,
+  /** Damage dealt (any source except the ultimate) that fills the meter once. */
+  chargeDamageDealt: z.number().positive(),
+  /** Damage taken that fills the meter once; getting hit builds it much faster. */
+  chargeDamageTaken: z.number().positive(),
+  windupSec: sec,
+  recoverySec: sec,
+  /** Invulnerable from activation until this long after (covers windup and blast). */
+  invulnSec: sec,
+  /** The blast depends on the dominant being; `none` before any boon. */
+  variants: z.object({
+    none: burstVariantSchema,
+    ignara: burstVariantSchema,
+    vaelis: burstVariantSchema,
+  }),
+});
+
+export type CastDef = z.infer<typeof castSchema>;
+export type UltimateDef = z.infer<typeof ultimateSchema>;
+export type BurstVariant = z.infer<typeof burstVariantSchema>;
+export type ProjectileKind = z.infer<typeof projectileKindSchema>;
+
+export function defineCast(def: CastDef): CastDef {
+  return castSchema.parse(def);
+}
+
+export function defineUltimate(def: UltimateDef): UltimateDef {
+  return ultimateSchema.parse(def);
 }
 
 // ── Relics (GDD §7.2) ─────────────────────────────────────────────────────

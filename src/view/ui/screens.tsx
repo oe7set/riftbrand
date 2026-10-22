@@ -286,6 +286,7 @@ function BoonChips({ run }: { run: RunState }) {
 const SLOT_KEYS: Record<BoonSlot, TranslationKey> = {
   attack: 'slot.attack',
   special: 'slot.special',
+  cast: 'slot.cast',
   dash: 'slot.dash',
   passive: 'slot.passive',
 };

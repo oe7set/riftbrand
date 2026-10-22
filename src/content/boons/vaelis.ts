@@ -37,6 +37,25 @@ export const VAELIS_BOONS: readonly BoonDef[] = [
     ],
   }),
   defineBoon({
+    id: 'ice_shard',
+    being: 'vaelis',
+    slot: 'cast',
+    tags: ['frost', 'cast'],
+    values: {
+      stacks: { base: 2, step: 1, int: true },
+      damage: { base: 0.25, step: 0.15, percent: true },
+    },
+    effects: [
+      {
+        kind: 'trigger',
+        trigger: 'onHit',
+        source: 'cast',
+        action: { type: 'applyStatus', status: 'chill', stacks: 'stacks' },
+      },
+      { kind: 'stat', stat: 'castDamage', add: 'damage' },
+    ],
+  }),
+  defineBoon({
     id: 'frost_step',
     being: 'vaelis',
     slot: 'dash',
