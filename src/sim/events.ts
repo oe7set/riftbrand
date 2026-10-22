@@ -37,6 +37,8 @@ export const Ev = {
   Nova: 22,
   /** Player healed; amount = HP. */
   Heal: 23,
+  /** Shards picked up from a kill; amount = shards. */
+  Shards: 24,
 } as const;
 
 /** Numeric status codes for event payloads. */

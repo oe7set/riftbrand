@@ -23,7 +23,7 @@ export function applyHitstop(state: SimState, seconds: number): void {
 }
 
 export function rollCrit(state: SimState, forced: boolean): boolean {
-  return forced || nextFloat(state.rng.combat) < TUNING.critChance;
+  return forced || nextFloat(state.rng.combat) < TUNING.critChance + state.build.stats.critChance;
 }
 
 export function releaseToken(state: SimState, eid: number): void {
@@ -67,7 +67,7 @@ export interface PlayerHitSpec {
 function damageMultiplier(state: SimState, eid: number, source: HitSource): number {
   const c = state.c;
   const stats = state.build.stats;
-  let mult = 1;
+  let mult = 1 + stats.allDamage;
   if (source === 'attack') mult += stats.attackDamage;
   else if (source === 'special') mult += stats.specialDamage;
   if ((c.burnStacks[eid] as number) > 0) mult += stats.damageVsBurning;
@@ -86,7 +86,7 @@ export function damageEnemy(state: SimState, eid: number, spec: PlayerHitSpec): 
 
   const damage =
     spec.damage *
-    (spec.crit ? TUNING.critMultiplier : 1) *
+    (spec.crit ? TUNING.critMultiplier + state.build.stats.critDamage : 1) *
     damageMultiplier(state, eid, spec.source);
   const hp = (c.hp[eid] as number) - damage;
   c.hp[eid] = hp;
@@ -173,6 +173,16 @@ export function killEnemy(
   destroyEntity(state.world, eid);
   state.enemiesAlive--;
   state.player.kills++;
+  if (triggerEffects) {
+    const shards = Math.round(
+      (ENEMIES[c.enemyType[eid] as number]?.shardValue ?? 0) * (1 + state.build.stats.shardGain),
+    );
+    if (shards > 0) {
+      state.shards += shards;
+      const s = pushEvent(state.events, Ev.Shards, x, y);
+      if (s) s.amount = shards;
+    }
+  }
   if (triggerEffects) fireOnKill(state, x, y, burn, frozen);
 }
 

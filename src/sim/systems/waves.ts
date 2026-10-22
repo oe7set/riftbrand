@@ -2,6 +2,7 @@ import { ENEMIES } from '../../content/enemies';
 import { TUNING } from '../../content/tuning';
 import { killEnemy } from '../combat/damage';
 import { C } from '../ecs/components';
+import { fireOnRoomClear } from '../effects/runtime';
 import { Ev, pushEvent } from '../events';
 import { nextFloat, nextInt, nextRange } from '../rng/rng';
 import { overlapsObstacle } from '../room';
@@ -159,6 +160,7 @@ function clearRoom(state: SimState): void {
   room.exitOpen = true;
   const e = pushEvent(state.events, Ev.RoomCleared, room.exitX, room.exitY);
   if (e) e.value = state.waves.wave;
+  fireOnRoomClear(state);
 }
 
 function processPending(state: SimState): void {

@@ -79,6 +79,8 @@ export function buildEncounter(
       };
     case 'rest':
     case 'altar':
+    case 'shop':
+    case 'event':
       return { kind: 'none' };
   }
 }

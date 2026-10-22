@@ -6,6 +6,7 @@ import { buildEncounter } from './encounter';
 import { generateMap } from './map';
 import {
   availableNodes,
+  completeNonCombat,
   completeRoom,
   createRun,
   enterNode,
@@ -96,9 +97,11 @@ describe('run state', () => {
       enterNode(run, next.id);
       if (next.type === 'rest') {
         rest(run);
+      } else if (next.type === 'altar' || next.type === 'shop' || next.type === 'event') {
+        completeNonCombat(run);
       } else {
         expect(roomSetupFor(run, next).template.types).toContain(next.type);
-        completeRoom(run, { hp: run.hp, kills: 3, timeSec: 30 });
+        completeRoom(run, { hp: run.hp, kills: 3, timeSec: 30, shards: run.shards });
       }
     }
     expect(run.status).toBe('won');
