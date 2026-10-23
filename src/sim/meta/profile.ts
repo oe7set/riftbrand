@@ -2,8 +2,10 @@ import { EMBER_TREE, treeNodeById } from '../../content/meta/ember-tree';
 import { META_REWARDS } from '../../content/meta/rewards';
 import { RELICS, relicById } from '../../content/relics';
 import type { BeingId } from '../../content/schema';
+import { START_SPELLS, spellById } from '../../content/spells';
 import { dominantBeing } from '../effects/build';
-import type { RunState } from '../run/run-state';
+import type { RunState, SpellSlots } from '../run/run-state';
+import { MAX_UPGRADE_LEVEL } from '../run/upgrades';
 
 /** How the last run ended; drives hub dialogue (GDD §2.6) and the result screen. */
 export interface LastRun {
@@ -36,6 +38,12 @@ export interface Profile {
   seenDialogue: string[];
   flags: string[];
   lastRun: LastRun | null;
+  /** Spells unlocked at Sel's rune tower (ROADMAP M3.6); the start spells always are. */
+  spellsUnlocked: string[];
+  /** Spells met in a run but not unlocked yet: half price at Sel. */
+  spellsDiscovered: string[];
+  /** Spells a new run starts with. */
+  loadout: { active: string; aura: string };
 }
 
 export function createProfile(): Profile {
@@ -50,6 +58,72 @@ export function createProfile(): Profile {
     seenDialogue: [],
     flags: [],
     lastRun: null,
+    spellsUnlocked: [START_SPELLS.active, START_SPELLS.aura],
+    spellsDiscovered: [],
+    loadout: { active: START_SPELLS.active, aura: START_SPELLS.aura },
+  };
+}
+
+// ── Spells at Sel's rune tower (ROADMAP M3.6) ──────────────────────────────
+
+/** What unlocking a spell costs right now; discovered spells cost half (rounded up). */
+export function spellUnlockCost(profile: Profile, id: string): { ember: number; dust: number } {
+  const cost = spellById(id)?.unlockCost ?? { ember: 0, dust: 0 };
+  if (!profile.spellsDiscovered.includes(id)) return cost;
+  return { ember: Math.ceil(cost.ember / 2), dust: Math.ceil(cost.dust / 2) };
+}
+
+export function canUnlockSpell(profile: Profile, id: string): BuyCheck {
+  if (!spellById(id)) return 'unknown';
+  if (profile.spellsUnlocked.includes(id)) return 'maxed';
+  const cost = spellUnlockCost(profile, id);
+  if (profile.ember < cost.ember) return 'ember';
+  if (profile.dust < cost.dust) return 'dust';
+  return 'ok';
+}
+
+export function unlockSpell(profile: Profile, id: string): boolean {
+  if (canUnlockSpell(profile, id) !== 'ok') return false;
+  const cost = spellUnlockCost(profile, id);
+  profile.ember -= cost.ember;
+  profile.dust -= cost.dust;
+  profile.spellsUnlocked.push(id);
+  profile.spellsDiscovered = profile.spellsDiscovered.filter((s) => s !== id);
+  return true;
+}
+
+/** Puts an unlocked spell into the loadout slot of its kind. */
+export function equipLoadout(profile: Profile, id: string): boolean {
+  const def = spellById(id);
+  if (!def || !profile.spellsUnlocked.includes(id)) return false;
+  if (def.kind === 'active') profile.loadout.active = id;
+  else profile.loadout.aura = id;
+  return true;
+}
+
+/** Spells a run ended with that aren't unlocked yet become discovered (half price). */
+export function discoverRunSpells(profile: Profile, run: RunState): void {
+  for (const slot of [run.spells.active, run.spells.aura]) {
+    if (!slot) continue;
+    const id = slot.id;
+    if (profile.spellsUnlocked.includes(id) || profile.spellsDiscovered.includes(id)) continue;
+    profile.spellsDiscovered.push(id);
+  }
+}
+
+/** The spells a new run starts with: the loadout, with Runenkunde raising the active level. */
+export function startSpellsFor(profile: Profile): SpellSlots {
+  let bonus = 0;
+  for (const node of EMBER_TREE) {
+    if (node.effect.kind !== 'spellStartLevel') continue;
+    bonus += node.effect.perRank * Math.min(treeRank(profile, node.id), node.ranks.length);
+  }
+  const unlocked = (id: string) => profile.spellsUnlocked.includes(id) && spellById(id);
+  const active = unlocked(profile.loadout.active) ? profile.loadout.active : START_SPELLS.active;
+  const aura = unlocked(profile.loadout.aura) ? profile.loadout.aura : START_SPELLS.aura;
+  return {
+    active: { id: active, level: Math.min(MAX_UPGRADE_LEVEL, 1 + bonus), branches: [] },
+    aura: { id: aura, level: 1, branches: [] },
   };
 }
 
@@ -238,5 +312,6 @@ export function settleRun(
     dust: earned.dust,
   };
   recordRun(profile, last);
+  discoverRunSpells(profile, run);
   return last;
 }

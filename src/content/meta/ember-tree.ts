@@ -68,6 +68,12 @@ export const EMBER_TREE: readonly TreeNodeDef[] = [
     ranks: [{ ember: 250, dust: 5 }],
     effect: { kind: 'staminaSegment', perRank: 1 },
   }),
+  defineTreeNode({
+    // M3.6: the equipped active spell starts at level 2.
+    id: 'rune_lore',
+    ranks: [{ ember: 160, dust: 3 }],
+    effect: { kind: 'spellStartLevel', perRank: 1 },
+  }),
 ];
 
 const byId = new Map(EMBER_TREE.map((n) => [n.id, n]));

@@ -487,18 +487,18 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
   - aggressive 17,0 % Siege, Duell Ø 28 s
 - **Run-Save v8** (Knotentyp `duel`).
 
-### M3.6 Zauberlehrer und Ausrüstung (Meta) 🔜
+### M3.6 Zauberlehrer und Ausrüstung (Meta) ✅
 **Ziel:** Zauber werden dauerhaft freigeschaltet und vor dem Run ausgerüstet (E4).
 
 **Umfang:**
-- [ ] **Neue Figur Sel, die Runenweberin** (Arbeitsname) auf dem bisherigen Hub-Bildschirm. Ab M5 ist sie in der begehbaren Zuflucht.
+- [x] **Neue Figur Sel, die Runenweberin** (Arbeitsname) auf dem bisherigen Hub-Bildschirm. Ab M5 ist sie in der begehbaren Zuflucht.
   - schaltet Zauber gegen Glut und Rissstaub frei
   - ca. 15 Dialogzeilen
-- [ ] **Vor dem Run:** Zauber-Ausrüstung wählen (1 aktiver Zauber und 1 Aura aus den freigeschalteten).
-- [ ] **Im Run gefundene Zauber:**
+- [x] **Vor dem Run:** Zauber-Ausrüstung wählen (1 aktiver Zauber und 1 Aura aus den freigeschalteten).
+- [x] **Im Run gefundene Zauber:**
   - Noch nicht freigeschaltete Zauber gelten nur für diesen Run.
   - Danach gelten sie als „entdeckt“ und kosten bei Sel nur die Hälfte.
-- [ ] **Glutbaum-Knoten „Runenkunde“** (teuer): Der ausgerüstete aktive Zauber startet auf Stufe 2.
+- [x] **Glutbaum-Knoten „Runenkunde“** (teuer): Der ausgerüstete aktive Zauber startet auf Stufe 2.
 
 **Technik:**
 - **Profil v2:** freigeschaltete und entdeckte Zauber, Ausrüstung (Migration v1 → v2).
@@ -513,7 +513,15 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
 
 **Abhängig von:** M3.3
 
-### M3.7 Balancing und Abschluss ⬜
+**Umgesetzt (Abweichungen vom Plan):**
+- **Kein eigener Bildschirm vor dem Run:** Die Ausrüstung wählt man in Sels Runenturm (Zuflucht → „Runenturm (Sel)“). Ein Run startet immer mit der dort gewählten Ausrüstung, das spart einen Klick pro Run.
+- **Kosten:** Meteor 70 Glut + 2 Staub, Giftwolke 60 + 2, Lichtlanze 70 + 2, Frosthauch 50 + 1, Pestatem 60 + 1, Heiligenschein 60 + 2. Entdeckte Zauber kosten die Hälfte (aufgerundet). Frostnova und Glutmantel sind von Anfang an frei.
+- **Entdeckt** wird ein Zauber, wenn er am Ende eines Runs (Sieg, Tod oder Aufgeben) in einem Slot liegt.
+- **Runenkunde:** 160 Glut + 3 Staub, eine Stufe.
+- **15 Dialogzeilen** für Sel (Einführung, Duell-Tode, Wesen, Run-Zahl, Füller).
+- **Profil v2** mit Migration v1 → v2 (bestehende Profile bekommen die Start-Zauber).
+
+### M3.7 Balancing und Abschluss 🔜
 - [ ] **Simulator-Bericht erweitern:** Schaden pro Spieler-Quelle, Zauber-Nutzung, Duell-Zeiten, Tode durch Mini-Bosse.
 - [ ] **Zielwerte:**
   - Zauber und Auren machen 15–30 % des Schadens aus; die Waffe bleibt die Hauptsache.

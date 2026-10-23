@@ -59,6 +59,8 @@ Ein kleines Fragment am Rand des Risses mit einer Handvoll Überlebender. Die Zu
 
 **Umgesetzt (M2.6):** Die Zuflucht ist ein Hub-Bildschirm mit **Maren** (Glutbaum) und **Nix** (schaltet Relikte gegen Rissstaub für den Pool frei: Henkersmal, Zweiter Atem, Atemstein und der Fluch Glasknochen sind anfangs gesperrt). Beide sprechen bei jedem Besuch eine Zeile (ca. 28 Zeilen insgesamt). Die Zuflucht wächst noch nicht sichtbar.
 
+**Umgesetzt (M3.6):** **Sel, die Runenweberin** (ruhig, spricht in Mustern und Schrift) zieht in den Runenturm. Bei ihr schaltet man Zauber dauerhaft gegen Glut und Rissstaub frei und wählt die Ausrüstung (1 aktiver Zauber, 1 Aura) für die nächsten Runs. Zauber, die man im Run gefunden hat, gelten danach als „entdeckt“ und kosten bei ihr die Hälfte.
+
 ### 2.4 Die fünf Riss-Wesen (Segen-Fraktionen)
 Die Wesen jenseits des Risses wollen, dass die Gebrandmarkte das Herz erreicht. Jedes hat dafür eigene Gründe. Sie sprechen in kurzen Zeilen, wenn sie Segen anbieten, und kommentieren Kombinationen mit anderen Wesen.
 
@@ -435,6 +437,7 @@ Fluch-Relikte gibt es nur im Shop (günstig) und bei Ereignissen, nie als normal
 | Letzter Funke (benötigt Lebenskraft) | einmal pro Run einen tödlichen Treffer überleben; Stufe 2 mit 40 % Leben | 120 Glut + 2 Staub / 200 Glut + 4 Staub |
 | Zweite Wahl | ein Segen-Angebot pro Run neu würfeln | 80 Glut + 1 Staub |
 | Viertes Segment (benötigt Tiefer Atem) | +1 Ausdauer-Segment | 250 Glut + 5 Staub |
+| Runenkunde (M3.6) | der ausgerüstete aktive Zauber startet auf Stufe 2 | 160 Glut + 3 Staub |
 
 Der ganze Baum kostet etwa 1500 Glut. Ein typischer verlorener Run bringt rund 60 Glut, ein Sieg rund 150, also ist der Baum nach etwa 15–25 Runs voll. Die Boni werden beim Run-Start festgehalten, Käufe wirken ab dem nächsten Run.
 

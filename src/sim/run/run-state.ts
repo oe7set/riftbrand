@@ -107,6 +107,7 @@ export function createRun(
   seed: number,
   meta: RunMeta = emptyRunMeta(),
   lockedRelics: readonly string[] = [],
+  spells: SpellSlots = startSpellSlots(),
 ): RunState {
   const s = seed >>> 0;
   const map = generateMap(createRng(hashString(`${s}:map`)), EMBER_WASTES);
@@ -138,7 +139,10 @@ export function createRun(
     clearedElite: 0,
     clearedBoss: 0,
     reachedBoss: false,
-    spells: startSpellSlots(),
+    spells: {
+      active: spells.active ? { ...spells.active, branches: [...spells.active.branches] } : null,
+      aura: spells.aura ? { ...spells.aura, branches: [...spells.aura.branches] } : null,
+    },
     cast: { level: 1, branches: [] },
   };
 }

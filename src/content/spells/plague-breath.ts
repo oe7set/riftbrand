@@ -45,5 +45,6 @@ export const PLAGUE_BREATH = defineSpell({
       { id: 'pandemic', mods: { radiusMult: 1.25, stacksAdd: 1 } },
     ],
   },
+  unlockCost: { ember: 60, dust: 1 },
   visual: { color: 0x7dff6b, glyph: 'drop' },
 });

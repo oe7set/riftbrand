@@ -21,6 +21,7 @@ import {
   type MetaScreen,
   ProfileScreen,
   ResultScreen,
+  SpellTowerScreen,
   TreeScreen,
   WaresScreen,
 } from './meta-screens';
@@ -902,6 +903,8 @@ export function UiRoot({ screen }: { screen: Screen }) {
       return <TreeScreen {...screen} />;
     case 'wares':
       return <WaresScreen {...screen} />;
+    case 'spells':
+      return <SpellTowerScreen {...screen} />;
     case 'profile':
       return <ProfileScreen {...screen} />;
     case 'result':

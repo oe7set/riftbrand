@@ -35,5 +35,6 @@ export const METEOR = defineSpell({
       { id: 'quick_call', mods: { cooldownMult: 0.65 } },
     ],
   },
+  unlockCost: { ember: 70, dust: 2 },
   visual: { color: 0xffb347, glyph: 'meteor' },
 });

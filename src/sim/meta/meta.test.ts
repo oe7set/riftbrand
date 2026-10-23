@@ -9,7 +9,10 @@ import { markSeen, pickLine } from './dialogue';
 import {
   buyRank,
   canBuyRank,
+  canUnlockSpell,
   createProfile,
+  discoverRunSpells,
+  equipLoadout,
   lockedRelics,
   nextGoal,
   type Profile,
@@ -17,8 +20,11 @@ import {
   respec,
   runEarnings,
   runMetaFor,
+  spellUnlockCost,
+  startSpellsFor,
   treeRank,
   unlockRelic,
+  unlockSpell,
 } from './profile';
 
 function rich(): Profile {
@@ -216,5 +222,55 @@ describe('hub dialogue', () => {
         expect(strings[`tree.${node.id}.desc`], node.id).toBeTruthy();
       }
     }
+  });
+});
+
+describe("Sel's rune tower (M3.6)", () => {
+  it('unlocks a spell for ember and dust, once', () => {
+    const p = rich();
+    const cost = spellUnlockCost(p, 'meteor');
+    expect(unlockSpell(p, 'meteor')).toBe(true);
+    expect(p.ember).toBe(10_000 - cost.ember);
+    expect(p.dust).toBe(100 - cost.dust);
+    expect(canUnlockSpell(p, 'meteor')).toBe('maxed');
+    expect(canUnlockSpell(createProfile(), 'meteor')).toBe('ember');
+    expect(canUnlockSpell(p, 'nope')).toBe('unknown');
+  });
+
+  it('spells found in a run cost half', () => {
+    const p = rich();
+    const full = spellUnlockCost(p, 'meteor');
+    const run = createRun(1, runMetaFor(p), [], {
+      active: { id: 'meteor', level: 2, branches: [] },
+      aura: { id: 'halo', level: 1, branches: [] },
+    });
+    discoverRunSpells(p, run);
+    expect(p.spellsDiscovered).toEqual(['meteor', 'halo']);
+    expect(spellUnlockCost(p, 'meteor')).toEqual({
+      ember: Math.ceil(full.ember / 2),
+      dust: Math.ceil(full.dust / 2),
+    });
+    unlockSpell(p, 'meteor');
+    expect(p.spellsDiscovered).toEqual(['halo']);
+  });
+
+  it('the loadout only takes unlocked spells, each into its own slot', () => {
+    const p = rich();
+    expect(equipLoadout(p, 'halo')).toBe(false);
+    unlockSpell(p, 'halo');
+    unlockSpell(p, 'light_lance');
+    expect(equipLoadout(p, 'halo')).toBe(true);
+    expect(equipLoadout(p, 'light_lance')).toBe(true);
+    const slots = startSpellsFor(p);
+    expect(slots.active?.id).toBe('light_lance');
+    expect(slots.aura?.id).toBe('halo');
+  });
+
+  it('rune lore starts the active spell one level higher', () => {
+    const p = rich();
+    expect(startSpellsFor(p).active?.level).toBe(1);
+    expect(buyRank(p, 'rune_lore')).toBe(true);
+    expect(startSpellsFor(p).active?.level).toBe(2);
+    expect(startSpellsFor(p).aura?.level).toBe(1);
   });
 });

@@ -69,8 +69,8 @@ test('a run starts from the title via the refuge: map, then a room', async ({ pa
   expect(await page.evaluate(() => window.__riftbrand?.mode())).toBe('title');
   await page.getByRole('button', { name: /to the refuge|zur zuflucht/i }).click();
   await expect(page.locator('.rb-hub')).toBeVisible();
-  // First visit: both refuge characters introduce themselves.
-  await expect(page.locator('.rb-speech')).toHaveCount(2);
+  // First visit: Maren, Nix and Sel introduce themselves.
+  await expect(page.locator('.rb-speech')).toHaveCount(3);
   await page.getByRole('button', { name: /set out|aufbrechen/i }).click();
   await expect(page.locator('.rb-map')).toBeVisible();
   // The pre-selected start node enters with one click; others need two (mis-tap guard).

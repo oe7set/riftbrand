@@ -32,5 +32,6 @@ export const FROST_BREATH = defineSpell({
       { id: 'glacier', mods: { radiusMult: 1.25, stacksAdd: 1 } },
     ],
   },
+  unlockCost: { ember: 50, dust: 1 },
   visual: { color: 0x8fe3ff, glyph: 'snowflake' },
 });

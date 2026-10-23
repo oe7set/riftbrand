@@ -32,5 +32,6 @@ export const POISON_CLOUD = defineSpell({
       { id: 'lingering', mods: { durationMult: 1.8 } },
     ],
   },
+  unlockCost: { ember: 60, dust: 2 },
   visual: { color: 0x7dff6b, glyph: 'cloud' },
 });

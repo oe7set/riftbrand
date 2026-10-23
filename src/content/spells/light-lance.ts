@@ -29,5 +29,6 @@ export const LIGHT_LANCE = defineSpell({
       { id: 'focus', mods: { cooldownMult: 0.6 } },
     ],
   },
+  unlockCost: { ember: 70, dust: 2 },
   visual: { color: 0xfff6c8, glyph: 'ray' },
 });

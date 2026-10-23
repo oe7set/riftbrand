@@ -506,7 +506,14 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Bot:** Er schlägt nicht in eine Parierhaltung, sondern bricht sie mit Riss-Geschoss oder Zauber; Champions zählen für Ultimate und Zauber wie Bosse.
 - **Speicherstand:** Run-Save **v8** (Knotentyp `duel`; alte Maps bleiben gültig). Duelle zählen für die Meta-Auszahlung wie Elite-Räume.
 
-## 33. Risiken und Gegenmaßnahmen
+## 33. Stand nach M3.6 (Sel und Zauber-Ausrüstung)
+- **Profil v2** (`platform/storage/profile-save.ts`): `spellsUnlocked`, `spellsDiscovered`, `loadout {active, aura}`. `migrate1to2()` ergänzt die Felder mit den Werten von `createProfile()`; `migrateProfile()` läuft die Kette durch.
+- **Content:** `unlockCost` am Zauber (fehlt er, ist der Zauber gratis bzw. Start-Zauber); Glutbaum-Effekt `spellStartLevel` (Knoten `rune_lore`); Sprecherin `sel` im Dialog-Schema.
+- **Logik in `sim/meta/profile.ts` (rein):** `spellUnlockCost()` (halber Preis, wenn entdeckt), `canUnlockSpell()`, `unlockSpell()`, `equipLoadout()`, `discoverRunSpells()` (in `settleRun()`), `startSpellsFor()`.
+- **Run-Start:** `createRun(seed, meta, lockedRelics, spells)` kopiert die Zauber-Slots aus `startSpellsFor(profile)`. Nicht (mehr) freigeschaltete Ausrüstung fällt auf die Start-Zauber zurück.
+- **Oberfläche:** Screen `spells` (`SpellTowerScreen` in `view/ui/meta-screens.tsx`), erreichbar über den Hub.
+
+## 34. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

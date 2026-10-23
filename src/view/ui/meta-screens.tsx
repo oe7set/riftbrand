@@ -2,8 +2,17 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { ENEMIES } from '../../content/enemies';
 import { EMBER_TREE, treeNodeById } from '../../content/meta/ember-tree';
 import { RELICS, relicDescParams } from '../../content/relics';
+import { SPELLS } from '../../content/spells';
 import { type TranslationKey, t } from '../../shared/i18n';
-import { canBuyRank, type LastRun, nextGoal, type Profile, treeRank } from '../../sim/meta/profile';
+import {
+  canBuyRank,
+  canUnlockSpell,
+  type LastRun,
+  nextGoal,
+  type Profile,
+  spellUnlockCost,
+  treeRank,
+} from '../../sim/meta/profile';
 
 /** Screens of the meta layer (GDD §2.3, §8): hub, Ember Tree, Nix, save transfer, results. */
 export type MetaScreen =
@@ -11,18 +20,26 @@ export type MetaScreen =
       kind: 'hub';
       profile: Profile;
       /** Dialogue line ids for this visit (null = silent). */
-      lines: { maren: string | null; nix: string | null };
+      lines: { maren: string | null; nix: string | null; sel: string | null };
       hasRun: boolean;
       onDepart(): void;
       onContinue(): void;
       onAbandon(): void;
       onTree(): void;
       onWares(): void;
+      onSpells(): void;
       onProfile(): void;
       onTitle(): void;
     }
   | { kind: 'tree'; profile: Profile; onBuy(id: string): void; onRespec(): void; onBack(): void }
   | { kind: 'wares'; profile: Profile; onUnlock(id: string): void; onBack(): void }
+  | {
+      kind: 'spells';
+      profile: Profile;
+      onUnlock(id: string): void;
+      onEquip(id: string): void;
+      onBack(): void;
+    }
   | {
       kind: 'profile';
       exportCode: string | null;
@@ -58,7 +75,7 @@ function Currencies({ profile }: { profile: Profile }) {
   );
 }
 
-function Speech({ speaker, line }: { speaker: 'maren' | 'nix'; line: string | null }) {
+function Speech({ speaker, line }: { speaker: 'maren' | 'nix' | 'sel'; line: string | null }) {
   if (!line) return null;
   return (
     <div class={`rb-speech speaker-${speaker}`}>
@@ -77,6 +94,7 @@ export function HubScreen(s: Extract<MetaScreen, { kind: 'hub' }>) {
       <div class="rb-speeches">
         <Speech speaker="maren" line={s.lines.maren} />
         <Speech speaker="nix" line={s.lines.nix} />
+        <Speech speaker="sel" line={s.lines.sel} />
       </div>
       <Focus>
         <div class="rb-menu">
@@ -108,6 +126,9 @@ export function HubScreen(s: Extract<MetaScreen, { kind: 'hub' }>) {
           </button>
           <button type="button" class="rb-button rb-nix" onClick={s.onWares}>
             {t('hub.wares')}
+          </button>
+          <button type="button" class="rb-button rb-sel" onClick={s.onSpells}>
+            {t('hub.spells')}
           </button>
           <button type="button" class="rb-button" onClick={s.onProfile}>
             {t('hub.profile')}
@@ -230,6 +251,69 @@ export function WaresScreen({ profile, onUnlock, onBack }: Extract<MetaScreen, {
                 <div class="rb-card-desc">
                   {t(`relic.${r.id}.desc` as TranslationKey, relicDescParams(r, 1))}
                 </div>
+              </button>
+            );
+          })}
+        </div>
+      </Focus>
+      <div class="rb-menu">
+        <button type="button" class="rb-button rb-primary" onClick={onBack}>
+          {t('tree.back')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function spellColor(color: number): string {
+  return `#${color.toString(16).padStart(6, '0')}`;
+}
+
+/**
+ * Sel's rune tower (ROADMAP M3.6): every spell with its state. Unlocked spells are equipped
+ * with one tap (into the slot of their kind); locked ones show their price, halved once found
+ * in a run.
+ */
+export function SpellTowerScreen({
+  profile,
+  onUnlock,
+  onEquip,
+  onBack,
+}: Extract<MetaScreen, { kind: 'spells' }>) {
+  return (
+    <div class="rb-screen rb-center rb-boon-screen" style={{ '--being': '#b8a6ff' }}>
+      <div class="rb-being-name">{t('spells.title')}</div>
+      <div class="rb-being-quote">{t('spells.hint')}</div>
+      <Currencies profile={profile} />
+      <Focus wide>
+        <div class="rb-cards">
+          {SPELLS.map((def, i) => {
+            const unlocked = profile.spellsUnlocked.includes(def.id);
+            const equipped = profile.loadout.active === def.id || profile.loadout.aura === def.id;
+            const check = canUnlockSpell(profile, def.id);
+            const cost = spellUnlockCost(profile, def.id);
+            const discovered = profile.spellsDiscovered.includes(def.id);
+            const status = equipped
+              ? t('spells.equipped')
+              : unlocked
+                ? t('spells.equip')
+                : `${discovered ? `${t('spells.discovered')} · ` : ''}${t('tree.cost_dust', cost)}`;
+            return (
+              <button
+                type="button"
+                key={def.id}
+                class={`rb-card rb-spell ${equipped ? 'is-equipped' : ''}`}
+                style={{ '--being': spellColor(def.visual.color) }}
+                disabled={equipped || (!unlocked && check !== 'ok')}
+                data-autofocus={i === 0 ? true : undefined}
+                onClick={() => (unlocked ? onEquip(def.id) : onUnlock(def.id))}
+              >
+                <div class="rb-card-head">
+                  <span class="rb-card-slot">{t(`spell.kind.${def.kind}` as TranslationKey)}</span>
+                  <span class="rb-card-rarity">{status}</span>
+                </div>
+                <div class="rb-card-name">{t(`spell.${def.id}.name` as TranslationKey)}</div>
+                <div class="rb-card-desc">{t(`spell.${def.id}.desc` as TranslationKey)}</div>
               </button>
             );
           })}

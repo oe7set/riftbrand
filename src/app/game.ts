@@ -65,13 +65,16 @@ import { hashSim } from '../sim/hash';
 import { markSeen, pickLine } from '../sim/meta/dialogue';
 import {
   buyRank,
+  equipLoadout,
   type LastRun,
   lockedRelics,
   type Profile,
   respec,
   runMetaFor,
   settleRun,
+  startSpellsFor,
   unlockRelic,
+  unlockSpell,
 } from '../sim/meta/profile';
 import {
   addRelic,
@@ -203,7 +206,7 @@ export class Game {
   private profile: Profile;
   private profileRaw: string | null;
   /** Hub dialogue for the current visit; cleared when a run ends so the next visit reacts. */
-  private hubLines: { maren: string | null; nix: string | null } | null = null;
+  private hubLines: { maren: string | null; nix: string | null; sel: string | null } | null = null;
   /** Settlement of the run that just ended, shown on the result screen. */
   private lastRun: LastRun | null = null;
   /** Rooms and damage of the current run for the run log (TECH_DESIGN §13). */
@@ -500,9 +503,11 @@ export class Game {
     if (!this.hubLines) {
       const maren = pickLine(this.profile, 'maren');
       const nix = pickLine(this.profile, 'nix');
+      const sel = pickLine(this.profile, 'sel');
       if (maren) markSeen(this.profile, maren);
       if (nix) markSeen(this.profile, nix);
-      this.hubLines = { maren: maren?.id ?? null, nix: nix?.id ?? null };
+      if (sel) markSeen(this.profile, sel);
+      this.hubLines = { maren: maren?.id ?? null, nix: nix?.id ?? null, sel: sel?.id ?? null };
       this.persistProfile();
     }
     this.ui.show({
@@ -515,8 +520,31 @@ export class Game {
       onAbandon: () => this.abandonRun(),
       onTree: () => this.showTree(),
       onWares: () => this.showWares(),
+      onSpells: () => this.showSpells(),
       onProfile: () => this.showProfile(null),
       onTitle: () => this.showTitle(),
+    });
+  }
+
+  /** Sel's rune tower (ROADMAP M3.6): unlock spells and pick the loadout for the next run. */
+  private showSpells(): void {
+    this.ui.show({
+      kind: 'spells',
+      profile: this.profile,
+      onUnlock: (id) => {
+        if (!unlockSpell(this.profile, id)) return;
+        equipLoadout(this.profile, id);
+        this.persistProfile();
+        this.audio.play('evolve', { pitch: 1.1, pitchVariation: 0, volume: 0.7 });
+        this.showSpells();
+      },
+      onEquip: (id) => {
+        if (!equipLoadout(this.profile, id)) return;
+        this.persistProfile();
+        this.audio.play('boonPick', { pitch: 1.2, pitchVariation: 0 });
+        this.showSpells();
+      },
+      onBack: () => this.showHub(),
     });
   }
 
@@ -663,7 +691,12 @@ export class Game {
   private startRun(): void {
     this.logRooms = [];
     this.logDamage = {};
-    this.run = createRun(randomSeed(), runMetaFor(this.profile), lockedRelics(this.profile));
+    this.run = createRun(
+      randomSeed(),
+      runMetaFor(this.profile),
+      lockedRelics(this.profile),
+      startSpellsFor(this.profile),
+    );
     saveRun(this.store, this.run);
     this.showMap();
   }
