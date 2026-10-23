@@ -1,6 +1,7 @@
 # Riftbrand: Game Design Document
 
 > Status: v0.1 (Planungsphase) · Stand: 2026-10-22
+> **Hinweis (2026-10-23):** Der Product Owner hat den Ausbau erweitert: Zauber mit Aura, Upgrade-Stufen, Duell-Räume mit Mini-Bossen, animierte Körper, Icon-Set, eine begehbare Zuflucht mit freier Weltwahl per Portal (ein Run = eine Welt), Wiederaufbau, Quests und Rüstungen. Die Entscheidungen stehen in der [ROADMAP](./ROADMAP.md#product-owner-entscheidungen-2026-10-23). Die betroffenen Abschnitte dieses Dokuments (u. a. §3, §4, §6, §7, §12) werden im jeweiligen Paket angepasst und gelten bis dahin nur, soweit sie den Entscheidungen nicht widersprechen.
 > Alle Zahlen sind **Startwerte zum Tunen**, keine finalen Werte. Sie liegen später als Tuning-Daten im Code und sind über das Debug-Menü live veränderbar.
 
 ---
@@ -544,3 +545,5 @@ Die zuletzt verwendete Eingabemethode bestimmt die angezeigten Hinweise und die 
 3. Monetarisierungsmodell (Entscheidung zur Beta).
 4. ~~Hochformat: Nach dem Prototyp-Test bestätigen oder auf Querformat beschränken.~~ → Entschieden nach M1: Hoch- und Querformat bleiben beide.
 5. Ein 6. Wesen (Erz) nach Version 1.0?
+6. Gift und Licht: nur Zauber-Schulen oder auch eigene Wesen mit Segen? (ROADMAP A1, vor M6.4)
+7. Zuflucht „wie Cult of the Lamb“: Wiederaufbau ja, Anhänger-Management nein? (ROADMAP A2, vor M5.3)
