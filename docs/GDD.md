@@ -374,9 +374,9 @@ Fluch-Relikte gibt es nur im Shop (günstig) und bei Ereignissen, nie als normal
 | Zweite Wahl | ein Segen-Angebot pro Run neu würfeln | 80 Glut + 1 Staub |
 | Viertes Segment (benötigt Tiefer Atem) | +1 Ausdauer-Segment | 250 Glut + 5 Staub |
 
-Der ganze Baum kostet etwa 1500 Glut, also rund 20–30 typische Runs. Die Boni werden beim Run-Start festgehalten, Käufe wirken ab dem nächsten Run.
+Der ganze Baum kostet etwa 1500 Glut. Ein typischer verlorener Run bringt rund 60 Glut, ein Sieg rund 150, also ist der Baum nach etwa 15–25 Runs voll. Die Boni werden beim Run-Start festgehalten, Käufe wirken ab dem nächsten Run.
 
-**Einnahmen (M2.6):** 5 Glut pro geschafftem Kampf-, Horde- bzw. Platzhalter-Raum, 8 Glut und 1 Rissstaub pro Elite, 25 Glut und 3 Rissstaub für den Boss, 1 Glut pro 8 Kills und 30 Glut Sieg-Bonus. Glut gibt es auch beim Tod und beim Aufgeben eines Runs.
+**Einnahmen (M2.6):** 7 Glut pro geschafftem Kampf- bzw. Horde-Raum, 10 Glut und 1 Rissstaub pro Elite, 25 Glut und 3 Rissstaub für den Boss, 1 Glut pro 5 Kills und 30 Glut Sieg-Bonus. Glut gibt es auch beim Tod und beim Aufgeben eines Runs.
 
 ### 8.3 Freischaltungs-Fahrplan (grob)
 - **Runs 1–3:** Glutbaum-Grundlagen, Rast, Shop, zweites Wesen sichtbar

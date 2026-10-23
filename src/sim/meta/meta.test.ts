@@ -59,13 +59,13 @@ describe('ember tree', () => {
     expect(p.tree).toEqual({});
   });
 
-  it('the full tree takes roughly 15–20 runs of Glut (GDD §8.2)', () => {
+  it('the full tree takes roughly 15–25 runs of Glut (GDD §8.2)', () => {
     let total = 0;
     for (const node of EMBER_TREE) for (const r of node.ranks) total += r.ember;
     // A typical run: ~6 fights, 1 elite, some kills; a won run adds boss and win bonus.
     const typical = runEarnings({ combat: 6, elite: 1, boss: 0 }, 60, false).ember;
     expect(total / typical).toBeGreaterThan(15);
-    expect(total / typical).toBeLessThan(35);
+    expect(total / typical).toBeLessThan(28);
   });
 
   it('ranks turn into run bonuses', () => {

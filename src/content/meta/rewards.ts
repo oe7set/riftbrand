@@ -5,11 +5,11 @@ import { registerTunables } from '../tunables';
  * only from elites and bosses.
  */
 export const META_REWARDS = {
-  emberPerRoom: 5,
-  emberPerElite: 8,
+  emberPerRoom: 7,
+  emberPerElite: 10,
   emberPerBoss: 25,
   /** One Glut per this many kills. */
-  killsPerEmber: 8,
+  killsPerEmber: 5,
   dustPerElite: 1,
   dustPerBoss: 3,
   /** Bonus for winning, so a victory always feels like a leap. */
