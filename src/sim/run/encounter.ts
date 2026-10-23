@@ -63,7 +63,8 @@ export function buildEncounter(
   const bruteType = biome.enemyPool.find((t) => ENEMIES[t]?.id === 'brute');
   switch (type) {
     case 'combat': {
-      const waves = layer < 2 ? 2 : 3;
+      const waves =
+        layer < biome.combatWavesLateFromLayer ? biome.combatWavesEarly : biome.combatWavesLate;
       return {
         kind: 'waves',
         waves: Array.from({ length: waves }, () => fillWave(rng, biome, budget / waves + 1, layer)),

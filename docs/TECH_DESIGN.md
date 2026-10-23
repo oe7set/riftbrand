@@ -440,7 +440,20 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Touch-Layout-Editor** (`view/ui/layout-editor.tsx`): Overrides pro Ausrichtung als Bildschirm-Anteile plus Größenfaktor (`computeTouchLayout(w, h, overrides)`, auf den Bildschirm begrenzt) und eine Deckkraft. Einstellungen v2.
 - **itch.io:** `.github/workflows/itch.yml` baut mit relativen Pfaden ohne Service Worker und lädt mit butler hoch, sobald `BUTLER_API_KEY` und `ITCH_TARGET` gesetzt sind.
 
-## 27. Risiken und Gegenmaßnahmen
+## 27. Stand nach M2.8 (Balancing)
+- **Treffer-Historie statt letzter Treffer-ID:** Jeder Gegner merkt sich die letzten `HIT_HISTORY` (6) Treffer-IDs (`Components.hitHistory`, Ringpuffer pro Entität). Vorher konnte ein durchdringendes Geschoss oder ein Schwung erneut treffen, sobald dazwischen ein anderer Angriff landete; die Phönixklinge traf den Boss so mehrfach pro Vogel. `wasHitBy`/`rememberHit` werden von `damageEnemy` und dem Geschoss-System genutzt.
+- **Status-Resistenz** (`EnemyDef.statusResist`, 0–0,9): skaliert Brand-Schaden und Einfrier-Dauer mit (1 − Resistenz). Der Glutwächter hat 0,5, damit gestapelter Brand ihn nicht unabhängig von seinem Leben schmilzt.
+- **Biom-Daten:** `combatWavesEarly`, `combatWavesLate`, `combatWavesLateFromLayer` ersetzen die feste Wellenzahl.
+- **Werte und Simulator-Ergebnis** (200 Runs, frisches Profil, `pnpm sim --fresh`):
+
+  | Bot | vorher: Sieg / Run / Boss | nachher: Sieg / Run / Boss |
+  |---|---|---|
+  | balanced | 100 % / 2:02 / 23 s | 82,5 % / 3:10 / 54 s |
+  | aggressive | 55,5 % / 1:29 / 21 s | 15,5 % / 2:00 / 47 s |
+
+  Der Bot weicht nahezu perfekt aus und greift ohne Pause an; Menschen brauchen erfahrungsgemäß etwa doppelt so lange. Die Zielwerte für Menschen (Run 6–8 min, Boss 2–4 min) prüft der Playtest.
+
+## 28. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

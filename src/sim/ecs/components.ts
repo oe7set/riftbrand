@@ -50,6 +50,22 @@ export const Token = {
   Ranged: 2,
 } as const;
 
+/** Enough to cover a swing's active window plus novas and projectiles landing meanwhile. */
+export const HIT_HISTORY = 6;
+
+/** Whether hit `id` already damaged `eid`. */
+export function wasHitBy(c: Components, eid: number, id: number): boolean {
+  const base = eid * HIT_HISTORY;
+  for (let i = 0; i < HIT_HISTORY; i++) if (c.hitHistory[base + i] === id) return true;
+  return false;
+}
+
+export function rememberHit(c: Components, eid: number, id: number): void {
+  const next = c.hitHistoryNext[eid] as number;
+  c.hitHistory[eid * HIT_HISTORY + next] = id;
+  c.hitHistoryNext[eid] = (next + 1) % HIT_HISTORY;
+}
+
 /** Struct-of-arrays component storage, indexed by entity id. */
 export interface Components {
   posX: Float64Array;
@@ -69,8 +85,13 @@ export interface Components {
   team: Uint8Array;
   hp: Float64Array;
   maxHp: Float64Array;
-  /** Swing id that last damaged this entity; prevents multi-hits from one swing. */
-  lastHitSwing: Int32Array;
+  /**
+   * The last HIT_HISTORY hit ids (swing, nova, projectile) that damaged this entity, so one
+   * attack never hits twice even when other attacks land in between. Slot `eid * HIT_HISTORY + i`.
+   */
+  hitHistory: Int32Array;
+  /** Next slot to overwrite in this entity's hit history. */
+  hitHistoryNext: Uint8Array;
   // Enemy
   enemyType: Uint8Array;
   aiState: Uint8Array;
@@ -135,7 +156,8 @@ export function createComponents(capacity: number): Components {
     team: new Uint8Array(capacity),
     hp: new Float64Array(capacity),
     maxHp: new Float64Array(capacity),
-    lastHitSwing: new Int32Array(capacity),
+    hitHistory: new Int32Array(capacity * HIT_HISTORY).fill(-1),
+    hitHistoryNext: new Uint8Array(capacity),
     enemyType: new Uint8Array(capacity),
     aiState: new Uint8Array(capacity),
     aiTicks: new Int32Array(capacity),
@@ -176,10 +198,15 @@ const arrayLists = new WeakMap<Components, Array<{ [i: number]: number }>>();
 export function resetComponents(c: Components, eid: number): void {
   let arrays = arrayLists.get(c);
   if (!arrays) {
-    arrays = Object.values(c) as Array<{ [i: number]: number }>;
+    // hitHistory is laid out per slot, not per entity; it is reset separately below.
+    arrays = Object.entries(c)
+      .filter(([key]) => key !== 'hitHistory')
+      .map(([, array]) => array) as Array<{ [i: number]: number }>;
     arrayLists.set(c, arrays);
   }
   for (let i = 0; i < arrays.length; i++) (arrays[i] as { [i: number]: number })[eid] = 0;
   c.facingX[eid] = 1;
-  c.lastHitSwing[eid] = -1;
+  // The generic loop above only clears index `eid`; the history spans several slots.
+  c.hitHistory.fill(-1, eid * HIT_HISTORY, eid * HIT_HISTORY + HIT_HISTORY);
+  c.hitHistoryNext[eid] = 0;
 }

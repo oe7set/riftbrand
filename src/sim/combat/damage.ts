@@ -3,7 +3,7 @@ import { eliteOf } from '../../content/elites';
 import { ENEMIES } from '../../content/enemies';
 import type { HitSource, HitstopLevel } from '../../content/schema';
 import { TUNING } from '../../content/tuning';
-import { AiState, C, Token } from '../ecs/components';
+import { AiState, C, rememberHit, Token, wasHitBy } from '../ecs/components';
 import { destroyEntity } from '../ecs/world';
 import { fireOnDamaged, fireOnHit, fireOnKill, fireOnPerfectDash } from '../effects/runtime';
 import { Ev, EvFlag, pushEvent } from '../events';
@@ -112,8 +112,8 @@ function shieldBlocks(state: SimState, eid: number, dirX: number, dirY: number):
 /** Applies a player hit to an enemy. Returns false if this swing already hit it. */
 export function damageEnemy(state: SimState, eid: number, spec: PlayerHitSpec): boolean {
   const c = state.c;
-  if (c.lastHitSwing[eid] === spec.swingId) return false;
-  c.lastHitSwing[eid] = spec.swingId;
+  if (wasHitBy(c, eid, spec.swingId)) return false;
+  rememberHit(c, eid, spec.swingId);
   const def = ENEMIES[c.enemyType[eid] as number];
   if (!def) return false;
 

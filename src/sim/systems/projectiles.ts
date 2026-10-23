@@ -1,6 +1,6 @@
 import { queryRect } from '../collision/spatial-hash';
 import { damageEnemy, damagePlayer, type PlayerHitSpec, rollCrit } from '../combat/damage';
-import { C, RenderKind, Team } from '../ecs/components';
+import { C, RenderKind, Team, wasHitBy } from '../ecs/components';
 import { destroyEntity } from '../ecs/world';
 import { applyBurn, applyChill } from '../effects/status';
 import { Ev, ProjectileCode, pushEvent, StatusCode } from '../events';
@@ -53,7 +53,7 @@ function playerShot(state: SimState, eid: number, x: number, y: number, r: numbe
   for (let i = 0; i < n; i++) {
     const t = state.queryBuffer[i] as number;
     if (((state.world.masks[t] as number) & C.Enemy) === 0) continue;
-    if (c.lastHitSwing[t] === swing) continue;
+    if (wasHitBy(c, t, swing)) continue;
     const dx = (c.posX[t] as number) - x;
     const dy = (c.posY[t] as number) - y;
     const hitR = r + (c.radius[t] as number);

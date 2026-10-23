@@ -99,6 +99,7 @@ _Hinweis: Wurf- und Ultimate-Button sind sichtbar, aber erst ab M2 belegt._
 5. ✅ **M2.5 Gegner und Boss:** 3 weitere Gegner, 3 Elite-Modifikatoren, Boss „Der Glutwächter“ (2 Phasen)
 6. ✅ **M2.6 Meta:** Zuflucht (Hub), Glut und Rissstaub, Glutbaum, Dialoge, Profil-Speicherstand, Export/Import
 7. ✅ **M2.7 Abrundung:** Musik, Headless-Simulator v1, Run-Log, Touch-Layout-Editor, itch.io
+8. ✅ **M2.8 Balancing:** Simulator-Befunde behoben: Boss-Leben, Status-Resistenz für Bosse, größere Kampfräume, längere Horden, Funkenspucker entschärft, Mehrfachtreffer-Bug behoben
 
 **Abnahme:** Ein Run durch Biom 1 dauert 6–8 Minuten und macht Spaß. Ein Tod motiviert zum nächsten Run. Mindestens 3 externe Tester spielen 3 oder mehr Runs freiwillig. Der Simulator zeigt keine offensichtlichen Ausreißer.
 

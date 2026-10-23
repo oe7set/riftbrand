@@ -1,3 +1,4 @@
+import { ENEMIES } from '../../content/enemies';
 import { TUNING } from '../../content/tuning';
 import { damageEnemyDot, releaseToken } from '../combat/damage';
 import { AiState, C } from '../ecs/components';
@@ -49,7 +50,9 @@ export function freeze(state: SimState, eid: number): void {
   c.chillStacks[eid] = 0;
   c.chillTicks[eid] = 0;
   c.frozenTicks[eid] = secondsToTicks(
-    TUNING.freezeDurationSec * (1 + state.build.stats.freezeDuration),
+    TUNING.freezeDurationSec *
+      (1 + state.build.stats.freezeDuration) *
+      (1 - (ENEMIES[c.enemyType[eid] as number]?.statusResist ?? 0)),
   );
   if (c.aiState[eid] === AiState.Windup || c.aiState[eid] === AiState.Active) {
     releaseToken(state, eid);
@@ -91,7 +94,11 @@ export function statusSystem(state: SimState): void {
       damageEnemyDot(
         state,
         eid,
-        stacks * TUNING.burnDamagePerStackPerSec * TUNING.burnTickSec * burnMult,
+        stacks *
+          TUNING.burnDamagePerStackPerSec *
+          TUNING.burnTickSec *
+          burnMult *
+          (1 - (ENEMIES[c.enemyType[eid] as number]?.statusResist ?? 0)),
       );
     }
     // The enemy may have died from the tick; its slot was cleared then.

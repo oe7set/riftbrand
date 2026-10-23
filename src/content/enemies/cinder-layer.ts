@@ -11,6 +11,7 @@ export const CINDER_LAYER = defineEnemy({
   poiseRegenDelaySec: 1.5,
   staggerSec: 0.5,
   weight: 0.4,
+  statusResist: 0,
   keepDistanceMinPx: 200,
   keepDistanceMaxPx: 300,
   token: 'ranged',

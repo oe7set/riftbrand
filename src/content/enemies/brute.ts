@@ -11,6 +11,7 @@ export const BRUTE = defineEnemy({
   poiseRegenDelaySec: 2,
   staggerSec: 1.0,
   weight: 0.8,
+  statusResist: 0,
   keepDistanceMinPx: 60,
   keepDistanceMaxPx: 90,
   token: 'melee',
