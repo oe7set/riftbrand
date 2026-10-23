@@ -32,7 +32,10 @@ export interface DebugHooks {
   /** Downloads the local run log (last 50 runs) as JSON. */
   exportRunLog(): void;
   fillUltimate(): void;
+  /** Also resets the spell cooldown. */
   refillCast(): void;
+  /** Puts a spell into its slot (active or aura, from the spell's kind). */
+  equipSpell(id: string): void;
   giveEvolution(id: string): void;
   /** Adds stacks of a status to every enemy (status id from content/statuses). */
   applyStatus(id: string, stacks: number): void;
@@ -91,6 +94,7 @@ export class DebugMenu {
     evolutionIds: readonly string[] = [],
     /** Elite spawn buttons: label plus packed enemy code. */
     eliteSpawns: ReadonlyArray<{ label: string; code: number }> = [],
+    spellIds: readonly string[] = [],
   ) {
     this.fpsChip = el('div', { className: 'rb-fps' });
     this.fpsChip.hidden = true;
@@ -156,10 +160,17 @@ export class DebugMenu {
           this.button('+200 Glut +5 dust', () => this.hooks.giveMeta(200, 5)),
         ]),
       ]),
+      this.section('Spells', false, [
+        el(
+          'div',
+          { className: 'rb-debug-row' },
+          spellIds.map((id) => this.button(`Spell: ${id}`, () => this.hooks.equipSpell(id))),
+        ),
+      ]),
       this.section('Cast, ultimate & evolutions', false, [
         el('div', { className: 'rb-debug-row' }, [
           this.button('Fill ultimate', () => this.hooks.fillUltimate()),
-          this.button('Refill cast', () => this.hooks.refillCast()),
+          this.button('Refill cast + spell', () => this.hooks.refillCast()),
           ...evolutionIds.map((id) =>
             this.button(`Evolve: ${id}`, () => this.hooks.giveEvolution(id)),
           ),

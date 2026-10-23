@@ -26,6 +26,9 @@ const BOSS_BAR_HEIGHT_PX = 12;
 /** Status icons under the boss bar (screen pixels). */
 const BOSS_STATUS_ICON_PX = 20;
 const BOSS_STATUS_GAP_PX = 42;
+/** Spell slot icons under the ultimate meter (screen pixels). */
+const SPELL_ICON_PX = 26;
+const SPELL_GAP_PX = 8;
 
 function bar(texture: Texture, tint: number, anchorX = 0): Sprite {
   const s = new Sprite(texture);
@@ -67,6 +70,14 @@ export class HudView {
   private readonly bossStatusIcons: Sprite[] = [];
   private readonly bossStatusCounts: BitmapText[] = [];
   private readonly bossStatusShown = new Int8Array(STATUS_COUNT).fill(-1);
+  /** Active spell and aura icons; a dark sweep covers the active one while it cools down. */
+  private readonly spellIcon: Sprite;
+  private readonly spellShade: Sprite;
+  private readonly auraIcon: Sprite;
+  private readonly spellIcons: readonly Texture[];
+  private spellReadySec = 0;
+  private spellDeniedSec = 0;
+  private auraPulseSec = 0;
   private bossType = -1;
   private bossLagRatio = 1;
   private bossVisible = false;
@@ -83,7 +94,21 @@ export class HudView {
   /** Player setting 0..1 for full-screen flashes (photosensitivity, GDD §13). */
   flashIntensity = 1;
 
-  constructor(white: Texture, vignette: Texture, arrow: Texture, statusIcons: readonly Texture[]) {
+  constructor(
+    white: Texture,
+    vignette: Texture,
+    arrow: Texture,
+    statusIcons: readonly Texture[],
+    spellIcons: readonly Texture[],
+  ) {
+    this.spellIcons = spellIcons;
+    this.spellIcon = new Sprite(white);
+    this.spellIcon.anchor.set(0.5);
+    this.spellShade = new Sprite(white);
+    this.spellShade.tint = PALETTE.background;
+    this.spellShade.anchor.set(0.5, 1);
+    this.auraIcon = new Sprite(white);
+    this.auraIcon.anchor.set(0.5);
     this.vignette = new Sprite(vignette);
     this.vignette.tint = 0xff2040;
     this.vignette.alpha = 0;
@@ -154,6 +179,7 @@ export class HudView {
       ...this.bossMarks,
       this.bossName,
     );
+    this.root.addChild(this.spellIcon, this.spellShade, this.auraIcon);
     installStatusFont();
     for (let s = 0; s < STATUS_COUNT; s++) {
       const icon = new Sprite(statusIcons[s] ?? white);
@@ -395,6 +421,53 @@ export class HudView {
     this.ultFill.scale.set(width * p.ultCharge, ULT_HEIGHT_PX + this.ultReadySec * 6);
     this.ultFill.tint = p.ultCharge >= 1 ? 0xffffff : PALETTE.ultimate;
     this.ultFill.alpha = p.ultCharge >= 1 ? 0.75 + 0.25 * Math.sin(this.time * 6) : 0.85;
+    this.syncSpells(sim, dtSec, ultY + ULT_HEIGHT_PX + 8 + SPELL_ICON_PX / 2);
+  }
+
+  /** The two spell slots (ROADMAP M3.2): active spell with cooldown sweep, aura with pulse. */
+  private syncSpells(sim: SimState, dtSec: number, y: number): void {
+    const p = sim.player;
+    this.spellReadySec = Math.max(0, this.spellReadySec - dtSec);
+    this.spellDeniedSec = Math.max(0, this.spellDeniedSec - dtSec);
+    this.auraPulseSec = Math.max(0, this.auraPulseSec - dtSec);
+    const activeTex = this.spellIcons[p.activeSpell];
+    const auraTex = this.spellIcons[p.auraSpell];
+    const x = MARGIN_PX + SPELL_ICON_PX / 2;
+    const scaleFor = (tex: Texture) => SPELL_ICON_PX / Math.max(1, tex.width * 0.8);
+    this.spellIcon.visible = activeTex !== undefined;
+    this.spellShade.visible = activeTex !== undefined && p.spellCooldownTicks > 0;
+    if (activeTex) {
+      this.spellIcon.texture = activeTex;
+      const pop = 1 + this.spellReadySec * 0.8;
+      this.spellIcon.scale.set(scaleFor(activeTex) * pop);
+      this.spellIcon.position.set(x, y);
+      const denied = this.spellDeniedSec > 0 && Math.sin(this.time * 50) > 0;
+      this.spellIcon.tint = denied ? PALETTE.hpFill : 0xffffff;
+      const cooling = p.spellCooldownTicks / Math.max(1, p.spellCooldownTotal);
+      this.spellIcon.alpha = cooling > 0 ? 0.55 : 1;
+      // The shade shrinks from the top as the cooldown runs out.
+      this.spellShade.position.set(x, y + SPELL_ICON_PX / 2);
+      this.spellShade.scale.set(SPELL_ICON_PX, SPELL_ICON_PX * cooling);
+      this.spellShade.alpha = 0.6;
+    }
+    this.auraIcon.visible = auraTex !== undefined;
+    if (auraTex) {
+      this.auraIcon.texture = auraTex;
+      this.auraIcon.scale.set(scaleFor(auraTex) * (1 + this.auraPulseSec * 0.6));
+      this.auraIcon.position.set(x + SPELL_ICON_PX + SPELL_GAP_PX, y);
+    }
+  }
+
+  onSpellReady(): void {
+    this.spellReadySec = 0.3;
+  }
+
+  onSpellDenied(): void {
+    this.spellDeniedSec = DENIED_PULSE_SEC;
+  }
+
+  onAuraPulse(): void {
+    this.auraPulseSec = 0.25;
   }
 
   sync(sim: SimState, dtSec: number, exitScreen: { x: number; y: number }): void {

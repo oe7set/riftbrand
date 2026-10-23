@@ -7,6 +7,7 @@ export const PlayerAction = {
   Dead: 4,
   Cast: 5,
   Ultimate: 6,
+  Spell: 7,
 } as const;
 
 export type PlayerActionId = (typeof PlayerAction)[keyof typeof PlayerAction];
@@ -18,6 +19,7 @@ export const Buffered = {
   Dash: 3,
   Cast: 4,
   Ultimate: 5,
+  Spell: 6,
 } as const;
 
 export type BufferedId = (typeof Buffered)[keyof typeof Buffered];
@@ -52,6 +54,17 @@ export interface PlayerState {
   castRechargeTicks: number;
   /** Ultimate meter 0..1; carried between rooms by the run. */
   ultCharge: number;
+  /** Equipped spells (index into content SPELLS, -1 = empty slot) and their levels. */
+  activeSpell: number;
+  activeSpellLevel: number;
+  auraSpell: number;
+  auraSpellLevel: number;
+  /** Ticks until the active spell can be cast again (0 = ready). */
+  spellCooldownTicks: number;
+  /** Full cooldown of the last cast, for the HUD's cooldown sweep. */
+  spellCooldownTotal: number;
+  /** Ticks until the next aura pulse. */
+  auraTimerTicks: number;
 }
 
 export function createPlayerState(): PlayerState {
@@ -76,5 +89,12 @@ export function createPlayerState(): PlayerState {
     castCharges: 0,
     castRechargeTicks: 0,
     ultCharge: 0,
+    activeSpell: -1,
+    activeSpellLevel: 1,
+    auraSpell: -1,
+    auraSpellLevel: 1,
+    spellCooldownTicks: 0,
+    spellCooldownTotal: 1,
+    auraTimerTicks: 0,
   };
 }

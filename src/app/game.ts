@@ -6,6 +6,7 @@ import { ENEMIES, ENEMY_TYPE } from '../content/enemies';
 import { EVOLUTIONS } from '../content/evolutions';
 import { RELICS } from '../content/relics';
 import { statusIdSchema } from '../content/schema';
+import { SPELLS, spellById } from '../content/spells';
 import { AudioEngine } from '../platform/audio/audio-engine';
 import type { MusicMode } from '../platform/audio/music-player';
 import {
@@ -101,14 +102,17 @@ import {
   restEvolve,
   roomSeed,
   roomSetupFor,
+  startSpellSlots,
 } from '../sim/run/run-state';
 import {
   clearDrifters,
   createSim,
   drainEvents,
+  equipSpells,
   type SimState,
   setBuild,
   spawnDrifters,
+  spellSlotsOf,
   stepSim,
 } from '../sim/sim';
 import { TICK_DT_SEC, TICK_RATE_HZ } from '../sim/time';
@@ -316,6 +320,17 @@ export class Game {
         },
         refillCast: () => {
           this.sim.player.castCharges = RIFT_SHOT.charges;
+          this.sim.player.spellCooldownTicks = 0;
+        },
+        equipSpell: (id) => {
+          const def = spellById(id);
+          if (!def) return;
+          const slots = this.run?.spells ?? spellSlotsOf(this.sim);
+          const owned = { id, level: 1 };
+          const next =
+            def.kind === 'active' ? { ...slots, active: owned } : { ...slots, aura: owned };
+          if (this.run) this.run.spells = next;
+          equipSpells(this.sim, next);
         },
         giveEvolution: (id) => {
           setBuild(this.sim, this.sim.boons, this.sim.relics, [
@@ -338,6 +353,7 @@ export class Game {
         label: `${e.id} slag`,
         code: packEnemy(ENEMY_TYPE.slag, i + 1),
       })),
+      SPELLS.map((s) => s.id),
     );
     this.pauseOverlay = new PauseOverlay(
       root,
@@ -897,7 +913,9 @@ export class Game {
 
   private startArena(seed: number): void {
     this.run = null;
-    this.loadSim(createSim(seed));
+    const sim = createSim(seed);
+    equipSpells(sim, startSpellSlots());
+    this.loadSim(sim);
     this.setMode('arena');
   }
 

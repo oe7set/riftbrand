@@ -101,6 +101,9 @@ export function emptyStats(): Stats {
     maxHp: 0,
     healing: 0,
     shardGain: 0,
+    spellDamage: 0,
+    cooldownReduction: 0,
+    auraRadius: 0,
   };
 }
 

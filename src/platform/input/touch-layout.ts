@@ -1,6 +1,6 @@
 import { Button, type ButtonBit } from '../../shared/input-frame';
 
-export type TouchButtonId = 'attack' | 'dash' | 'special' | 'cast' | 'ultimate' | 'pause';
+export type TouchButtonId = 'attack' | 'dash' | 'special' | 'cast' | 'ultimate' | 'spell' | 'pause';
 
 /** A player's adjustment of one button: position as a fraction of the screen, size factor. */
 export interface TouchButtonOverride {
@@ -68,7 +68,10 @@ export function computeTouchLayout(
   const dash = onArc(5, arc);
   const special = onArc(50, arc);
   const cast = onArc(95, arc);
-  const ultimate = onArc(50, arc + smallR * 2 + 10 * unit);
+  const outer = arc + smallR * 2 + 10 * unit;
+  const ultimate = onArc(50, outer);
+  // The spell sits on the outer arc above the cast, within reach of the same thumb sweep.
+  const spell = onArc(98, outer);
 
   const buttons: TouchButtonLayout[] = [
     {
@@ -104,6 +107,14 @@ export function computeTouchLayout(
       radius: smallR * 0.9,
       aimDrag: false,
       fireOnRelease: false,
+    },
+    {
+      id: 'spell',
+      bit: Button.Spell,
+      ...spell,
+      radius: smallR,
+      aimDrag: true,
+      fireOnRelease: true,
     },
     {
       id: 'pause',

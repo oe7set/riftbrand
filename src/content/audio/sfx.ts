@@ -713,6 +713,70 @@ export const SFX = {
       delaySec: 0.08,
     },
   ],
+  // Spells (M3.2): a big shimmering release, a soft hum per aura pulse, a bright ready chime.
+  spellCast: [
+    {
+      wave: 'saw',
+      freq: 220,
+      freqEnd: 880,
+      attackSec: 0.01,
+      sustainSec: 0.06,
+      releaseSec: 0.35,
+      volume: 0.28,
+      lowpass: 2600,
+      vibratoHz: 11,
+      vibratoDepth: 0.02,
+    },
+    {
+      wave: 'noise',
+      freq: 0,
+      attackSec: 0.005,
+      sustainSec: 0.05,
+      releaseSec: 0.4,
+      volume: 0.22,
+      lowpass: 3800,
+    },
+    {
+      wave: 'triangle',
+      freq: 1320,
+      attackSec: 0.002,
+      sustainSec: 0.03,
+      releaseSec: 0.3,
+      volume: 0.1,
+      delaySec: 0.05,
+    },
+  ],
+  auraPulse: [
+    {
+      wave: 'sine',
+      freq: 180,
+      freqEnd: 240,
+      attackSec: 0.02,
+      sustainSec: 0.03,
+      releaseSec: 0.15,
+      volume: 0.12,
+      lowpass: 900,
+    },
+  ],
+  spellReady: [
+    {
+      wave: 'triangle',
+      freq: 1047,
+      attackSec: 0.002,
+      sustainSec: 0.03,
+      releaseSec: 0.15,
+      volume: 0.12,
+    },
+    {
+      wave: 'triangle',
+      freq: 1568,
+      attackSec: 0.002,
+      sustainSec: 0.03,
+      releaseSec: 0.2,
+      volume: 0.1,
+      delaySec: 0.07,
+    },
+  ],
   // Poison: a wet, low bubble; full stacks add a sickly falling tone.
   poisonApply: [
     {

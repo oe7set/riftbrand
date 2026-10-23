@@ -312,5 +312,10 @@
   "layout.button.cast": "Cast",
   "layout.button.ultimate": "Ultimate",
   "layout.button.pause": "Pause",
-  "settings.touch_layout": "Edit touch layout"
+  "settings.touch_layout": "Edit touch layout",
+  "layout.button.spell": "Spell",
+  "spell.frost_nova.name": "Frost Nova",
+  "spell.frost_nova.desc": "A ring of cold that freezes every enemy around you.",
+  "spell.ember_mantle.name": "Ember Mantle",
+  "spell.ember_mantle.desc": "Enemies close to you catch fire every second."
 }

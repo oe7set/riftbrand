@@ -6,6 +6,7 @@ export const Button = {
   Cast: 1 << 3,
   Ultimate: 1 << 4,
   Interact: 1 << 5,
+  Spell: 1 << 6,
 } as const;
 
 export type ButtonBit = (typeof Button)[keyof typeof Button];

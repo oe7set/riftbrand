@@ -58,6 +58,13 @@ console.log(
 );
 console.log('deaths:', JSON.stringify(summary.deathCauses));
 console.log(
+  'damage dealt share:',
+  Object.entries(summary.dealtShare)
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => `${k} ${(v * 100).toFixed(1)}%`)
+    .join(' · '),
+);
+console.log(
   'damage taken by source:',
   JSON.stringify(
     Object.fromEntries(Object.entries(summary.damageBySource).map(([k, v]) => [k, Math.round(v)])),

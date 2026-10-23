@@ -2,6 +2,7 @@ import { rarityIndex } from '../../content/boons';
 import { ENEMIES } from '../../content/enemies';
 import { relicById } from '../../content/relics';
 import { createInputFrame } from '../../shared/input-frame';
+import { DEALT_SOURCES } from '../combat/dealt';
 import { dominantBeing } from '../effects/build';
 import { emptyRunMeta, type RunMeta } from '../meta/profile';
 import {
@@ -64,6 +65,8 @@ export interface RunReport {
   rooms: RoomReport[];
   /** Damage taken per enemy id over the whole run. */
   damageBySource: Record<string, number>;
+  /** Damage dealt per player source (attack, special, cast, spell, aura, status …). */
+  damageDealt: Record<string, number>;
 }
 
 function addDamage(report: RunReport, sim: SimState): number {
@@ -76,6 +79,15 @@ function addDamage(report: RunReport, sim: SimState): number {
     report.damageBySource[id] = (report.damageBySource[id] ?? 0) + amount;
   }
   return total;
+}
+
+function addDealt(report: RunReport, sim: SimState): void {
+  for (let i = 0; i < DEALT_SOURCES.length; i++) {
+    const amount = sim.damageDealt[i] as number;
+    if (amount <= 0) continue;
+    const id = DEALT_SOURCES[i] as string;
+    report.damageDealt[id] = (report.damageDealt[id] ?? 0) + amount;
+  }
 }
 
 function pickNode(run: RunState): MapNode | undefined {
@@ -168,6 +180,7 @@ function playRoom(
     damageTaken: addDamage(report, sim),
     cleared: outcome === 'cleared',
   });
+  addDealt(report, sim);
   if (outcome === 'cleared') {
     completeRoom(run, result);
     if (run.status !== 'won') grantReward(run, node);
@@ -203,6 +216,7 @@ export function autoplayRun(
     evolutions: [],
     rooms: [],
     damageBySource: {},
+    damageDealt: {},
   };
   while (run.status === 'map') {
     const node = pickNode(run);

@@ -200,6 +200,14 @@ export function botInput(
   if (state.player.ultCharge >= 1 && (crowd >= 3 || (boss && nearestDist < 250))) {
     out.pressed |= Button.Ultimate;
   }
+  // Spells: into a crowd or at a boss in reach (the aim below points at the nearest enemy).
+  if (
+    state.player.activeSpell >= 0 &&
+    state.player.spellCooldownTicks === 0 &&
+    (crowd >= 3 || (boss && nearestDist < 200))
+  ) {
+    out.pressed |= Button.Spell;
+  }
   if (nearest < 0) return;
   const ex = (c.posX[nearest] as number) - px;
   const ey = (c.posY[nearest] as number) - py;

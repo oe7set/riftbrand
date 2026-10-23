@@ -273,11 +273,11 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
 - Die Einstellung „Status-Symbole über Gegnern“ erhöht die Settings-Version auf **v3**; der Zauber-Button in M3.2 bekommt deshalb v4.
 - Die Symbol-Reihenfolge über den Gegnern ist Kälte → Brand → Gift → Blenden (Blenden zeigt zusätzlich der Lichtkranz).
 
-### M3.2 Zauber-System (Kern) 🔜
+### M3.2 Zauber-System (Kern) ✅
 **Ziel:** Vesper hat zwei Zauber-Slots: einen aktiven Zauber mit Abklingzeit und eine Aura.
 
 **Umfang:**
-- [ ] **Content-Typ Zauber** in `src/content/spells/*.ts` mit `defineSpell()` und Zod-Schema. Felder:
+- [x] **Content-Typ Zauber** in `src/content/spells/*.ts` mit `defineSpell()` und Zod-Schema. Felder:
   - `id`, `school`, `kind: 'active' | 'aura'`
   - `cooldownSec` (aktiv, 8–20 s) bzw. `pulseSec` und `radiusPx` (Aura)
   - `targeting: 'self' | 'aim' | 'nearest'`
@@ -285,25 +285,25 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
   - `levels`: Platzhalter, ausgebaut in M3.4
   - Farbe und Icon
   - i18n-Schlüssel `spell.<id>.name` und `spell.<id>.desc`
-- [ ] **Simulation:**
+- [x] **Simulation:**
   - Zauber-Zustand im Spieler: ausgerüstete IDs, Stufe, Abklingzeit in Ticks.
   - Neues System `src/sim/systems/spells.ts` (nach den Abilities, vor den Projectiles).
   - Die Aura pulst um die Figur.
   - Neuer Stat `cooldownReduction` für spätere Segen und Relikte.
-- [ ] **Eingabe:** neue Aktion `Button.Spell`.
+- [x] **Eingabe:** neue Aktion `Button.Spell`.
   - Tastatur: **F** (Interagieren bleibt **E**)
   - Gamepad: **RB/R1**
   - Touch: neuer Button im Bogen um den Angriffs-Button, mit Abklingzeit-Ring wie beim Ultimate
   - Zielen wie beim Riss-Geschoss: Ziehen zielt mit Vorschau, Tippen nutzt die Zielhilfe.
   - Die Aura braucht keine Taste (A4).
-- [ ] **Touch-Layout-Editor** kennt den neuen Button, mit Standardposition für Hoch- und Querformat.
-- [ ] **HUD:** zwei Zauber-Symbole. Der aktive Zauber zeigt die Abklingzeit, die Aura zeigt ihren Puls.
-- [ ] **Events:** `Ev.SpellCast`, `Ev.AuraPulse`, `Ev.SpellReady` (kurzer Ton, wenn der Zauber wieder bereit ist).
-- [ ] **Debug-Menü:** Zauber ausrüsten, Stufe setzen, Abklingzeit 0.
-- [ ] **2 Beweis-Zauber:**
+- [x] **Touch-Layout-Editor** kennt den neuen Button, mit Standardposition für Hoch- und Querformat.
+- [x] **HUD:** zwei Zauber-Symbole. Der aktive Zauber zeigt die Abklingzeit, die Aura zeigt ihren Puls.
+- [x] **Events:** `Ev.SpellCast`, `Ev.AuraPulse`, `Ev.SpellReady` (kurzer Ton, wenn der Zauber wieder bereit ist).
+- [x] **Debug-Menü:** Zauber ausrüsten, Stufe setzen, Abklingzeit 0.
+- [x] **2 Beweis-Zauber:**
   - **Frostnova** (aktiv): Ring um die Figur, viel Kälte
   - **Glutmantel** (Aura): alle 1 s Brand an Gegnern im Umkreis von 90 px
-- [ ] **Bot und Simulator:**
+- [x] **Bot und Simulator:**
   - Der Bot wirkt den aktiven Zauber bei Gruppen ab 3 Gegnern und gegen Bosse.
   - `damageBySource` wird um Spieler-Quellen erweitert (Waffe, Spezial, Wurf, Zauber, Aura, Status).
 
@@ -326,7 +326,12 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
 
 **Abhängig von:** M3.1
 
-### M3.3 Erste Zauber-Schulen: 8 Zauber ⬜
+**Umgesetzt (Abweichungen vom Plan):**
+- Der Touch-Button sitzt auf dem äußeren Bogen über dem Wurf-Button und zielt wie dieser (Ziehen zielt, Loslassen wirkt).
+- Der Arena-Modus (Debug) und jeder neue Run starten mit Frostnova und Glutmantel; Tests ohne Raum-Setup haben keine Zauber.
+- Simulator (200 Runs, `--fresh`): balanced 82,5 % → 95,5 % Siege, Run 190 → 181 s, Boss Ø 54 → 44 s; aggressive 15,5 % → 27,5 %. Direkter Zauber-Schaden ist nur ~3 %, der Effekt kommt vor allem vom Einfrieren und vom Brand der Aura. Ausgeglichen wird in M3.7, sobald alle Zauber da sind.
+
+### M3.3 Erste Zauber-Schulen: 8 Zauber 🔜
 **Ziel:** Eine echte Auswahl aus 4 aktiven Zaubern und 4 Auren, verteilt auf vier Schulen.
 
 | Schule | Aktiver Zauber (Abklingzeit) | Aura |

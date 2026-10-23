@@ -462,7 +462,17 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Settings v3:** `statusIcons` (Standard an).
 - **Simulator:** unverändert gegenüber M2.8 (200 Runs, balanced: 82,5 % Siege, Run 190 s, Boss Ø 54 s), der Umbau ändert also das Verhalten von Brand und Kälte nicht.
 
-## 29. Risiken und Gegenmaßnahmen
+## 29. Stand nach M3.2 (Zauber-System)
+- **Content:** `src/content/spells/` mit `defineSpell()` (`spellSchema`): `school`, `kind` (`active`/`aura`), `cooldownSec` bzw. `pulseSec`, Wirk- und Erholzeit, `moveFactor`, `effect` (bisher `burst` um die Figur oder am Zielpunkt) und `visual` (Farbe, Glyphe). `SPELLS` ist die Index-Tabelle der Simulation (nur anhängen), `START_SPELLS` die Start-Ausrüstung.
+- **Lauf-Zustand:** `RunState.spells` (`SpellSlots` mit `active`/`aura`, je `{ id, level }`), weitergereicht über `RoomSetup.spells`; `equipSpells()`/`spellSlotsOf()` übersetzen zwischen Lauf und Simulation (`PlayerState.activeSpell`, `auraSpell`, Stufen, `spellCooldownTicks`, `auraTimerTicks`).
+- **Ablauf:** Neue Aktion `Button.Spell` → `Buffered.Spell` → `PlayerAction.Spell` (Wirken mit Bewegungsfaktor, unterbrechbar wie der Wurf). `systems/spells.ts`: `startSpellCooldown()` beim Start, `releaseActiveSpell()` am Ende der Wirkzeit, `spellSystem()` (nach den Spieler-Aktionen) zählt die Abklingzeit herunter und löst Aura-Pulse aus. Effekte laufen über `areaBurst()` (gibt jetzt die Zahl der getroffenen Gegner zurück) mit den neuen Trefferquellen `spell` und `aura`.
+- **Stats:** `spellDamage`, `cooldownReduction` (Deckel 50 %), `auraRadius`.
+- **Events:** `Ev.SpellCast`, `Ev.AuraPulse` (flags = getroffene Gegner), `Ev.SpellReady`; `Ev.Denied` mit `value = 3` für einen Zauber in der Abklingzeit.
+- **Eingabe:** Tastatur F (Interagieren nur noch E), Gamepad RB, Touch-Button `spell` (Settings **v4**, Layout-Editor). Run-Save **v6** (`spells`, Migration v5 → v6 setzt die Start-Zauber).
+- **Darstellung:** gebackene Zauber-Icons (Raute, Aura mit Ring) in `textures.ts`; HUD zeigt beide Slots unter der Ultimate-Leiste mit Abklingzeit-Abdeckung; der Touch-Button füllt sich während der Abklingzeit.
+- **Simulator:** Der Bot wirkt den Zauber bei 3+ Gegnern oder in Boss-Nähe. `SimState.damageDealt` zählt Schaden pro Spieler-Quelle (`combat/dealt.ts`: Trefferquellen plus `status` für Schaden über Zeit); `pnpm sim` gibt die Anteile aus.
+
+## 30. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

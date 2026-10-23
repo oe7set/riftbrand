@@ -81,12 +81,14 @@ export interface BurstSpec {
  * Damages and applies status to every enemy within the radius. Shared by effect novas and the
  * ultimate. Nested effects get their own query buffer so outer loops are not clobbered.
  */
-export function areaBurst(state: SimState, cx: number, cy: number, spec: BurstSpec): void {
+/** Returns how many enemies were caught. */
+export function areaBurst(state: SimState, cx: number, cy: number, spec: BurstSpec): number {
   const c = state.c;
   const buffer = state.effectQueryBuffers[state.effectDepth] as Int32Array;
   const r = spec.radiusPx;
   const n = queryRect(state.spatial, cx - r - 40, cy - r - 40, cx + r + 40, cy + r + 40, buffer);
   const swingId = ++state.swingCounter;
+  let caught = 0;
   for (let i = 0; i < n; i++) {
     const t = buffer[i] as number;
     if (!isEnemy(state, t)) continue;
@@ -94,6 +96,7 @@ export function areaBurst(state: SimState, cx: number, cy: number, spec: BurstSp
     const dy = (c.posY[t] as number) - cy;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist > r + (c.radius[t] as number)) continue;
+    caught++;
     if (spec.freeze) freeze(state, t);
     else applyStatusTo(state, t, spec.status, spec.stacks);
     if (spec.damage > 0 && isEnemy(state, t)) {
@@ -106,6 +109,7 @@ export function areaBurst(state: SimState, cx: number, cy: number, spec: BurstSp
       damageEnemy(state, t, novaSpec);
     }
   }
+  return caught;
 }
 
 const burst: BurstSpec = {

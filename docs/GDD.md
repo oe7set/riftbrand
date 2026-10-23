@@ -118,10 +118,18 @@ Meta (Tage)        Glut/Rissstaub ausgeben → Freischaltungen → Story-Dialog 
 | **Riss-Geschoss** (Wurf) | Geschoss mit Reichweite. 2 Ladungen, die nach 3 s regenerieren. | 1 Ladung | Wurf |
 | **Dash** | kurzer, schneller Sprint mit i-Frames | 1 Ausdauer | Dash |
 | **Brandausbruch** (Ultimate) | Lädt sich durch ausgeteilten und erlittenen Schaden auf. Bildschirmweiter Effekt je nach dominantem Wesen. | volle Leiste | Ultimate |
+| **Zauber** (aktiv, M3.2) | Zauber im aktiven Slot, z. B. Frostnova | Abklingzeit (10–15 s) | – |
+| **Aura** (passiv, M3.2) | Wirkt von selbst in Pulsen um die Figur, z. B. Glutmantel | keine | – |
 
 **Umgesetzt (M2.4), Startwerte:**
 - Riss-Geschoss: 16 Schaden, 820 px/s, 480 px Reichweite, trifft den ersten Gegner. Touch: Ziehen vom Wurf-Button zielt (mit Vorschau), Loslassen wirft; Tippen nutzt die Zielhilfe.
 - Brandausbruch: Leiste voll nach 900 ausgeteiltem oder 90 erlittenem Schaden und wird in den nächsten Raum mitgenommen. 0,35 s Aufladen (unverwundbar), dann Explosion um die Spielfigur mit kurzer Zeitlupe. Ignara-dominant: 330 px, 60 Schaden, 5 Brand. Vaelis-dominant: 330 px, 35 Schaden, friert alle ein. Ohne Segen: 300 px, 55 Schaden.
+
+**Umgesetzt (M3.2), Zauber-Slots:** Vesper hat zwei Zauber-Slots: einen **aktiven Zauber** (eigene Taste, Abklingzeit) und eine **Aura** (keine Taste, wirkt in Pulsen um die Figur). Zauber sind Daten in `src/content/spells/`. Bis zum Zauberlehrer (M3.6) startet jeder Run mit:
+- **Frostnova** (aktiv): 0,12 s Wirken, dann ein Kältering mit 150 px Radius, 18 Schaden, friert alle Gegner darin ein. Abklingzeit 15 s.
+- **Glutmantel** (Aura): jede Sekunde 1 Brand an allen Gegnern im Umkreis von 90 px.
+
+Die Abklingzeit beginnt mit dem Wirken (Abbrechen erstattet nichts) und ist mit Abklingzeit-Verkürzung höchstens um 50 % kürzbar. Die Werte stehen im Debug-Menü unter „spell: …“. Zauber- und Aura-Schaden zählen getrennt für Segen (`spellDamage`) und für den Simulator-Bericht.
 
 ### 4.2 Bewegung und Dash (Startwerte)
 - Laufgeschwindigkeit: 220 px/s, beschleunigt in 60 ms, kein Rutschen (sofortiges Abbremsen fühlt sich auf Touch präziser an).
@@ -471,12 +479,13 @@ Beispiele:
 | Dash | Leertaste / Shift |
 | Wurf | Q / L |
 | Ultimate | R |
-| Interagieren | E / F |
+| Zauber | F |
+| Interagieren | E |
 | Map / Pause | Tab / Esc |
 
 ### 10.3 Gamepad
 - Linker Stick: bewegen. Rechter Stick: zielen.
-- Belegung: A/✕ Dash, X/□ Angriff, Y/△ Spezialangriff, B/○ Wurf, RT/R2 Ultimate, LB/L1 Interagieren.
+- Belegung: A/✕ Dash, X/□ Angriff, Y/△ Spezialangriff, B/○ Wurf, RB/R1 Zauber, RT/R2 Ultimate, LB/L1 Interagieren.
 - Button-Icons wechseln je nach erkanntem Controller-Typ. Rumble ist abschaltbar.
 
 ### 10.4 Automatische Geräteerkennung

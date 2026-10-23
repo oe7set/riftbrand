@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import type { RunState } from '../../sim/run/run-state';
+import { type RunState, startSpellSlots } from '../../sim/run/run-state';
 import type { KeyValueStore } from './settings';
 
 const STORAGE_KEY = 'riftbrand.run';
-export const RUN_SAVE_VERSION = 5;
+export const RUN_SAVE_VERSION = 6;
 
 const mapNodeSchema = z.object({
   id: z.number().int().min(0),
@@ -53,6 +53,10 @@ const runSchema = z.object({
   shards: z.number().int().min(0),
   shopBought: z.array(z.number().int().min(0)),
   maxHpBonus: z.number().int(),
+  spells: z.object({
+    active: z.object({ id: z.string(), level: z.number().int().min(1) }).nullable(),
+    aura: z.object({ id: z.string(), level: z.number().int().min(1) }).nullable(),
+  }),
 });
 
 const saveSchema = z.object({
@@ -118,6 +122,11 @@ function migrate4to5(raw: { version: number; run?: Record<string, unknown> }): u
   };
 }
 
+/** v5 → v6: spell slots (M3.2). Runs in progress get the start spells. */
+function migrate5to6(raw: { version: number; run?: Record<string, unknown> }): unknown {
+  return { ...raw, version: 6, run: { ...raw.run, spells: startSpellSlots() } };
+}
+
 export function migrateRunSave(raw: unknown): RunState | null {
   if (typeof raw !== 'object' || raw === null) return null;
   let data = raw as { version?: unknown; run?: Record<string, unknown> };
@@ -125,6 +134,7 @@ export function migrateRunSave(raw: unknown): RunState | null {
   if (data.version === 2) data = migrate2to3(data as { version: number }) as typeof data;
   if (data.version === 3) data = migrate3to4(data as { version: number }) as typeof data;
   if (data.version === 4) data = migrate4to5(data as { version: number }) as typeof data;
+  if (data.version === 5) data = migrate5to6(data as { version: number }) as typeof data;
   if (data.version !== RUN_SAVE_VERSION) return null;
   raw = data;
   const parsed = saveSchema.safeParse(raw);

@@ -33,7 +33,7 @@ export const DEFAULT_KEY_BINDINGS: KeyBindings = {
     KeyL: Button.Cast,
     KeyR: Button.Ultimate,
     KeyE: Button.Interact,
-    KeyF: Button.Interact,
+    KeyF: Button.Spell,
   },
   app: {
     Escape: 'pause',
@@ -82,6 +82,7 @@ export const DEFAULT_GAMEPAD_BINDINGS: Record<number, ButtonBit> = {
   [GAMEPAD_BUTTON.B]: Button.Cast,
   [GAMEPAD_BUTTON.RT]: Button.Ultimate,
   [GAMEPAD_BUTTON.LB]: Button.Interact,
+  [GAMEPAD_BUTTON.RB]: Button.Spell,
 };
 
 export type GamepadFamily = 'xbox' | 'playstation' | 'generic';

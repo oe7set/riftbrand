@@ -80,6 +80,7 @@ describe('relics in combat', () => {
       staminaBonus: 0,
       lastSparks: 0,
       lastSparkHeal: 0,
+      spells: { active: null, aura: null },
     });
     const input = createInputFrame();
     for (let i = 0; i < 120; i++) stepSim(s, input);
