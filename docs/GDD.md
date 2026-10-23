@@ -127,18 +127,18 @@ Meta (Tage)        Glut/Rissstaub ausgeben → Freischaltungen → Story-Dialog 
 - Riss-Geschoss: 16 Schaden, 820 px/s, 480 px Reichweite, trifft den ersten Gegner. Touch: Ziehen vom Wurf-Button zielt (mit Vorschau), Loslassen wirft; Tippen nutzt die Zielhilfe.
 - Brandausbruch: Leiste voll nach 900 ausgeteiltem oder 90 erlittenem Schaden und wird in den nächsten Raum mitgenommen. 0,35 s Aufladen (unverwundbar), dann Explosion um die Spielfigur mit kurzer Zeitlupe. Ignara-dominant: 330 px, 60 Schaden, 5 Brand. Vaelis-dominant: 330 px, 35 Schaden, friert alle ein. Ohne Segen: 300 px, 55 Schaden.
 
-**Umgesetzt (M3.2), Zauber-Slots:** Vesper hat zwei Zauber-Slots: einen **aktiven Zauber** (eigene Taste, Abklingzeit) und eine **Aura** (keine Taste, wirkt in Pulsen um die Figur). Zauber sind Daten in `src/content/spells/`. Bis zum Zauberlehrer (M3.6) startet jeder Run mit:
-- **Frostnova** (aktiv): 0,12 s Wirken, dann ein Kältering mit 150 px Radius, 18 Schaden, friert alle Gegner darin ein. Abklingzeit 15 s.
+**Umgesetzt (M3.2), Zauber-Slots:** Vesper hat zwei Zauber-Slots: einen **aktiven Zauber** (eigene Taste, Abklingzeit) und eine **Aura** (keine Taste, wirkt in Pulsen um die Figur). Zauber sind Daten in `src/content/spells/`. Ein neues Profil startet mit diesen beiden; weitere schaltet man bei Sel frei (M3.6, §2.3):
+- **Frostnova** (aktiv): 0,12 s Wirken, dann ein Kältering mit 150 px Radius, 35 Schaden (M3.7, vorher 18), friert alle Gegner darin ein. Abklingzeit 15 s.
 - **Glutmantel** (Aura): jede Sekunde 1 Brand an allen Gegnern im Umkreis von 90 px.
 
 **Umgesetzt (M3.3), erste Zauber-Schulen:**
 
 | Schule | Aktiver Zauber | Aura |
 |---|---|---|
-| Flamme | **Meteor** (14 s): markiert die Zielstelle 240 px voraus, nach 0,5 s Einschlag mit 120 px Radius, 45 Schaden, 3 Brand, starker Rückstoß | **Glutmantel**: jede Sekunde 1 Brand im Umkreis von 90 px |
-| Frost | **Frostnova** (15 s): Kältering, 150 px, 18 Schaden, friert ein | **Frosthauch**: alle 1,5 s 1 Kälte im Umkreis von 110 px |
+| Flamme | **Meteor** (14 s): markiert die Zielstelle 240 px voraus, nach 0,5 s Einschlag mit 120 px Radius, 65 Schaden, 3 Brand, starker Rückstoß | **Glutmantel**: jede Sekunde 1 Brand im Umkreis von 90 px |
+| Frost | **Frostnova** (15 s): Kältering, 150 px, 35 Schaden, friert ein | **Frosthauch**: alle 1,5 s 1 Kälte im Umkreis von 110 px |
 | Gift | **Giftwolke** (12 s): Wolke 200 px voraus, 110 px Radius, 5 s lang alle 0,5 s 1 Gift | **Pestatem**: jede Sekunde 1 Gift im Umkreis von 100 px; vergiftete Gegner zerplatzen beim Tod zu einer kleinen Giftwolke (70 px, 2 s) |
-| Licht | **Lichtlanze** (10 s): Strahl 420 px lang, 40 px breit, 32 Schaden, blendet, durchdringt alles | **Heiligenschein**: alle 2 s löst ein Lichtpuls das nächste gegnerische Geschoss im Umkreis von 140 px auf |
+| Licht | **Lichtlanze** (10 s): Strahl 420 px lang, 40 px breit, 50 Schaden, blendet, durchdringt alles | **Heiligenschein**: alle 2 s löst ein Lichtpuls das nächste gegnerische Geschoss im Umkreis von 140 px auf |
 
 - **Quellen:** Kampfräume belohnen jetzt manchmal mit einer **Zauber-Auswahl** (3 Zauber, die man nicht ausgerüstet hat; violette Raute auf der Karte). Nix verkauft einen Zauber für 90 Scherben. Ein neuer Zauber ersetzt den im Slot seiner Art; dessen Stufe bleibt erhalten. Die Auswahl darf man überspringen.
 - **Neue Segen:** Ignara „Glutkreis“ (+25 % Aura-Radius, +10 % Zauberschaden, mit Seltenheit mehr), Vaelis „Kalte Konzentration“ (Zauber laden 15 % schneller, mit Seltenheit mehr).
@@ -157,6 +157,8 @@ Meta (Tage)        Glut/Rissstaub ausgeben → Freischaltungen → Story-Dialog 
 - Pause → Build zeigt Stufe und Zweige von Zaubern, Aura und Riss-Geschoss sowie Segen-Stufen.
 
 Die Abklingzeit beginnt mit dem Wirken (Abbrechen erstattet nichts) und ist mit Abklingzeit-Verkürzung höchstens um 50 % kürzbar. Die Werte stehen im Debug-Menü unter „spell: …“. Zauber- und Aura-Schaden zählen getrennt für Segen (`spellDamage`) und für den Simulator-Bericht.
+
+**Balancing (M3.7):** Zielwert: Zauber, Auren und Status-Effekte machen zusammen 15–30 % des ausgeteilten Schadens aus, die Waffe bleibt die Hauptsache. Der Simulator zeigt diesen „Magie-Anteil“, die Zauber pro Minute und die Tode durch Mini-Bosse. Stand nach M3.7 (balanced-Bot, 200 Runs): 17,7 % Magie-Anteil, davon 6 % direkter Zauberschaden; Waffe (Angriff, Spezial, Riss-Geschoss) knapp 70 %.
 
 ### 4.2 Bewegung und Dash (Startwerte)
 - Laufgeschwindigkeit: 220 px/s, beschleunigt in 60 ms, kein Rutschen (sofortiges Abbremsen fühlt sich auf Touch präziser an).
@@ -297,7 +299,7 @@ Elite-Modifikatoren (M2.5): *Hastig* (+40 % Tempo, kürzere Pausen), *Geschirmt*
 | **Gift** (neu) | Tropfen, grün | 10 | 6 s | 1,6 Schaden pro Stapel und Sekunde; hält lange, wenn man nachlegt |
 | **Blenden** (neu) | Auge, hellgelb | 1 | 3 s | Angriffs-Vorbereitung dauert 30 % länger, Salven verziehen um 25° |
 
-Status-Resistenz (Bosse 50 %) halbiert Schaden über Zeit, Einfrier-Dauer und die Wirkung von Blenden. Sichtbar ist jeder Status am Körper (Glut, Eiskruste, grüner Dunst und Blasen, Lichtkranz) und als Symbol mit Stapelzahl über dem Gegner bzw. unter der Boss-Leiste. Die Symbole lassen sich in den Einstellungen ausblenden. Gift und Blenden haben bis zu den Zaubern (M3.3) nur das Debug-Menü als Quelle.
+Status-Resistenz (Bosse 50 %) halbiert Schaden über Zeit, Einfrier-Dauer und die Wirkung von Blenden. Sichtbar ist jeder Status am Körper (Glut, Eiskruste, grüner Dunst und Blasen, Lichtkranz) und als Symbol mit Stapelzahl über dem Gegner bzw. unter der Boss-Leiste. Die Symbole lassen sich in den Einstellungen ausblenden. Quellen: Brand und Kälte kommen von Segen, Relikten und Zaubern; Gift und Blenden bisher nur von Zaubern (Giftwolke, Pestatem, Lichtlanze).
 
 **Umgesetzt (M3.5), Duell-Räume und Mini-Bosse:**
 - **Duell-Raum** (Kartensymbol: gekreuzte Klingen im Kreis): 1–2 pro Map, ab Ebene 3, nie auf der Rast-Ebene vor dem Boss. Statt Wellen kämpft man gegen einen **Mini-Boss** (Rolle `champion`) mit Namen, Lebensleiste und 3 Phasen. Belohnung: ein Runenfragment, Scherben wie im Elite-Raum, Glut und Rissstaub wie ein Elite-Raum.
@@ -341,6 +343,7 @@ Jeder Boss hat 2–3 Phasen, 4–6 Muster pro Phase, eine zornige Phase unter 30
 |---|---|---|---|
 | **Kampf** | ⚔ | 2–3 Spawn-Wellen | Segen, Relikt, Glut oder Scherben (vorab angezeigt) |
 | **Elite** | ☠ | Elite-Gegner und Kampf | garantiert ein seltenes Relikt und Rissstaub |
+| **Duell** (M3.5) | ⚔◯ | ein Mini-Boss mit 3 Phasen statt Wellen (§5) | Runenfragment, Scherben, Glut und Rissstaub wie Elite |
 | **Altar** | ✦ | kein Kampf, Wesen-Begegnung | Auswahl aus 3 Segen eines Wesens |
 | **Horde** | ≋ | 60–90 s Wellen-Überleben, viele Schwarm-Gegner, Funken-XP-Regen | Orbital, Segen-Verbesserung, viele Scherben |
 | **Shop** | ⛁ | Nix verkauft | Relikte, Heilung, Segen für **Scherben** (Run-Währung) |
@@ -364,6 +367,7 @@ Jeder Boss hat 2–3 Phasen, 4–6 Muster pro Phase, eine zornige Phase unter 30
 - **Slot-Segen** (Angriff, Spezial, Wurf, Dash, Ultimate): pro Slot immer nur ein Segen. Ein neuer ersetzt den alten.
 - **Passive Segen:** unbegrenzt, z. B. „Brand-Schaden +20 %“.
 - **Segen-Stufen:** Ein „Glutsplitter“ erhöht die Stufe eines Segens um 1, mit abnehmendem Ertrag.
+- **Zauber-Stufen (M3.4):** Ein „Runenfragment“ hebt einen Zauber, die Aura oder das Riss-Geschoss um eine Stufe (1–5, Zweig-Wahl auf Stufe 3 und 5). Glutsplitter und Runenfragmente erscheinen in derselben Upgrade-Auswahl (Details §4.1).
 - **Duo-Segen:** Sie erscheinen, wenn man Voraussetzungen von zwei Wesen erfüllt, z. B. Ignara + Vaelis = **Dampfbruch** (Einfrieren und Brennen am selben Ziel ergibt eine Explosion). Ziel: 10 Duo-Segen (alle Paare der 5 Wesen).
 - **Legendäre Segen:** einer pro Wesen, mit Voraussetzungen, und Build-definierend.
 
@@ -507,7 +511,7 @@ Beispiele:
 ### 10.1 Touch
 - **Querformat:**
   - Linke Bildschirmhälfte: Floating Joystick (erscheint unter dem Daumen, Totzone 10 %, Radius 60 px).
-  - Rechts: großer Angriffs-Button. Im Bogen darum liegen Dash (groß), Spezialangriff, Wurf und Ultimate (mit Lade-Ring).
+  - Rechts: großer Angriffs-Button. Im Bogen darum liegen Dash (groß), Spezialangriff, Wurf, Zauber (mit Abklingzeit-Ring, Ziehen zielt mit Vorschau der Landefläche) und Ultimate (mit Lade-Ring).
 - **Hochformat:** Die Steuerung sitzt im unteren Drittel. Die Kamera zeigt mehr vertikalen Raum, das HUD sitzt oben.
 - **Anpassbar:** Größe, Position und Deckkraft jedes Buttons über einen Layout-Editor, mit Profilen pro Ausrichtung. _(M2.7: Pause → Einstellungen → „Touch-Layout anpassen“. Position und Größe pro Button, Deckkraft für alle Buttons zusammen.)_
 - **Input-Buffer** von 150 ms für alle Aktionen.

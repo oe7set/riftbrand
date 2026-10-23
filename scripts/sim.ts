@@ -65,6 +65,9 @@ console.log(
     .join(' · '),
 );
 console.log(
+  `magic share (spell + aura + status): ${pct(summary.magicShare)} (target 15–30%) · spell casts ${summary.spellCastsPerMin.toFixed(1)}/min · deaths to champions ${pct(summary.championDeathRate)}`,
+);
+console.log(
   'damage taken by source:',
   JSON.stringify(
     Object.fromEntries(Object.entries(summary.damageBySource).map(([k, v]) => [k, Math.round(v)])),

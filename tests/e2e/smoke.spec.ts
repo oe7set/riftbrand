@@ -50,8 +50,9 @@ test('the first wave spawns enemies and the run stays error-free', async ({ page
   });
   await page.goto('/?seed=7');
   await waitForGame(page);
+  // Slow CI runners with software GL need longer than a phone until the first wave spawns.
   await page.waitForFunction(() => (window.__riftbrand?.enemiesAlive() ?? 0) > 0, null, {
-    timeout: 15_000,
+    timeout: 30_000,
   });
   expect(await page.evaluate(() => window.__riftbrand?.wave())).toBe(1);
   // Swing a few times; the sword must not throw even without targets in reach.

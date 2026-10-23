@@ -1,3 +1,4 @@
+import { ENEMIES } from '../../content/enemies';
 import type { RunReport } from './autoplay';
 
 interface PickStats {
@@ -23,7 +24,16 @@ export interface SimSummary {
   damageBySource: Record<string, number>;
   /** Share of all damage dealt per player source (0..1). */
   dealtShare: Record<string, number>;
+  /** Spells, auras and status effects together (ROADMAP M3.7 target: 15–30 %). */
+  magicShare: number;
+  /** Active spell casts per minute of run time. */
+  spellCastsPerMin: number;
+  /** Runs lost to a champion (duel mini-boss), as a share of all runs. */
+  championDeathRate: number;
 }
+
+/** Player sources that count as magic for the M3.7 target. */
+const MAGIC_SOURCES = ['spell', 'aura', 'status'];
 
 function bump(map: Record<string, PickStats>, id: string, won: boolean): void {
   const s = map[id] ?? { picked: 0, won: 0 };
@@ -46,7 +56,13 @@ export function summarize(reports: readonly RunReport[]): SimSummary {
   let timeouts = 0;
   let rooms = 0;
   let sec = 0;
+  let casts = 0;
+  let championDeaths = 0;
   for (const r of reports) {
+    casts += r.spellCasts ?? 0;
+    if (r.result === 'lost' && ENEMIES.find((e) => e.id === r.killedBy)?.role === 'champion') {
+      championDeaths++;
+    }
     const won = r.result === 'won';
     if (won) wins++;
     if (r.result === 'timeout') timeouts++;
@@ -99,6 +115,9 @@ export function summarize(reports: readonly RunReport[]): SimSummary {
     spells,
     damageBySource,
     dealtShare,
+    magicShare: MAGIC_SOURCES.reduce((sum, id) => sum + (dealtShare[id] ?? 0), 0),
+    spellCastsPerMin: sec > 0 ? casts / (sec / 60) : 0,
+    championDeathRate: championDeaths / n,
   };
 }
 

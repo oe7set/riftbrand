@@ -18,7 +18,7 @@ export const METEOR = defineSpell({
     at: 'target',
     rangePx: 240,
     radiusPx: 120,
-    damage: 45,
+    damage: 65,
     status: 'burn',
     stacks: 3,
     freeze: false,

@@ -4,6 +4,7 @@ import { relicById } from '../../content/relics';
 import { createInputFrame } from '../../shared/input-frame';
 import { DEALT_SOURCES } from '../combat/dealt';
 import { dominantBeing } from '../effects/build';
+import { Ev } from '../events';
 import { emptyRunMeta, type RunMeta } from '../meta/profile';
 import {
   addRelic,
@@ -73,6 +74,8 @@ export interface RunReport {
   damageBySource: Record<string, number>;
   /** Damage dealt per player source (attack, special, cast, spell, aura, status …). */
   damageDealt: Record<string, number>;
+  /** Active spells cast over the run (simulator only; older run log entries lack it). */
+  spellCasts?: number;
 }
 
 function addDamage(report: RunReport, sim: SimState): number {
@@ -169,7 +172,11 @@ function playRoom(
   for (let t = 0; t < maxTicks; t++) {
     botInput(sim, strategy, memory, input);
     stepSim(sim, input);
-    // Nobody reads events headless; keep the ring buffer from filling up.
+    for (let k = 0; k < sim.events.count; k++) {
+      if (sim.events.items[k]?.type === Ev.SpellCast)
+        report.spellCasts = (report.spellCasts ?? 0) + 1;
+    }
+    // Nobody else reads events headless; keep the ring buffer from filling up.
     sim.events.count = 0;
     if (sim.gameOver) {
       outcome = 'died';
@@ -233,6 +240,7 @@ export function autoplayRun(
     rooms: [],
     damageBySource: {},
     damageDealt: {},
+    spellCasts: 0,
   };
   while (run.status === 'map') {
     const node = pickNode(run);

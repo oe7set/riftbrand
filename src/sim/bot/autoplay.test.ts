@@ -37,4 +37,17 @@ describe('headless autoplay', () => {
     expect(summary.winRate).toBeGreaterThanOrEqual(0);
     expect(toCsv(reports).split('\n')).toHaveLength(3);
   });
+
+  it('reports spell use and the magic share of damage (M3.7)', () => {
+    const reports = [1, 2].map((s) => autoplayRun(s));
+    expect(reports.some((r) => (r.spellCasts ?? 0) > 0)).toBe(true);
+    const summary = summarize(reports);
+    const magic = ['spell', 'aura', 'status'].reduce(
+      (a, id) => a + (summary.dealtShare[id] ?? 0),
+      0,
+    );
+    expect(summary.magicShare).toBeCloseTo(magic);
+    expect(summary.magicShare).toBeGreaterThan(0);
+    expect(summary.spellCastsPerMin).toBeGreaterThan(0);
+  });
 });

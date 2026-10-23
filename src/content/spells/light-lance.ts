@@ -14,7 +14,7 @@ export const LIGHT_LANCE = defineSpell({
     type: 'beam',
     lengthPx: 420,
     widthPx: 40,
-    damage: 32,
+    damage: 50,
     status: 'blind',
     stacks: 1,
     knockback: 140,

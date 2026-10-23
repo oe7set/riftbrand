@@ -15,7 +15,7 @@ export const FROST_NOVA = defineSpell({
     at: 'self',
     rangePx: 0,
     radiusPx: 150,
-    damage: 18,
+    damage: 35,
     freeze: true,
     stacks: 0,
     knockback: 260,
