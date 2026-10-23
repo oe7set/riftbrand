@@ -118,6 +118,11 @@ export const enemySchema = z.object({
   staggerSec: sec,
   /** 0 = full knockback, 1 = immovable. */
   weight: z.number().min(0).max(1),
+  /**
+   * Shrugs off status effects: burn damage and freeze duration are scaled by (1 − resist).
+   * Bosses need it, or stacked burn would melt them regardless of their health.
+   */
+  statusResist: z.number().min(0).max(0.9),
   keepDistanceMinPx: px,
   keepDistanceMaxPx: px,
   /** Attack token pool (GDD §4.6); bosses need none. */
@@ -205,6 +210,10 @@ export const biomeSchema = z.object({
   /** Elites per elite room: the first is always the room's anchor (a bruiser). */
   elitesPerRoom: z.number().int().min(1),
   combatBudgetBase: z.number().positive(),
+  /** Waves per combat room: fewer in the first layers, more from `combatWavesLateFromLayer`. */
+  combatWavesEarly: z.number().int().min(1),
+  combatWavesLate: z.number().int().min(1),
+  combatWavesLateFromLayer: z.number().int().min(0),
   combatBudgetPerLayer: z.number().nonnegative(),
   eliteBudgetFactor: z.number().min(1),
   /** Extra enemies alongside the boss, as a wave budget (0 = boss alone). */

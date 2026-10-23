@@ -11,6 +11,7 @@ export const SLAG = defineEnemy({
   poiseRegenDelaySec: 0,
   staggerSec: 0.25,
   weight: 0,
+  statusResist: 0,
   keepDistanceMinPx: 70,
   keepDistanceMaxPx: 110,
   token: 'melee',

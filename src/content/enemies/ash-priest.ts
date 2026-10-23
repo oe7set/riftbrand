@@ -14,6 +14,7 @@ export const ASH_PRIEST = defineEnemy({
   poiseRegenDelaySec: 0,
   staggerSec: 0.35,
   weight: 0.2,
+  statusResist: 0,
   keepDistanceMinPx: 280,
   keepDistanceMaxPx: 380,
   token: 'ranged',

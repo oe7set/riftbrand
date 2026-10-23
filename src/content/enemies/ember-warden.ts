@@ -90,13 +90,15 @@ const PHASE_TWO: EnemyAttackDef[] = [
 export const EMBER_WARDEN = defineEnemy({
   id: 'ember_warden',
   role: 'boss',
-  maxHp: 1100,
+  maxHp: 3000,
   radiusPx: 42,
   speedPxPerSec: 60,
   poise: 160,
   poiseRegenDelaySec: 3,
   staggerSec: 1.4,
   weight: 0.95,
+  // Burn and freeze still matter, but can't carry the fight on their own.
+  statusResist: 0.5,
   keepDistanceMinPx: 90,
   keepDistanceMaxPx: 170,
   token: 'none',

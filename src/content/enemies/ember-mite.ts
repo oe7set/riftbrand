@@ -11,6 +11,7 @@ export const EMBER_MITE = defineEnemy({
   poiseRegenDelaySec: 0,
   staggerSec: 0.2,
   weight: 0,
+  statusResist: 0,
   keepDistanceMinPx: 30,
   keepDistanceMaxPx: 60,
   token: 'melee',
