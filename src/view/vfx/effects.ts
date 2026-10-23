@@ -502,6 +502,44 @@ export class Effects {
     });
   }
 
+  /** A poison drop falling off a body part (rig look, ROADMAP M4.2). */
+  poisonDrip(x: number, y: number, color: number): void {
+    this.fx.emit({
+      texture: this.tex.dot,
+      x: x + rand(-3, 3),
+      y,
+      vx: rand(-8, 8),
+      vy: rand(40, 90),
+      lifeSec: rand(0.35, 0.55),
+      color,
+      scaleStart: rand(0.14, 0.22),
+      stretch: 0.7,
+      flags: PFlag.Shrink,
+    });
+  }
+
+  /** Spark left behind by a hasty elite; `dirX`/`dirY` points backwards. */
+  hasteSpark(
+    x: number,
+    y: number,
+    dirX: number,
+    dirY: number,
+    radius: number,
+    color: number,
+  ): void {
+    this.ground.emit({
+      texture: this.tex.spark,
+      x: x + dirX * radius * 0.8 + rand(-radius, radius) * 0.3,
+      y: y + dirY * radius * 0.8 + rand(-radius, radius) * 0.3,
+      vx: dirX * rand(40, 90),
+      vy: dirY * rand(40, 90),
+      lifeSec: rand(0.25, 0.4),
+      color,
+      scaleStart: rand(0.3, 0.5),
+      flags: PFlag.AlignToVelocity | PFlag.Shrink,
+    });
+  }
+
   statusPuff(x: number, y: number, color: number): void {
     for (let i = 0; i < 6; i++) {
       const a = rand(0, Math.PI * 2);

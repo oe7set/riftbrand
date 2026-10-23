@@ -467,5 +467,6 @@
   "settings.language": "Language",
   "settings.language_auto": "Automatic (browser)",
   "settings.language_en": "English",
-  "settings.language_de": "Deutsch"
+  "settings.language_de": "Deutsch",
+  "settings.simple_graphics": "Simple graphics (classic shapes, for weak devices)"
 }

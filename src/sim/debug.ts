@@ -18,6 +18,26 @@ export function debugKillAllEnemies(state: SimState): void {
   }
 }
 
+/** Puts every enemy on a ring around the player, for looking at bodies up close (ROADMAP M4). */
+export function debugGatherEnemies(state: SimState, radiusPx: number): void {
+  const { c } = state;
+  const px = c.posX[state.playerEid] as number;
+  const py = c.posY[state.playerEid] as number;
+  let n = 0;
+  for (let eid = 0; eid < state.world.highWater; eid++) {
+    if (((state.world.masks[eid] as number) & C.Enemy) !== 0) n++;
+  }
+  let i = 0;
+  for (let eid = 0; eid < state.world.highWater; eid++) {
+    if (((state.world.masks[eid] as number) & C.Enemy) === 0) continue;
+    const a = (i++ / Math.max(1, n)) * Math.PI * 2;
+    c.posX[eid] = px + Math.cos(a) * radiusPx;
+    c.posY[eid] = py + Math.sin(a) * radiusPx;
+    c.prevX[eid] = c.posX[eid] as number;
+    c.prevY[eid] = c.posY[eid] as number;
+  }
+}
+
 export function debugApplyStatus(state: SimState, id: StatusId, stacks: number): void {
   const status: StatusIndex = statusIndex(id);
   for (let eid = 0; eid < state.world.highWater; eid++) {
