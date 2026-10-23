@@ -89,6 +89,21 @@ export const enemyAttackSchema = z.discriminatedUnion('kind', [
     maxAlive: z.number().int().min(1),
   }),
   z.object({
+    /**
+     * Parry stance (ROADMAP M3.5): the windup is the stance, shown in guard blue. A melee hit
+     * from the front during it is countered; spells, shots and hits from behind break it and
+     * leave the enemy open.
+     */
+    kind: z.literal('guard'),
+    ...attackTiming,
+    counterDamage: z.number().positive(),
+    /** The counter only lands if the player is this close. */
+    counterRangePx: px,
+    /** Total angle of the guarded front. */
+    frontArcDeg: z.number().min(0).max(360),
+    brokenStaggerSec: sec,
+  }),
+  z.object({
     kind: z.literal('mend'),
     ...attackTiming,
     radiusPx: z.number().positive(),
@@ -108,7 +123,8 @@ const bossPhaseSchema = z.object({
 
 export const enemySchema = z.object({
   id,
-  role: z.enum(['chaser', 'shooter', 'bruiser', 'swarm', 'support', 'trapper', 'boss']),
+  /** `champion`: mini-boss of a duel room (ROADMAP M3.5), with phases and a health bar. */
+  role: z.enum(['chaser', 'shooter', 'bruiser', 'swarm', 'support', 'trapper', 'boss', 'champion']),
   maxHp: z.number().positive(),
   radiusPx: z.number().positive(),
   speedPxPerSec: z.number().nonnegative(),
@@ -132,8 +148,21 @@ export const enemySchema = z.object({
   shardValue: z.number().int().min(0),
   minWave: z.number().int().min(1),
   attack: enemyAttackSchema,
-  /** Bosses only: phases replace `attack` with a pattern picked per attack. */
+  /** Bosses and champions: phases replace `attack` with a pattern picked per attack. */
   boss: z.object({ phases: z.array(bossPhaseSchema).min(1) }).optional(),
+  /**
+   * Twin champions (ROADMAP M3.5): close together they shield each other; when one falls, the
+   * other enrages (last phase) and revives it after a while unless it is beaten first.
+   */
+  link: z
+    .object({
+      partner: id,
+      rangePx: px,
+      damageReduction: z.number().min(0).max(0.9),
+      reviveSec: z.number().positive(),
+      reviveHpFraction: z.number().positive().max(1),
+    })
+    .optional(),
   visual: z.object({
     color: z.number().int().nonnegative(),
     /** Polygon side count; 0 = circle. */
@@ -165,6 +194,7 @@ export const roomTypeSchema = z.enum([
   'altar',
   'shop',
   'event',
+  'duel',
 ]);
 
 export const roomTemplateSchema = z.object({
@@ -198,6 +228,12 @@ export const biomeSchema = z.object({
   }),
   /** Earliest layer (0-based) where elites may appear. */
   eliteMinLayer: z.number().int().min(0),
+  /** Duel rooms (ROADMAP M3.5): how many per map and from which layer. */
+  duelMinLayer: z.number().int().min(0),
+  duelsMin: z.number().int().min(0),
+  duelsMax: z.number().int().min(0),
+  /** Possible duel line-ups, each a list of enemy types fought together. */
+  duelEncounters: z.array(z.array(z.number().int().min(0)).min(1)).min(1),
   restMinLayer: z.number().int().min(0),
   altarMinLayer: z.number().int().min(0),
   shopMinLayer: z.number().int().min(0),

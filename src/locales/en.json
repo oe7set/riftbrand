@@ -432,5 +432,11 @@
   "upgrade.heavy_shot.desc": "50% more damage, bigger shots, more knockback.",
   "build.spells": "Spells",
   "build.level": "Level {n}",
-  "build.cast_desc": "Your ranged shot with two charges."
+  "build.cast_desc": "Your ranged shot with two charges.",
+  "node.duel.name": "Duel",
+  "node.duel.desc": "A fight against a mini-boss with its own moves and phases. Guarantees a Rune Shard.",
+  "boss.ember_duelist.name": "THE EMBER DUELIST",
+  "boss.twin_spark.name": "SPARK & ASH",
+  "boss.twin_ash.name": "SPARK & ASH",
+  "hud.twin_revive": "The twin rises in {n} s – beat its partner first!"
 }

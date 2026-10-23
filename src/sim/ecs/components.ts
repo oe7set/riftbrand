@@ -124,6 +124,13 @@ export interface Components {
   /** Fractional windup progress carried between ticks while blinded. */
   windupCarry: Float64Array;
   frozenTicks: Int32Array;
+  // Twin champions (ROADMAP M3.5)
+  /** Linked partner entity + 1 (0 = none). */
+  linkEid: Int32Array;
+  /** Ticks until the fallen partner rises again (0 = no revive pending). */
+  reviveTicks: Int32Array;
+  /** Enemy type + 1 that will be revived. */
+  reviveType: Uint8Array;
   // Player spell zones (hit data in projDamage/projStatus/projStacks/projKnockback)
   zonePulseTicks: Int32Array;
   zoneTimer: Int32Array;
@@ -188,6 +195,9 @@ export function createComponents(capacity: number): Components {
     statusTimer: new Int32Array(capacity * STATUS_COUNT),
     windupCarry: new Float64Array(capacity),
     frozenTicks: new Int32Array(capacity),
+    linkEid: new Int32Array(capacity),
+    reviveTicks: new Int32Array(capacity),
+    reviveType: new Uint8Array(capacity),
     zonePulseTicks: new Int32Array(capacity),
     zoneTimer: new Int32Array(capacity),
     zoneSpell: new Uint8Array(capacity),

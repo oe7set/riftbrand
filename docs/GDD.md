@@ -297,6 +297,21 @@ Elite-Modifikatoren (M2.5): *Hastig* (+40 % Tempo, kürzere Pausen), *Geschirmt*
 
 Status-Resistenz (Bosse 50 %) halbiert Schaden über Zeit, Einfrier-Dauer und die Wirkung von Blenden. Sichtbar ist jeder Status am Körper (Glut, Eiskruste, grüner Dunst und Blasen, Lichtkranz) und als Symbol mit Stapelzahl über dem Gegner bzw. unter der Boss-Leiste. Die Symbole lassen sich in den Einstellungen ausblenden. Gift und Blenden haben bis zu den Zaubern (M3.3) nur das Debug-Menü als Quelle.
 
+**Umgesetzt (M3.5), Duell-Räume und Mini-Bosse:**
+- **Duell-Raum** (Kartensymbol: gekreuzte Klingen im Kreis): 1–2 pro Map, ab Ebene 3, nie auf der Rast-Ebene vor dem Boss. Statt Wellen kämpft man gegen einen **Mini-Boss** (Rolle `champion`) mit Namen, Lebensleiste und 3 Phasen. Belohnung: ein Runenfragment, Scherben wie im Elite-Raum, Glut und Rissstaub wie ein Elite-Raum.
+- **Glut-Duellant** (1800 Leben, Status-Resistenz 30 %):
+  - Phase 1: kurzer und langer Stoß, **Parierhaltung**
+  - Phase 2 ab 66 %: zusätzlich die Klingenwelle (5 Geschosse), pariert öfter
+  - Phase 3 ab 33 %: zusätzlich der Glutsturm (380 px Ansturm durch eine markierte Bahn, belohnt den perfekten Dash), schneller
+  - **Parierhaltung:** 0,8 s, blauer Ring und Schild in Blickrichtung. Ein Nahkampftreffer von vorn wird gekontert (kein Schaden, 16 Schaden zurück, wenn man nah steht). Riss-Geschoss, Zauber und Treffer von hinten brechen die Haltung: 1,2 s verwundbar.
+- **Funke & Asche** (900 und 1100 Leben):
+  - Funke wirft Feuerbälle, Asche schlägt auf den Boden.
+  - **Band:** Stehen sie näher als 200 px beieinander, nehmen beide 40 % weniger Schaden (sichtbares Band zwischen ihnen).
+  - Phase 2 bei 50 % des gemeinsamen Lebens: Funke zusätzlich mit Geschossring, Asche mit Ansturm.
+  - Fällt einer, wird der andere zornig (Phase 3) und **belebt den Partner nach 8 s mit 30 % Leben wieder**, wenn er nicht vorher besiegt ist (schrumpfender roter Ring als Countdown).
+  - Eine gemeinsame Lebensleiste.
+- Simulator: Duelle dauern beim Bot im Schnitt 41 s; bei Menschen sind 1–2 min zu erwarten.
+
 Jeder Gegner hat die Phasen **Vorbereitung → aktiv → Erholung**. Die Erholung ist das Strafbarkeitsfenster: Hier soll der Spieler zuschlagen.
 
 ### 5.3 Bosse

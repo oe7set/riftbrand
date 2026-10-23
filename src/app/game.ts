@@ -468,6 +468,7 @@ export class Game {
     // Keep debug toggles (god mode, waves) across rooms.
     sim.debug.godMode = debug.godMode;
     this.view.resetEffects();
+    this.feedback.championAnnounced = false;
     this.stats.seed = sim.seed;
     this.debugMenu.setSeed(sim.seed);
   }

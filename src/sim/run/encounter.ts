@@ -79,6 +79,11 @@ export function buildEncounter(
       makeElites(rng, waves, biome.elitesPerRoom);
       return { kind: 'waves', waves };
     }
+    case 'duel': {
+      // One line-up per duel: a single champion or the twins (ROADMAP M3.5).
+      const lineup = biome.duelEncounters[nextInt(rng, 0, biome.duelEncounters.length)] ?? [];
+      return { kind: 'waves', waves: [lineup.map((t) => packEnemy(t))] };
+    }
     case 'boss': {
       const first = [packEnemy(biome.boss)];
       if (biome.bossBudget > 0) first.push(...fillWave(rng, biome, biome.bossBudget, layer));

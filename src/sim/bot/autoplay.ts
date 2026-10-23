@@ -101,7 +101,7 @@ function pickNode(run: RunState): MapNode | undefined {
   // A balanced route: heal when low, otherwise prefer fights for rewards.
   const low = run.hp < run.maxHp * 0.45;
   const score = (n: MapNode) =>
-    n.type === 'rest' ? (low ? 5 : 1) : n.type === 'elite' ? (low ? 0 : 3) : 2;
+    n.type === 'rest' ? (low ? 5 : 1) : n.type === 'elite' || n.type === 'duel' ? (low ? 0 : 3) : 2;
   let best = options[0];
   for (const n of options) if (best && score(n) > score(best)) best = n;
   return best;

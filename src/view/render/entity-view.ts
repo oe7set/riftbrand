@@ -7,6 +7,7 @@ import { TUNING } from '../../content/tuning';
 import { AiState, C, RenderKind, stacksOf } from '../../sim/ecs/components';
 import { PlayerAction } from '../../sim/player-state';
 import type { SimState } from '../../sim/sim';
+import { linkedDamageFactor, partnerOf } from '../../sim/systems/champions';
 import { secondsToTicks } from '../../sim/time';
 import { StatusIcons } from '../vfx/status-overlay';
 import { PALETTE } from './palette';
@@ -31,6 +32,10 @@ interface Slot {
   crust: Sprite;
   /** Light halo over the head of blinded enemies. */
   halo: Sprite;
+  /** Twin bond: a line to the partner while it shields (ROADMAP M3.5). */
+  tether: Sprite;
+  /** Twin revive countdown: a ring closing in on the survivor. */
+  revive: Sprite;
   /** Elite marker: coloured halo, plus the frontal shield arc for shielded elites. */
   eliteRing: Sprite;
   shield: Sprite;
@@ -102,6 +107,8 @@ export class EntityView {
       aura: make(this.textures.disc, this.overlayLayer),
       crust: make(this.textures.ring, this.overlayLayer),
       halo: make(this.textures.ring, this.overlayLayer),
+      tether: make(this.textures.white, this.groundLayer),
+      revive: make(this.textures.ring, this.overlayLayer),
       eliteRing: make(this.textures.ring, this.groundLayer),
       shield: make(this.textures.shieldArc, this.overlayLayer),
       generation: -1,
@@ -122,6 +129,8 @@ export class EntityView {
     slot.aura.visible = false;
     slot.crust.visible = false;
     slot.halo.visible = false;
+    slot.tether.visible = false;
+    slot.revive.visible = false;
     slot.eliteRing.visible = false;
     slot.shield.visible = false;
   }
@@ -212,6 +221,8 @@ export class EntityView {
         s.aura.visible = false;
         s.crust.visible = false;
         s.halo.visible = false;
+        s.tether.visible = false;
+        s.revive.visible = false;
         this.statusIcons.hide(eid);
         s.eliteRing.visible = false;
         s.shield.visible = false;
@@ -394,6 +405,39 @@ export class EntityView {
     }
   }
 
+  /** Twin bond line and revive countdown ring (ROADMAP M3.5). */
+  private syncChampion(sim: SimState, eid: number, s: Slot, x: number, y: number, r: number): void {
+    const c = sim.c;
+    const partner = partnerOf(sim, eid);
+    const factor = linkedDamageFactor(sim, eid);
+    // Draw the bond once per pair (from the lower id).
+    s.tether.visible = partner > eid && factor < 1;
+    if (s.tether.visible) {
+      const ox = c.posX[partner] as number;
+      const oy = c.posY[partner] as number;
+      const dx = ox - x;
+      const dy = oy - y;
+      s.tether.anchor.set(0, 0.5);
+      s.tether.position.set(x, y);
+      s.tether.rotation = Math.atan2(dy, dx);
+      s.tether.scale.set(Math.sqrt(dx * dx + dy * dy), 3 + Math.sin(this.time * 10));
+      s.tether.tint = PALETTE.ember;
+      s.tether.alpha = 0.55;
+    }
+    const left = c.reviveTicks[eid] as number;
+    s.revive.visible = left > 0;
+    if (s.revive.visible) {
+      const def = ENEMIES[(c.reviveType[eid] as number) - 1];
+      const total = Math.max(1, secondsToTicks(def?.link?.reviveSec ?? 1));
+      const t = left / total;
+      s.revive.position.set(x, y);
+      s.revive.rotation = 0;
+      s.revive.scale.set((r * (1.4 + 2.2 * t)) / BAKE_RADIUS_PX);
+      s.revive.tint = PALETTE.hpFill;
+      s.revive.alpha = 0.5 + 0.4 * Math.sin(this.time * (8 + (1 - t) * 20));
+    }
+  }
+
   private syncEnemyExtras(sim: SimState, eid: number, s: Slot, x: number, y: number): void {
     const c = sim.c;
     const def = ENEMIES[c.enemyType[eid] as number];
@@ -416,6 +460,7 @@ export class EntityView {
     }
     this.statusIcons.sync(sim, eid, x, y - r - 10, this.time);
 
+    this.syncChampion(sim, eid, s, x, y, r);
     const state = c.aiState[eid];
     const atk = attackOf(def, c.aiPhase[eid] as number, c.aiPattern[eid] as number);
     const windupTicks = Math.max(1, secondsToTicks(atk.windupSec));
@@ -428,6 +473,27 @@ export class EntityView {
       return;
     }
     const progress = slamActive ? 1 : Math.min(1, (c.aiTicks[eid] as number) / windupTicks);
+    if (atk.kind === 'guard') {
+      // Parry stance: cool blue, never the warm attack colours (GDD §12.1 rule 2 reversed:
+      // this is a defence, attacking into the front is the mistake).
+      s.teleFill.visible = false;
+      s.teleBack.visible = true;
+      s.teleBack.texture = this.textures.ring;
+      s.teleBack.anchor.set(0.5);
+      s.teleBack.position.set(x, y);
+      s.teleBack.rotation = 0;
+      s.teleBack.scale.set(((r * 1.7) / BAKE_RADIUS_PX) * (1 + 0.06 * Math.sin(this.time * 14)));
+      s.teleBack.tint = PALETTE.guard;
+      s.teleBack.alpha = 0.9;
+      s.shield.visible = true;
+      s.shield.tint = PALETTE.guard;
+      s.shield.position.set(x, y);
+      s.shield.rotation = Math.atan2(c.facingY[eid] as number, c.facingX[eid] as number);
+      s.shield.scale.set((r * 1.5) / BAKE_RADIUS_PX);
+      s.shield.alpha = 1;
+      s.body.tint = PALETTE.guard;
+      return;
+    }
     s.teleBack.visible = true;
     s.teleFill.visible = true;
     s.teleBack.tint = PALETTE.telegraph;

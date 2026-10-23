@@ -92,7 +92,23 @@ export function generateMap(rng: Rng, biome: BiomeDef): RunMap {
   }
 
   ensureType(rng, nodes, 'horde', 1, restLayer);
+  placeDuels(rng, nodes, biome, restLayer);
   return { nodes, layers };
+}
+
+/**
+ * Duel rooms (ROADMAP M3.5): turns a few fights from `duelMinLayer` on into duels. They never
+ * sit on the rest layer right before the boss.
+ */
+function placeDuels(rng: Rng, nodes: MapNode[], biome: BiomeDef, restLayer: number): void {
+  const count = nextInt(rng, biome.duelsMin, biome.duelsMax + 1);
+  for (let i = 0; i < count; i++) {
+    const candidates = nodes.filter(
+      (n) => n.type === 'combat' && n.layer >= biome.duelMinLayer && n.layer < restLayer,
+    );
+    const pick = candidates[nextInt(rng, 0, candidates.length)];
+    if (pick) pick.type = 'duel';
+  }
 }
 
 /** Guarantees at least one node of `type` in layers [minLayer, maxLayerExclusive). */

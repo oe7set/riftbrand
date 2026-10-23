@@ -138,6 +138,7 @@ export function botInput(
   let threatX = 0;
   let threatY = 0;
   let threatened = false;
+  let guarding = -1;
   for (let e = 0; e < world.highWater; e++) {
     const mask = world.masks[e] as number;
     const dx = (c.posX[e] as number) - px;
@@ -146,7 +147,7 @@ export function botInput(
     if ((mask & C.Enemy) !== 0) {
       const def = ENEMIES[c.enemyType[e] as number];
       if (!def) continue;
-      if (def.role === 'boss') boss = true;
+      if (def.role === 'boss' || def.role === 'champion') boss = true;
       if (dist < nearestDist) {
         nearest = e;
         nearestDist = dist;
@@ -154,6 +155,11 @@ export function botInput(
       if (dist < 120) crowd++;
       if (c.aiState[e] !== AiState.Windup) continue;
       const atk = attackOf(def, c.aiPhase[e] as number, c.aiPattern[e] as number);
+      // Parry stance (M3.5): never swing into it; shots and spells break it.
+      if (atk.kind === 'guard') {
+        if (dist < 260) guarding = e;
+        continue;
+      }
       const left = secondsToTicks(atk.windupSec) - (c.aiTicks[e] as number);
       const reach =
         atk.kind === 'slam'
@@ -218,6 +224,14 @@ export function botInput(
     if (nearestDist > MELEE_RANGE_PX * 0.7) {
       steerTo(state, memory, out, c.posX[nearest] as number, c.posY[nearest] as number);
     } else if (nearestDist < 30) setMove(out, -ex, -ey);
+  }
+  if (guarding === nearest) {
+    // Hold the swing, break the stance from range.
+    if (state.player.castCharges > 0) out.pressed |= Button.Cast;
+    else if (state.player.activeSpell >= 0 && state.player.spellCooldownTicks === 0)
+      out.pressed |= Button.Spell;
+    if (out.moveX === 0 && out.moveY === 0) setMove(out, -ex, -ey);
+    return;
   }
   if (nearestDist < MELEE_RANGE_PX + (c.radius[nearest] as number)) {
     out.held |= Button.Attack;

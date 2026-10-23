@@ -11,6 +11,7 @@ import { Ev, pushEvent } from '../events';
 import { nextFloat, nextInt, nextRange } from '../rng/rng';
 import { MAX_MELEE_TOKENS, MAX_RANGED_TOKENS, type SimState, spawnEntity } from '../sim';
 import { secondsToTicks, TICK_DT_SEC } from '../time';
+import { phaseRatio } from './champions';
 import { scheduleSpawnAt } from './waves';
 
 const DEG = Math.PI / 180;
@@ -198,7 +199,7 @@ function updateBossPhase(state: SimState, eid: number, def: EnemyDef): void {
   const phases = def.boss?.phases;
   if (!phases) return;
   const c = state.c;
-  const ratio = (c.hp[eid] as number) / (c.maxHp[eid] as number);
+  const ratio = phaseRatio(state, eid, def);
   let phase = c.aiPhase[eid] as number;
   while (phase + 1 < phases.length && ratio <= (phases[phase + 1]?.hpBelow ?? 0)) phase++;
   if (phase === c.aiPhase[eid]) return;

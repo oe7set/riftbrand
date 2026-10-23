@@ -3,10 +3,13 @@ import { registerTunables } from '../tunables';
 import { ASH_PRIEST } from './ash-priest';
 import { BRUTE } from './brute';
 import { CINDER_LAYER } from './cinder-layer';
+import { EMBER_DUELIST } from './ember-duelist';
 import { EMBER_MITE } from './ember-mite';
 import { EMBER_WARDEN } from './ember-warden';
 import { SLAG } from './slag';
 import { SPITTER } from './spitter';
+import { TWIN_ASH } from './twin-ash';
+import { TWIN_SPARK } from './twin-spark';
 
 /** Index in this list is the enemy type id stored in the sim (Uint8). Append only. */
 export const ENEMIES: readonly EnemyDef[] = [
@@ -17,6 +20,9 @@ export const ENEMIES: readonly EnemyDef[] = [
   ASH_PRIEST,
   CINDER_LAYER,
   EMBER_WARDEN,
+  EMBER_DUELIST,
+  TWIN_SPARK,
+  TWIN_ASH,
 ];
 
 export const ENEMY_TYPE = {
@@ -27,6 +33,9 @@ export const ENEMY_TYPE = {
   ash_priest: 4,
   cinder_layer: 5,
   ember_warden: 6,
+  ember_duelist: 7,
+  twin_spark: 8,
+  twin_ash: 9,
 } as const;
 
 export function enemyTypeOf(id: string): number {

@@ -419,39 +419,39 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
 - Run-Save **v7** (Zweige, Riss-Geschoss-Stufe, Segen-Stufe).
 - Simulator (200 Runs, `--fresh`): balanced 95,0 % (M3.3: 92,0 %), aggressive 19,5 % (21,5 %).
 
-### M3.5 Duell-Räume und Mini-Bosse 🔜
+### M3.5 Duell-Räume und Mini-Bosse ✅
 **Ziel:** Neben den Wellen-Kämpfen gibt es Einzelkämpfe gegen 1–2 starke Gegner mit eigenen Mechaniken und Phasen (E1, E2).
 
 **Umfang:**
-- [ ] **Neuer Raumtyp `duel`:**
+- [x] **Neuer Raumtyp `duel`:**
   - Map-Symbol: zwei gekreuzte Klingen im Kreis
   - 1–2 pro Welt-Map, frühestens ab Ebene 3, nie direkt vor dem Boss
   - runde Arena mit wenigen Hindernissen
-- [ ] **Belohnung** (vorab sichtbar): ein Runenfragment garantiert, dazu die Wahl zwischen seltenem Relikt und neuem Zauber, plus 2 Rissstaub.
-- [ ] **Grundlage für Mini-Bosse:** Gegner-Rolle `champion`.
+- [x] **Belohnung** (vorab sichtbar): ein Runenfragment garantiert, dazu die Wahl zwischen seltenem Relikt und neuem Zauber, plus 2 Rissstaub.
+- [x] **Grundlage für Mini-Bosse:** Gegner-Rolle `champion`.
   - 3 Phasen mit Grenzen in den Daten (Standard 100–66 %, 66–33 %, 33–0 %)
   - Phasenwechsel mit kurzer, verwundbarer Pause (wie beim Glutwächter)
   - eigene Lebensleiste mit Namen; bei Paaren zwei Leisten
   - Status-Resistenz 30 %
-- [ ] **Glut-Duellant** (`ember_duelist`): flinker Fechter.
+- [x] **Glut-Duellant** (`ember_duelist`): flinker Fechter.
   - **Phase 1:** Dreifach-Stich (Kette aus Ausfällen), Seitschritt, **Parierhaltung**.
     - Die Haltung dauert 0,8 s und hat ein deutliches blaues Leuchten mit eigenem Sound.
     - Wer in die Haltung schlägt, wird gekontert.
     - Zauber, Riss-Geschoss und Treffer von hinten brechen die Haltung und machen ihn 1,2 s verwundbar.
   - **Phase 2:** zusätzlich die Klingenwelle (Geschoss-Bogen); er pariert öfter.
   - **Phase 3:** zusätzlich der „Glutsturm“: Er markiert eine Linie am Boden und stürmt hindurch. Das belohnt den perfekten Dash. Insgesamt ist er schneller.
-- [ ] **Zwillinge Funke und Asche** (`twin_spark`, `twin_ash`): ein Fernkämpfer (Feuer) und ein Nahkämpfer (Schlacke).
+- [x] **Zwillinge Funke und Asche** (`twin_spark`, `twin_ash`): ein Fernkämpfer (Feuer) und ein Nahkämpfer (Schlacke).
   - **Band:** Stehen sie näher als 200 px beieinander, leuchtet ein Band zwischen ihnen, und beide nehmen 40 % weniger Schaden. Ziel ist, sie zu trennen.
   - **Phase 1:** Sie kämpfen einzeln: Funke wirft Feuerbälle, Asche macht Bodenschläge.
   - **Phase 2:** Kombo-Angriffe (Asche schleudert Funke über die Arena, Feuerregen auf der Landestelle).
   - **Phase 3:** beginnt, sobald einer fällt. Der andere wird zornig und **belebt den Partner nach 8 s mit 30 % Leben wieder**, wenn er nicht vorher besiegt wird. Ein Ring-Countdown macht das sichtbar.
   - Die Phasen 1 und 2 richten sich nach dem gemeinsamen Lebensanteil.
-- [ ] **Fairness** (GDD §4.6):
+- [x] **Fairness** (GDD §4.6):
   - Jedes Muster hat einen Telegraph.
   - Bei Paaren gilt höchstens ein Angriff gleichzeitig, außer bei Kombo-Mustern mit gemeinsamem Telegraph.
   - Nach jedem Muster gibt es ein Strafbarkeitsfenster.
-- [ ] **Musik:** Duelle nutzen den Kampf-Track mit dem Bass des Boss-Tracks.
-- [ ] **Bot:** respektiert die Parierhaltung (zaubert oder wartet) und trennt die Zwillinge.
+- [x] **Musik:** Duelle nutzen den Kampf-Track mit dem Bass des Boss-Tracks.
+- [x] **Bot:** respektiert die Parierhaltung (zaubert oder wartet) und trennt die Zwillinge.
 
 **Technik:**
 - Phasen werden aus dem Boss-Code verallgemeinert: `phases` gilt für `boss` und `champion`.
@@ -474,7 +474,20 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
 
 **Abhängig von:** M3.1, M3.4 (Runenfragment als Belohnung)
 
-### M3.6 Zauberlehrer und Ausrüstung (Meta) ⬜
+**Umgesetzt (Abweichungen vom Plan):**
+- **Belohnung:** Runenfragment plus Scherben, Glut und Rissstaub wie in einem Elite-Raum. Die zusätzliche Wahl „seltenes Relikt oder neuer Zauber“ entfällt vorerst.
+- **Glut-Duellant:** Der Dreifach-Stich ist als kurzer und langer Stoß umgesetzt (keine Ketten-Lunge), den Seitschritt übernimmt das normale Umkreisen.
+- **Zwillinge:**
+  - Ohne Kombo-Angriff („Asche wirft Funke“); Phase 2 bringt stattdessen Geschossring und Ansturm.
+  - Eine gemeinsame Lebensleiste statt zwei.
+- **Musik:** Duelle nutzen die normale Kampfmusik.
+- **Lebenspunkte nach Simulator angehoben:** Duellant 700 → 1800, Funke 380 → 900, Asche 480 → 1100. Die Duelle dauerten vorher nur 22 s.
+- **Simulator** (200 Runs, `--fresh`):
+  - balanced 83,0 % Siege, Duell Ø 41 s
+  - aggressive 17,0 % Siege, Duell Ø 28 s
+- **Run-Save v8** (Knotentyp `duel`).
+
+### M3.6 Zauberlehrer und Ausrüstung (Meta) 🔜
 **Ziel:** Zauber werden dauerhaft freigeschaltet und vor dem Run ausgerüstet (E4).
 
 **Umfang:**

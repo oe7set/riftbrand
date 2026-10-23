@@ -151,6 +151,7 @@ const NODE_NAME_KEYS: Record<RoomType, TranslationKey> = {
   horde: 'node.horde.name',
   rest: 'node.rest.name',
   boss: 'node.boss.name',
+  duel: 'node.duel.name',
 };
 
 const NODE_DESC_KEYS: Record<RoomType, TranslationKey> = {
@@ -162,6 +163,7 @@ const NODE_DESC_KEYS: Record<RoomType, TranslationKey> = {
   horde: 'node.horde.desc',
   rest: 'node.rest.desc',
   boss: 'node.boss.desc',
+  duel: 'node.duel.desc',
 };
 
 function MapScreen({ run, onEnter }: Extract<Screen, { kind: 'map' }>) {

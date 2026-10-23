@@ -432,5 +432,11 @@
   "upgrade.heavy_shot.desc": "50 % mehr Schaden, größere Geschosse, mehr Rückstoß.",
   "build.spells": "Zauber",
   "build.level": "Stufe {n}",
-  "build.cast_desc": "Dein Fernkampf-Geschoss mit zwei Ladungen."
+  "build.cast_desc": "Dein Fernkampf-Geschoss mit zwei Ladungen.",
+  "node.duel.name": "Duell",
+  "node.duel.desc": "Ein Kampf gegen einen Mini-Boss mit eigenen Mustern und Phasen. Garantiert ein Runenfragment.",
+  "boss.ember_duelist.name": "DER GLUT-DUELLANT",
+  "boss.twin_spark.name": "FUNKE & ASCHE",
+  "boss.twin_ash.name": "FUNKE & ASCHE",
+  "hud.twin_revive": "Der Zwilling erhebt sich in {n} s – besiege zuerst den anderen!"
 }
