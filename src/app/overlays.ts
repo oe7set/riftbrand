@@ -180,6 +180,18 @@ export class PauseOverlay {
     qualityRow.append(div('rb-setting-label', t('settings.quality')), quality);
     box.append(qualityRow);
 
+    const simple = document.createElement('input');
+    simple.type = 'checkbox';
+    simple.checked = s.simpleGraphics;
+    simple.addEventListener('change', () => {
+      s.simpleGraphics = simple.checked;
+      this.onSettingsChange(s);
+    });
+    const simpleRow = document.createElement('label');
+    simpleRow.className = 'rb-setting rb-setting-inline';
+    simpleRow.append(simple, div('rb-setting-label', t('settings.simple_graphics')));
+    box.append(simpleRow);
+
     const layout = document.createElement('button');
     layout.type = 'button';
     layout.className = 'rb-button rb-small';

@@ -16,6 +16,8 @@ export interface DebugHooks {
   /** Packed enemy code (type + elite modifier, see sim/enemy-code). */
   spawnEnemy(code: number): void;
   killAllEnemies(): void;
+  /** Puts all enemies on a ring around the player (looking at bodies). */
+  gatherEnemies(): void;
   clearRoom(): void;
   warpToExit(): void;
   nextWave(): void;
@@ -141,6 +143,7 @@ export class DebugMenu {
         ),
         el('div', { className: 'rb-debug-row' }, [
           this.button('Kill all', () => this.hooks.killAllEnemies()),
+          this.button('Gather enemies', () => this.hooks.gatherEnemies()),
           this.button('Clear room', () => this.hooks.clearRoom()),
           this.button('Warp to exit', () => this.hooks.warpToExit()),
           this.button('Next wave', () => this.hooks.nextWave()),

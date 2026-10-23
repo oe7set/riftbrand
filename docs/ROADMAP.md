@@ -650,9 +650,9 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
   Das Budget fürs Rendering liegt bei 8 ms. Die FPS werden im Container von der Software-Grafik begrenzt; die echte Messung am OnePlus 13 macht der PO.
 - **ADR 0005**, TECH_DESIGN §34.
 
-### M4.2 Alle Kreaturen der Aschefelder ⬜
+### M4.2 Alle Kreaturen der Aschefelder ✅
 **Umfang:**
-- [ ] **Rigs für alle Gegner der Aschefelder:**
+- [x] **Rigs für alle Gegner der Aschefelder:**
   - **Funkenspucker:** aufgeblähter Krötenkörper, der Kehlsack bläht sich beim Laden
   - **Splitterkoloss:** Golem mit Splitter-Schultern, hebt die Arme zum Bodenschlag
   - **Glutmilbe:** Insekt mit sechs Beinen
@@ -660,14 +660,32 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
   - **Glutleger:** Käfer, der aus dem Hinterleib Minen legt
   - **Glutwächter:** Koloss mit Armen und Brustkern; der Phasenwechsel ist sichtbar (Rüstung bricht ab)
   - **Glut-Duellant** und die **Zwillinge**
-- [ ] **Elite-Modifikatoren am Körper sichtbar:**
+- [x] **Elite-Modifikatoren am Körper sichtbar:**
   - geschirmt: Schild am Arm
   - hastig: Funkenschweif
   - flüchtig: pulsierender Kern
-- [ ] Status-Darstellung aus M3.1 an die Körper anpassen (Eiskruste auf den Teilen, Gift tropft von den Teilen).
-- [ ] Der klassische Look bleibt als Option „Einfache Grafik“ für schwache Geräte.
+- [x] Status-Darstellung aus M3.1 an die Körper anpassen (Eiskruste auf den Teilen, Gift tropft von den Teilen).
+- [x] Der klassische Look bleibt als Option „Einfache Grafik“ für schwache Geräte.
 
 **Abhängig von:** M4.1 (Entscheidung des PO)
+
+**Umgesetzt:**
+- **10 Rigs** in `src/content/rigs/`: Schlacke, Funkenspucker, Splitterkoloss, Glutmilbe, Aschenpriester, Glutleger, Glut-Duellant, Funke, Asche und Glutwächter. Standard-Gegner haben höchstens 8 Teile, Champions und Boss höchstens 20 (Content-Test).
+- **Neue Rig-Kanäle:**
+  - `windupScale` und `strikeScale`: Der Kehlsack des Funkenspuckers bläht sich, Kerne schwellen an.
+  - `castX` und `castY`, dazu die Parierhaltung über den cast-Kanal: Der Duellant hebt Buckler und Klinge.
+  - `hoverUnits` lässt Aschenpriester und Funke schweben.
+  - `untilPhase`: Beim Glutwächter brechen Brust- und Schulterplatten in Phase 2 ab und legen den Kern frei.
+- **Elite-Merkmale am Körper:**
+  - flüchtig: Der Glow pulsiert rot.
+  - hastig: Funkenschweif beim Laufen, Glow in Elite-Farbe.
+  - geschirmt: Der Schild wird vor dem Körper getragen.
+- **Status an den Körpern:**
+  - Glut steigt von den Teilen auf, Gift tropft von ihnen herab.
+  - Eiskruste und Frost-Hülle liegen als Ellipse um die aufrechte Figur.
+  - Die Symbole sitzen über dem Kopf.
+- **„Einfache Grafik“** in Pause → Einstellungen schaltet auf die klassischen Formen (Settings v7).
+- **Debug-Menü:** „Gather enemies“ stellt alle Gegner im Kreis um Vesper auf, zum Anschauen.
 
 ### M4.3 Icon-Set im Neon-Stil ⬜
 **Ziel:** Segen, Relikte, Zauber, Upgrades, Status und Map-Knoten sind an ihren Icons erkennbar, ohne dass man Text lesen muss.
@@ -1023,6 +1041,7 @@ Richtwerte. Wenn sich die Reihenfolge der Pakete ändert, verschieben sich die N
 | M3.6 | | **v2** | | freigeschaltete und entdeckte Zauber, Ausrüstung |
 | nach M3 ✅ | **v5** | | | Einstellung „Aura-Ring um Vesper anzeigen“ (Standard: aus) |
 | nach M4.1 ✅ | **v6** | | | Sprachauswahl in den Einstellungen (Automatisch, English, Deutsch) |
+| M4.2 ✅ | **v7** | | | „Einfache Grafik“ (klassische Formen) |
 | M5.2 | | **v3** | **v9** | Welt-Fortschritt, `worldId` |
 | M5.3 | | **v4** | | Materialien, Gebäude-Stufen |
 | M5.4 | | **v5** | | Rüstungen |

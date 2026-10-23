@@ -37,6 +37,9 @@ const MAX_BUBBLES_PER_SEC = 14;
 /** Trail particles per second behind player projectiles. */
 const RIFT_TRAIL_PER_SEC = 40;
 const FIREBIRD_TRAIL_PER_SEC = 70;
+/** Spark trail of hasty elites (ROADMAP M4.2), only while they actually move. */
+const HASTE_TRAIL_PER_SEC = 30;
+const HASTE_TRAIL_MIN_SPEED_PX_PER_SEC = 40;
 
 /** Colour of a status from its event code (content/statuses visual colour). */
 function statusColor(code: number): number {
@@ -64,6 +67,8 @@ export class FeedbackDirector {
   /** One duel banner per room, even when two twins spawn. */
   championAnnounced = false;
   private afterimageTimer = 0;
+  /** Scratch point for particles that start on a rigged body. */
+  private readonly bodyPoint = { x: 0, y: 0 };
   private panWidth = 960;
 
   constructor(
@@ -109,25 +114,51 @@ export class FeedbackDirector {
   private emitStatusParticles(sim: SimState, dtSec: number): void {
     if (dtSec <= 0) return;
     const { world, c } = sim;
+    const entities = this.view.entities;
+    const point = this.bodyPoint;
     for (let eid = 0; eid < world.highWater; eid++) {
       if (((world.masks[eid] as number) & C.Enemy) === 0) continue;
-      const x = c.posX[eid] as number;
-      const y = c.posY[eid] as number;
       const r = c.radius[eid] as number;
       // Poisson-ish: expected particles this frame, resolved with a random draw (cosmetic only).
       const burn = stacksOf(c, eid, Status.Burn);
       if (burn > 0) {
         const expected = Math.min(MAX_EMBERS_PER_SEC, burn * EMBERS_PER_STACK_PER_SEC) * dtSec;
-        if (Math.random() < expected) this.view.effects.ember(x, y, r);
+        if (Math.random() < expected) {
+          // Rig bodies smoulder from their parts; classic shapes from their outline.
+          if (entities.bodyPoint(eid, point)) this.view.effects.ember(point.x, point.y, r * 0.25);
+          else this.view.effects.ember(c.posX[eid] as number, c.posY[eid] as number, r);
+        }
       }
       const poison = stacksOf(c, eid, Status.Poison);
       if (poison > 0) {
         const expected = Math.min(MAX_BUBBLES_PER_SEC, poison * BUBBLES_PER_STACK_PER_SEC) * dtSec;
         if (Math.random() < expected) {
-          this.view.effects.poisonBubble(x, y, r, statusDef(Status.Poison).visual.color);
+          const color = statusDef(Status.Poison).visual.color;
+          if (entities.bodyPoint(eid, point)) this.view.effects.poisonDrip(point.x, point.y, color);
+          else
+            this.view.effects.poisonBubble(c.posX[eid] as number, c.posY[eid] as number, r, color);
         }
       }
+      const elite = eliteOf(c.eliteMod[eid] as number);
+      if (elite && elite.speedMultiplier > 1) this.emitHasteTrail(sim, eid, elite.color, dtSec);
     }
+  }
+
+  private emitHasteTrail(sim: SimState, eid: number, color: number, dtSec: number): void {
+    const c = sim.c;
+    const vx = c.velX[eid] as number;
+    const vy = c.velY[eid] as number;
+    const speed = Math.sqrt(vx * vx + vy * vy);
+    if (speed < HASTE_TRAIL_MIN_SPEED_PX_PER_SEC) return;
+    if (Math.random() >= HASTE_TRAIL_PER_SEC * dtSec) return;
+    this.view.effects.hasteSpark(
+      c.posX[eid] as number,
+      c.posY[eid] as number,
+      -vx / speed,
+      -vy / speed,
+      c.radius[eid] as number,
+      color,
+    );
   }
 
   private emitTrails(sim: SimState, dtSec: number): void {
@@ -280,6 +311,7 @@ export class FeedbackDirector {
         break;
       case Ev.BossPhase: {
         const last = e.value >= 2;
+        this.view.entities.shedArmour(e.eid, e.value);
         fx.waveCleared(e.x, e.y);
         fx.ultimateCharge(e.x, e.y, last ? PALETTE.hpFill : PALETTE.ultimate);
         shake.add(0.8);

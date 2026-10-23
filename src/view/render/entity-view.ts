@@ -76,6 +76,7 @@ export class EntityView {
   private readonly facingSign = new Int8Array(4096);
   private readonly rigInput: RigInput = createRigInput();
   private readonly partScratch = { x: 0, y: 0, rotation: 0 };
+  private readonly worldScratch = { x: 0, y: 0 };
   /** Rig index per enemy type, -1 = classic shape. */
   private readonly enemyRig: Int8Array;
   private readonly playerRig: number;
@@ -413,6 +414,7 @@ export class EntityView {
     y: number,
     r: number,
     topY: number,
+    stretchY: number,
   ): void {
     const c = sim.c;
     const frozen = (c.frozenTicks[eid] as number) > 0;
@@ -436,7 +438,7 @@ export class EntityView {
       aura.tint = PALETTE.frozen;
       aura.alpha = 0.35;
       aura.position.set(x, y);
-      aura.scale.set((r * 1.35) / BAKE_RADIUS_PX);
+      aura.scale.set((r * 1.35) / BAKE_RADIUS_PX, (r * 1.35 * stretchY) / BAKE_RADIUS_PX);
     } else if (burn > 0) {
       aura.visible = true;
       aura.texture = this.textures.dot;
@@ -462,7 +464,8 @@ export class EntityView {
       crust.tint = PALETTE.frost;
       crust.position.set(x, y);
       crust.rotation = 0;
-      crust.scale.set((r * (1.1 + 0.06 * chill)) / BAKE_RADIUS_PX);
+      const crustR = (r * (1.1 + 0.06 * chill)) / BAKE_RADIUS_PX;
+      crust.scale.set(crustR, crustR * stretchY);
       crust.alpha = 0.3 + 0.12 * chill;
     }
 
@@ -527,7 +530,9 @@ export class EntityView {
     // Upright rig bodies rise above the ground point; glows and bars follow the body.
     const bodyY = rig ? y - rig.centerUnits * r : y;
     const headY = rig ? y - rig.heightUnits * r : y - r * 1.05;
-    this.syncStatus(sim, eid, s, x, bodyY, r, headY);
+    // Upright bodies are taller than wide: shells and crusts become ellipses around them.
+    const stretchY = rig ? Math.max(1, (rig.heightUnits + 0.6) / (2 * rig.shadowUnits)) : 1;
+    this.syncStatus(sim, eid, s, x, bodyY, r, headY, stretchY);
     this.syncElite(sim, eid, s, x, y, r);
 
     const hp = c.hp[eid] as number;
@@ -746,11 +751,53 @@ export class EntityView {
     if (isPlayer) this.playerRigInput(sim, input);
     else this.enemyRigInput(sim, eid, input);
 
-    rig.update(input, x, y, r, facing, sx * pop, sy * pop, flashing);
+    rig.update(
+      input,
+      x,
+      y,
+      r,
+      facing,
+      sx * pop,
+      sy * pop,
+      flashing,
+      isPlayer ? 0 : (c.aiPhase[eid] as number),
+    );
     rig.root.tint = s.body.tint;
     rig.root.alpha = s.body.alpha;
     rig.shadow.tint = def.colors.body;
     rig.shadow.alpha = 0.22 * s.body.alpha;
+    this.syncRigElite(sim, eid, s, rig, x, y - def.centerUnits * r, r, facing);
+  }
+
+  /**
+   * Elite modifiers on the body (ROADMAP M4.2): volatile = pulsing core glow, hasty = glow in
+   * the elite colour (its spark trail comes from feedback), shielded = shield held in front.
+   */
+  private syncRigElite(
+    sim: SimState,
+    eid: number,
+    s: Slot,
+    rig: RigInstance,
+    x: number,
+    bodyY: number,
+    r: number,
+    facing: number,
+  ): void {
+    const def = rig.baked.layout.rig;
+    const elite = eid === sim.playerEid ? undefined : eliteOf(sim.c.eliteMod[eid] as number);
+    if (elite?.deathBlastRadiusPx) {
+      rig.setGlow(elite.color, 0.4 + 0.3 * Math.sin(this.time * 9 + eid));
+    } else if (elite) {
+      rig.setGlow(elite.color, Math.max(def.glowAlpha, 0.35));
+    } else {
+      rig.setGlow(def.colors.body, def.glowAlpha);
+    }
+    // The shield arc (elite shield or parry stance) becomes a shield held before the body.
+    if (s.shield.visible) {
+      s.shield.position.set(x + facing * r * 0.75, bodyY);
+      s.shield.rotation = facing > 0 ? 0 : Math.PI;
+      s.shield.scale.set((r * 0.75) / BAKE_RADIUS_PX);
+    }
   }
 
   /**
@@ -812,9 +859,13 @@ export class EntityView {
     const atk = attackOf(def, c.aiPhase[eid] as number, c.aiPattern[eid] as number);
     const ticks = c.aiTicks[eid] as number;
     switch (c.aiState[eid]) {
-      case AiState.Windup:
-        input.windup = Math.min(1, ticks / Math.max(1, secondsToTicks(atk.windupSec)));
+      case AiState.Windup: {
+        const t = Math.min(1, ticks / Math.max(1, secondsToTicks(atk.windupSec)));
+        // A parry stance is a held pose, not a wind-up to a strike.
+        if (atk.kind === 'guard') input.cast = Math.min(1, t * 4);
+        else input.windup = t;
         break;
+      }
       case AiState.Active:
         input.strike = 1;
         break;
@@ -827,45 +878,88 @@ export class EntityView {
     }
   }
 
+  /** World position of the centre of part `i` of a drawn rig. */
+  private partWorld(rig: RigInstance, i: number, out: { x: number; y: number }): void {
+    const part = rig.baked.parts[i];
+    if (!part) return;
+    rig.partPose(i, this.partScratch);
+    const p = this.partScratch;
+    const root = rig.root;
+    const unit = Math.abs(root.scale.y);
+    const mirror = root.scale.x < 0 ? -1 : 1;
+    const cos = Math.cos(p.rotation);
+    const sin = Math.sin(p.rotation);
+    const lx = (p.x + cos * part.centerX - sin * part.centerY) * BAKE_RADIUS_PX;
+    const ly = (p.y + sin * part.centerX + cos * part.centerY) * BAKE_RADIUS_PX;
+    out.x = root.position.x + lx * unit * mirror;
+    out.y = root.position.y + ly * unit;
+  }
+
+  private visibleRig(eid: number): RigInstance | undefined {
+    const slot = this.slots[eid];
+    if (!slot) return undefined;
+    for (const rig of slot.rigs) if (rig?.visible) return rig;
+    return undefined;
+  }
+
+  /**
+   * A random point on the drawn body (status embers and poison drips come off the parts, ROADMAP
+   * M4.2). Returns false for entities without a visible rig.
+   */
+  bodyPoint(eid: number, out: { x: number; y: number }): boolean {
+    const rig = this.visibleRig(eid);
+    if (!rig) return false;
+    const n = rig.baked.parts.length;
+    // Cosmetic randomness only (view side).
+    let i = Math.floor(Math.random() * n);
+    for (let k = 0; k < n && !rig.partVisible(i); k++) i = (i + 1) % n;
+    this.partWorld(rig, i, out);
+    return true;
+  }
+
+  private flingPart(rig: RigInstance, i: number, dirX: number, dirY: number): void {
+    const part = rig.baked.parts[i];
+    if (!part || !rig.partVisible(i)) return;
+    this.partWorld(rig, i, this.worldScratch);
+    const root = rig.root;
+    const unit = Math.abs(root.scale.y);
+    const mirror = root.scale.x < 0 ? -1 : 1;
+    const out = Math.atan2(
+      this.worldScratch.y - root.position.y,
+      this.worldScratch.x - root.position.x,
+    );
+    this.effects.rigPart(
+      part.normal,
+      this.worldScratch.x,
+      this.worldScratch.y,
+      this.partScratch.rotation * mirror,
+      unit,
+      mirror,
+      rig.baked.layout.rig.colors.body,
+      Math.cos(out) * 0.6 + dirX,
+      Math.sin(out) * 0.6 + dirY - 0.4,
+    );
+  }
+
   /**
    * Death (ROADMAP M4.1): the rigged body breaks into its parts, which fly apart and burn out.
    * Uses the last drawn pose, so call it before the next sync.
    */
   shatter(eid: number, dirX: number, dirY: number): void {
-    const slot = this.slots[eid];
-    if (!slot) return;
-    for (const rig of slot.rigs) {
-      if (!rig?.visible) continue;
-      const root = rig.root;
-      const unit = Math.abs(root.scale.y);
-      const mirror = root.scale.x < 0 ? -1 : 1;
-      const color = rig.baked.layout.rig.colors.body;
-      const parts = rig.baked.parts;
-      for (let i = 0; i < parts.length; i++) {
-        const part = parts[i];
-        if (!part) continue;
-        rig.partPose(i, this.partScratch);
-        const p = this.partScratch;
-        const cos = Math.cos(p.rotation);
-        const sin = Math.sin(p.rotation);
-        const lx = (p.x + cos * part.centerX - sin * part.centerY) * BAKE_RADIUS_PX;
-        const ly = (p.y + sin * part.centerX + cos * part.centerY) * BAKE_RADIUS_PX;
-        const wx = root.position.x + lx * unit * mirror;
-        const wy = root.position.y + ly * unit;
-        const out = Math.atan2(ly, lx * mirror);
-        this.effects.rigPart(
-          part.normal,
-          wx,
-          wy,
-          p.rotation * mirror,
-          unit,
-          mirror,
-          color,
-          Math.cos(out) * 0.6 + dirX,
-          Math.sin(out) * 0.6 + dirY - 0.4,
-        );
-      }
-      rig.visible = false;
+    const rig = this.visibleRig(eid);
+    if (!rig) return;
+    for (let i = 0; i < rig.baked.parts.length; i++) this.flingPart(rig, i, dirX, dirY);
+    rig.visible = false;
+  }
+
+  /** Boss phase change (ROADMAP M4.2): armour that only lasts until `phase` breaks off. */
+  shedArmour(eid: number, phase: number): void {
+    const rig = this.visibleRig(eid);
+    if (!rig) return;
+    const parts = rig.baked.layout.rig.parts;
+    for (let i = 0; i < parts.length; i++) {
+      const until = parts[i]?.untilPhase;
+      if (until !== undefined && until <= phase) this.flingPart(rig, i, 0, -0.3);
     }
   }
 }

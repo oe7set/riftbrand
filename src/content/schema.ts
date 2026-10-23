@@ -968,8 +968,16 @@ const rigMotionSchema = z.object({
   strikeDeg: z.number().default(0),
   strikeX: z.number().default(0),
   strikeY: z.number().default(0),
-  /** Pose while casting a spell or the rift shot. */
+  /** Scale added at full windup / strike (a throat sac inflating, a core swelling). */
+  windupScale: z.number().min(-0.9).max(2).default(0),
+  strikeScale: z.number().min(-0.9).max(2).default(0),
+  /**
+   * Special pose: the player's spell or rift shot; an enemy's guard stance (parry) or
+   * summoning cast.
+   */
   castDeg: z.number().default(0),
+  castX: z.number().default(0),
+  castY: z.number().default(0),
   /** Trails behind at speed (cape, tail): rotation at full speed. */
   lagDeg: z.number().default(0),
   /** Extra wobble at twice the walk rate (cloth, flames). */
@@ -986,6 +994,8 @@ const rigPartSchema = z.object({
   rotationDeg: z.number().default(0),
   /** Draw order, back to front; independent of the parent order (a back leg hangs off the torso). */
   z: z.number().int().min(0).max(31),
+  /** Shown only before this boss phase (0-based): armour that breaks off at a phase change. */
+  untilPhase: z.number().int().min(1).optional(),
   shapes: z.array(rigShapeSchema).min(1),
   motion: rigMotionSchema.default(rigMotionSchema.parse({})),
 });
@@ -1010,6 +1020,8 @@ export const rigSchema = z.object({
   /** Distance covered per full walk cycle and the body bob per step, rig units. */
   strideUnits: z.number().positive(),
   bobUnits: z.number().min(0).default(0),
+  /** Floating bodies (robes, spirits) drift up and down by this much, rig units. */
+  hoverUnits: z.number().min(0).default(0),
   /** Forward lean at full speed. */
   leanDeg: z.number().default(0),
   /** Top of the head: health bars and halos sit above it. */

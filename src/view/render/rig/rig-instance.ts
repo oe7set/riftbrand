@@ -63,6 +63,17 @@ export class RigInstance {
     return this.root.visible;
   }
 
+  /** Glow colour and strength; elites and statuses recolour it, otherwise the rig's own. */
+  setGlow(color: number, alpha: number): void {
+    this.glow.tint = color;
+    this.glow.alpha = alpha;
+  }
+
+  /** Whether part `i` is drawn (armour breaks off at boss phases). */
+  partVisible(i: number): boolean {
+    return this.sprites[i]?.visible ?? false;
+  }
+
   /** Current world pose of part `i` in rig units (valid after `update`). */
   partPose(i: number, out: { x: number; y: number; rotation: number }): void {
     const o = i * POSE_STRIDE;
@@ -73,7 +84,7 @@ export class RigInstance {
 
   /**
    * `unitPx` is the entity radius (1 rig unit), `facing` ±1 mirrors the side view, `sx`/`sy`
-   * add the hit squash and spawn pop.
+   * add the hit squash and spawn pop, `phase` hides armour of earlier boss phases.
    */
   update(
     input: RigInput,
@@ -84,8 +95,10 @@ export class RigInstance {
     sx: number,
     sy: number,
     flash: boolean,
+    phase: number,
   ): void {
     poseRig(this.baked.layout, input, this.pose);
+    const defs = this.baked.layout.rig.parts;
     const parts = this.baked.parts;
     if (flash !== this.flashing) {
       this.flashing = flash;
@@ -98,6 +111,8 @@ export class RigInstance {
     for (let i = 0; i < parts.length; i++) {
       const sprite = this.sprites[i];
       if (!sprite) continue;
+      const until = defs[i]?.untilPhase;
+      sprite.visible = until === undefined || phase < until;
       const o = i * POSE_STRIDE;
       sprite.position.set(
         (this.pose[o] as number) * BAKE_RADIUS_PX,

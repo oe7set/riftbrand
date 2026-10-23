@@ -529,6 +529,19 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
   - Das Dash-Nachbild nutzt die Rig-Silhouette (`EntityView.rigAfterimage`).
 - **Debug-Handle:** `setRigLook`, `spawnEnemy`, `setGodMode`, `setTimeScale` und `renderMs` für Look-Vergleich und Leistungsmessung.
 
+## 35. Stand nach M4.2 (alle Kreaturen als Rigs)
+- **Content:** 10 Rigs, `ENEMY_RIGS` ordnet jedem Gegner der Aschefelder einen Rig zu. Neue Schema-Felder:
+  - Teile: `untilPhase`
+  - Bewegungskanäle: `windupScale`, `strikeScale`, `castX`, `castY`
+  - Rig: `hoverUnits`
+- **Gegner-Eingaben:** Ausholen bzw. Zuschlagen kommen aus `aiState`. Die Parierhaltung (`guard`) nutzt den cast-Kanal. `RigInstance.update()` bekommt die Boss-Phase (`aiPhase`) und blendet Teile mit `untilPhase` aus.
+- **Feedback:**
+  - `Ev.BossPhase` → `EntityView.shedArmour()` lässt die Platten als Teile-Partikel abfliegen.
+  - Status-Partikel starten an zufälligen Körperteilen (`EntityView.bodyPoint()`, neuer Effekt `poisonDrip`).
+  - Hastige Elites ziehen einen Funkenschweif (`hasteSpark`).
+- **Elite-Darstellung** (`syncRigElite`): Glow-Farbe bzw. Puls über `RigInstance.setGlow()`. Der Schildbogen wird vor die Figur gesetzt.
+- **Einstellungen v7:** `simpleGraphics` schaltet `EntityView.look` auf 'classic'.
+
 ## 35. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|

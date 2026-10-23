@@ -1,0 +1,142 @@
+import { defineRig } from '../schema';
+
+/**
+ * Asche (ROADMAP M4.2): a hunched ash giant with smouldering seams and a plume of smoke; heavy
+ * fists rise for the slam.
+ */
+export const TWIN_ASH_RIG = defineRig({
+  id: 'twin_ash',
+  colors: { body: 0x9a8a80, accent: 0x4f4440, core: 0xff9a4d },
+  strideUnits: 1.6,
+  bobUnits: 0.05,
+  leanDeg: 6,
+  heightUnits: 1.15,
+  centerUnits: 0.4,
+  shadowUnits: 0.9,
+  visualScale: 1.15,
+  glowAlpha: 0.12,
+  parts: [
+    {
+      id: 'torso',
+      x: 0,
+      y: 0.15,
+      z: 3,
+      rotationDeg: 12,
+      shapes: [
+        {
+          kind: 'ellipse',
+          x: 0,
+          y: -0.5,
+          rx: 0.55,
+          ry: 0.5,
+          fill: 'body',
+          fillAlpha: 0.25,
+          stroke: 'body',
+          strokeWidth: 0.08,
+        },
+        {
+          kind: 'line',
+          points: [-0.35, -0.75, -0.1, -0.5, -0.2, -0.2],
+          stroke: 'core',
+          strokeWidth: 0.06,
+          glow: true,
+        },
+        {
+          kind: 'line',
+          points: [0.15, -0.85, 0.3, -0.45],
+          stroke: 'core',
+          strokeWidth: 0.05,
+          glow: true,
+        },
+        {
+          kind: 'line',
+          points: [-0.45, -0.35, -0.2, -0.05, 0.05, -0.15],
+          stroke: 'core',
+          strokeWidth: 0.05,
+          glow: true,
+        },
+      ],
+      motion: { breath: 0.04, windupDeg: -18, strikeDeg: 16, strikeX: 0.15 },
+    },
+    {
+      id: 'plume',
+      parent: 'torso',
+      x: -0.3,
+      y: -0.9,
+      z: 0,
+      shapes: [
+        {
+          kind: 'poly',
+          points: [0, 0, 0.15, -0.1, -0.1, -0.55, -0.35, -0.7, -0.25, -0.3],
+          fill: 'accent',
+          fillAlpha: 0.45,
+        },
+      ],
+      motion: { lagDeg: -20, flutterDeg: 10 },
+    },
+    {
+      id: 'leg_back',
+      parent: 'torso',
+      x: -0.25,
+      y: -0.05,
+      z: 1,
+      shapes: [{ kind: 'line', points: [0, 0, 0, 0.5], stroke: 'accent', strokeWidth: 0.22 }],
+      motion: { walkSwingDeg: 20, walkPhase: 0.5, walkLift: 0.05 },
+    },
+    {
+      id: 'leg_front',
+      parent: 'torso',
+      x: 0.15,
+      y: -0.05,
+      z: 4,
+      shapes: [{ kind: 'line', points: [0, 0, 0, 0.5], stroke: 'body', strokeWidth: 0.22 }],
+      motion: { walkSwingDeg: 20, walkPhase: 0, walkLift: 0.05 },
+    },
+    {
+      id: 'arm_back',
+      parent: 'torso',
+      x: -0.1,
+      y: -0.82,
+      z: 2,
+      shapes: [
+        { kind: 'line', points: [0, 0, 0.1, 0.75], stroke: 'accent', strokeWidth: 0.2 },
+        { kind: 'ellipse', x: 0.1, y: 0.82, rx: 0.2, ry: 0.17, fill: 'accent' },
+      ],
+      motion: { walkSwingDeg: 16, walkPhase: 0, windupDeg: -160, strikeDeg: -30 },
+    },
+    {
+      id: 'head',
+      parent: 'torso',
+      x: 0.45,
+      y: -0.7,
+      z: 5,
+      shapes: [
+        {
+          kind: 'ellipse',
+          x: 0.12,
+          y: 0,
+          rx: 0.22,
+          ry: 0.2,
+          fill: 'body',
+          fillAlpha: 0.45,
+          stroke: 'body',
+          strokeWidth: 0.06,
+        },
+        { kind: 'ellipse', x: 0.2, y: -0.03, rx: 0.06, ry: 0.05, fill: 'core', glow: true },
+      ],
+      motion: { windupDeg: -14, strikeDeg: 18 },
+    },
+    {
+      id: 'arm_front',
+      parent: 'torso',
+      x: 0.25,
+      y: -0.8,
+      z: 6,
+      shapes: [
+        { kind: 'line', points: [0, 0, 0.1, 0.75], stroke: 'body', strokeWidth: 0.22 },
+        { kind: 'ellipse', x: 0.1, y: 0.84, rx: 0.22, ry: 0.19, fill: 'body', fillAlpha: 0.7 },
+      ],
+      motion: { walkSwingDeg: 16, walkPhase: 0.5, windupDeg: -165, strikeDeg: -35 },
+    },
+  ],
+});

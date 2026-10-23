@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const STORAGE_KEY = 'riftbrand.settings';
-export const SETTINGS_VERSION = 6;
+export const SETTINGS_VERSION = 7;
 
 const unit = z.number().min(0).max(1);
 
@@ -18,7 +18,7 @@ const layoutProfile = z.partialRecord(
 
 /**
  * Player settings (GDD §13). Every field has a default via `.catch`, so a missing, corrupt or
- * older save never breaks loading: v1 → … → v6 is exactly that (new fields get their defaults).
+ * older save never breaks loading: v1 → … → v7 is exactly that (new fields get their defaults).
  * New fields → bump SETTINGS_VERSION and extend migrate.
  */
 const settingsSchema = z.object({
@@ -43,6 +43,8 @@ const settingsSchema = z.object({
   auraRing: z.boolean().catch(false),
   // v6: language picked in the settings; 'auto' follows the browser.
   language: z.enum(['auto', 'en', 'de']).catch('auto'),
+  // v7 (M4.2): classic glowing shapes instead of animated bodies, for weak devices.
+  simpleGraphics: z.boolean().catch(false),
 });
 
 export type Settings = z.infer<typeof settingsSchema>;

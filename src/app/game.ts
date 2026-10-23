@@ -52,6 +52,7 @@ import type { RoomReport } from '../sim/bot/autoplay';
 import {
   debugApplyStatus,
   debugClearRoom,
+  debugGatherEnemies,
   debugKillAllEnemies,
   debugNextWave,
   debugSpawnEnemy,
@@ -126,6 +127,7 @@ import {
 } from '../sim/sim';
 import { TICK_DT_SEC, TICK_RATE_HZ } from '../sim/time';
 import { GameView } from '../view/game-view';
+import { worldToScreen } from '../view/render/camera';
 import { type NavDirection, navigate } from '../view/ui/spatial-nav';
 import { Ui } from '../view/ui/ui';
 import { DebugMenu, type DebugStats } from './debug/debug-menu';
@@ -136,6 +138,8 @@ import { DeathOverlay, PauseOverlay } from './overlays';
 declare const __APP_VERSION__: string;
 declare const __GIT_HASH__: string;
 
+/** Ring radius for the debug "Gather enemies" button. */
+const DEBUG_GATHER_RADIUS_PX = 150;
 /** Longest frame we simulate; anything longer (tab switch, breakpoint) is treated as a hitch. */
 const MAX_FRAME_DT_SEC = 0.25;
 const STATS_SMOOTHING = 0.05;
@@ -193,10 +197,14 @@ export interface RiftbrandDebugHandle {
   /** Look comparison and stress tests (ROADMAP M4.1 performance check). */
   setRigLook(enabled: boolean): void;
   spawnEnemy(code: number): void;
+  gatherEnemies(): void;
+  applyStatus(id: string, stacks: number): void;
   setGodMode(enabled: boolean): void;
   setTimeScale(scale: number): void;
   /** Smoothed render time per frame (ms), for look comparisons. */
   renderMs(): number;
+  /** CSS pixel position of a world point (screenshots of single creatures). */
+  screenOf(x: number, y: number): { x: number; y: number };
 }
 
 declare global {
@@ -283,6 +291,7 @@ export class Game {
         clearDrifters: () => clearDrifters(this.sim),
         spawnEnemy: (code) => debugSpawnEnemy(this.sim, code),
         killAllEnemies: () => debugKillAllEnemies(this.sim),
+        gatherEnemies: () => debugGatherEnemies(this.sim, DEBUG_GATHER_RADIUS_PX),
         clearRoom: () => debugClearRoom(this.sim),
         warpToExit: () => debugWarpToExit(this.sim),
         nextWave: () => debugNextWave(this.sim),
@@ -1063,6 +1072,7 @@ export class Game {
     this.view.damageNumbers.enabled = s.damageNumbers;
     this.view.entities.statusIcons.enabled = s.statusIcons;
     this.view.effects.auraRingEnabled = s.auraRing;
+    this.view.entities.look = s.simpleGraphics ? 'classic' : 'rig';
     this.view.setGlowQuality(s.quality);
     this.haptics.intensity = s.vibration;
     this.view.setTouchOpacity(s.touchOpacity);
@@ -1158,6 +1168,11 @@ export class Game {
         this.view.entities.look = on ? 'rig' : 'classic';
       },
       spawnEnemy: (code) => debugSpawnEnemy(sim(), code),
+      gatherEnemies: () => debugGatherEnemies(sim(), DEBUG_GATHER_RADIUS_PX),
+      applyStatus: (id, stacks) => {
+        const parsed = statusIdSchema.safeParse(id);
+        if (parsed.success) debugApplyStatus(sim(), parsed.data, stacks);
+      },
       setGodMode: (on) => {
         sim().debug.godMode = on;
       },
@@ -1165,6 +1180,7 @@ export class Game {
         this.debugTimeScale = scale;
       },
       renderMs: () => this.stats.renderMsAvg,
+      screenOf: (x, y) => worldToScreen(this.view.camera, x, y, { x: 0, y: 0 }),
     };
   }
 

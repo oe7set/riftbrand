@@ -6,6 +6,8 @@ export const POSE_STRIDE = 4;
 
 const DEG = Math.PI / 180;
 const TAU = Math.PI * 2;
+/** One float up and down of hovering bodies. */
+const HOVER_SEC = 1.7;
 
 /** Precomputed lookups so posing needs no searches or allocations per frame. */
 export interface RigLayout {
@@ -137,7 +139,9 @@ export function poseRig(layout: RigLayout, input: RigInput, out: Float32Array): 
   const move = input.move;
   const walk = input.walkCycles;
   const breathe = Math.sin((TAU * input.timeSec) / RIG_TUNING.breathSec) * (1 - move);
-  const bob = rig.bobUnits * Math.abs(Math.sin(TAU * walk)) * move;
+  const bob =
+    rig.bobUnits * Math.abs(Math.sin(TAU * walk)) * move +
+    rig.hoverUnits * (0.5 + 0.5 * Math.sin((TAU * input.timeSec) / HOVER_SEC));
   const rootLeanDeg = rig.leanDeg * (move + input.lean) - RIG_TUNING.twitchDeg * input.twitch;
   const weaponDir = weaponDirDeg(layout, input);
   const reach = weaponReach(layout, input);
@@ -155,11 +159,12 @@ export function poseRig(layout: RigLayout, input: RigInput, out: Float32Array): 
       m.castDeg * input.cast +
       m.lagDeg * move +
       m.flutterDeg * Math.sin(TAU * 2 * walk + i) * move;
-    let lx = part.x + m.windupX * input.windup + m.strikeX * input.strike;
+    let lx = part.x + m.windupX * input.windup + m.strikeX * input.strike + m.castX * input.cast;
     let ly =
       part.y +
       m.windupY * input.windup +
-      m.strikeY * input.strike -
+      m.strikeY * input.strike +
+      m.castY * input.cast -
       m.walkLift * Math.max(0, -Math.cos(TAU * (walk + m.walkPhase))) * move;
     const p = layout.parent[i] as number;
     const o = i * POSE_STRIDE;
@@ -193,6 +198,7 @@ export function poseRig(layout: RigLayout, input: RigInput, out: Float32Array): 
     out[o] = px + c * lx - s * ly;
     out[o + 1] = py + s * lx + c * ly;
     out[o + 2] = wr;
-    out[o + 3] = 1 + m.breath * breathe;
+    out[o + 3] =
+      1 + m.breath * breathe + m.windupScale * input.windup + m.strikeScale * input.strike;
   }
 }
