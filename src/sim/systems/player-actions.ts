@@ -1,5 +1,6 @@
 import { BRAND_BURST, RIFT_SHOT } from '../../content/abilities';
 import type { BurstVariant, MeleeHitDef } from '../../content/schema';
+import { spellReachPx } from '../../content/spells';
 import { TUNING } from '../../content/tuning';
 import { BRAND_BLADE } from '../../content/weapons/brand-blade';
 import { Button, type InputFrame } from '../../shared/input-frame';
@@ -235,7 +236,7 @@ function startAction(state: SimState, next: BufferedId, input: InputFrame): void
     if (e) e.value = burstCode(state);
   } else if (next === Buffered.Spell) {
     const def = activeSpellDef(state);
-    resolveAttackDir(state, input, dirScratch, Math.max(def?.effect.rangePx ?? 0, 200));
+    resolveAttackDir(state, input, dirScratch, Math.max(def ? spellReachPx(def) : 0, 200));
     p.dirX = dirScratch.x;
     p.dirY = dirScratch.y;
     startSpellCooldown(state);

@@ -20,6 +20,7 @@ export const EMBER_MANTLE = defineSpell({
     stacks: 1,
     freeze: false,
     knockback: 0,
+    delaySec: 0,
   },
   visual: { color: 0xffa64d, glyph: 'flame' },
 });

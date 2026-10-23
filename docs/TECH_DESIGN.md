@@ -472,7 +472,14 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Darstellung:** gebackene Zauber-Icons (Raute, Aura mit Ring) in `textures.ts`; HUD zeigt beide Slots unter der Ultimate-Leiste mit Abklingzeit-Abdeckung; der Touch-Button füllt sich während der Abklingzeit.
 - **Simulator:** Der Bot wirkt den Zauber bei 3+ Gegnern oder in Boss-Nähe. `SimState.damageDealt` zählt Schaden pro Spieler-Quelle (`combat/dealt.ts`: Trefferquellen plus `status` für Schaden über Zeit); `pnpm sim` gibt die Anteile aus.
 
-## 30. Risiken und Gegenmaßnahmen
+## 30. Stand nach M3.3 (Zauber-Schulen)
+- **Effekt-Arten** (`spellEffectSchema`): `burst` (sofort oder nach `delaySec`), `zone` (Pulse über `durationSec`), `beam` (Strecke, `lineBurst()` in `effects/runtime.ts`), `ward` (löst feindliche Geschosse auf; Geschosse liegen nicht im Spatial Hash, deshalb ein Entity-Scan pro Puls). `onKill` beschreibt Zonen, die sterbende Gegner mit einem bestimmten Status hinterlassen (`onEnemyKilledWithSpells()` läuft in `killEnemy`, solange die Status-Slots noch intakt sind).
+- **Spieler-Zonen:** `C.Zone`, `RenderKind.Zone`, Felder `zonePulseTicks`, `zoneTimer`, `zoneSpell` (Trefferdaten in den `proj*`-Feldern). `spawnPlayerZone()`/`playerZoneSystem()` in `systems/spells.ts`; eine verzögerte Explosion ist eine Zone mit genau einem Puls am Lebensende. Events `Ev.ZonePulse`, `Ev.ShotDissolved`.
+- **Belohnungen:** `NodeReward` `{ kind: 'spell' }`, `rollSpellOffer()` (3 nicht ausgerüstete Zauber, deterministisch), `equipRunSpell()` (übernimmt die Stufe des ersetzten Zaubers), Shop-Artikel `{ kind: 'spell' }`. UI: Screen `spell` mit `SpellCard` (auch im Shop).
+- **Darstellung:** Zonen in Zauberfarbe (Meteor: Ring mit sich füllender Scheibe; Wolke: atmende Scheibe plus Rauchpartikel), Strahl-Effekt, Touch-Zielvorschau mit Reichweite, Radius und Farbe des Zaubers (`TouchInput.castAimingSpell`).
+- **Content-Helfer:** `spellReachPx()`, `spellRadiusPx()` in `content/spells/index.ts`.
+
+## 31. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

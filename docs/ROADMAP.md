@@ -331,7 +331,7 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
 - Der Arena-Modus (Debug) und jeder neue Run starten mit Frostnova und Glutmantel; Tests ohne Raum-Setup haben keine Zauber.
 - Simulator (200 Runs, `--fresh`): balanced 82,5 % → 95,5 % Siege, Run 190 → 181 s, Boss Ø 54 → 44 s; aggressive 15,5 % → 27,5 %. Direkter Zauber-Schaden ist nur ~3 %, der Effekt kommt vor allem vom Einfrieren und vom Brand der Aura. Ausgeglichen wird in M3.7, sobald alle Zauber da sind.
 
-### M3.3 Erste Zauber-Schulen: 8 Zauber 🔜
+### M3.3 Erste Zauber-Schulen: 8 Zauber ✅
 **Ziel:** Eine echte Auswahl aus 4 aktiven Zaubern und 4 Auren, verteilt auf vier Schulen.
 
 | Schule | Aktiver Zauber (Abklingzeit) | Aura |
@@ -342,14 +342,14 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
 | Licht (neu) | **Lichtlanze** (10 s): durchdringender Strahl in Zielrichtung, blendet | **Heiligenschein**: alle 2 s ein Lichtpuls, der das nächste feindliche Geschoss in der Nähe auflöst |
 
 **Umfang:**
-- [ ] 8 Zauber als Content (EN/DE, Tunables im Debug-Menü).
-- [ ] Gift und Blenden werden jetzt im Spiel ausgelöst (vorher nur über das Debug-Menü).
-- [ ] **Zwischenlösung bis M3.6:**
+- [x] 8 Zauber als Content (EN/DE, Tunables im Debug-Menü).
+- [x] Gift und Blenden werden jetzt im Spiel ausgelöst (vorher nur über das Debug-Menü).
+- [x] **Zwischenlösung bis M3.6:**
   - Der Run beginnt mit Frostnova und Glutmantel.
   - Weitere Zauber gibt es im Run als Belohnung (neuer Belohnungstyp `spell`, mit Map-Symbol) und im Shop bei Nix.
   - Ein neuer Zauber ersetzt den im selben Slot. Die Stufe wird übernommen, damit kein Upgrade verloren geht.
-- [ ] Die Belohnungs-Auswahl zeigt Schule, Art (aktiv bzw. Aura), Abklingzeit und Wirkung.
-- [ ] **Synergien mit bestehenden Segen:**
+- [x] Die Belohnungs-Auswahl zeigt Schule, Art (aktiv bzw. Aura), Abklingzeit und Wirkung.
+- [x] **Synergien mit bestehenden Segen:**
   - Brand und Kälte aus Zaubern zählen für alle Segen und für „Dampfbruch“.
   - 2 neue Segen:
     - Ignara „Glutkreis“: Aura-Radius +
@@ -370,7 +370,12 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
 
 **Abhängig von:** M3.2
 
-### M3.4 Upgrade-Stufen (Doppel-, Dreifachgeschoss …) ⬜
+**Umgesetzt (Abweichungen vom Plan):**
+- Neue Effekt-Arten im Zauber-Schema: `burst` mit `delaySec` (Meteor), `zone` (Giftwolke), `beam` (Lichtlanze), `ward` (Heiligenschein) und `onKill` (Pestatem). Spieler-Zonen sind eigene Entities (`C.Zone`), keine Gefahren-Hazards, damit der Bot sie nicht meidet.
+- Kampfraum-Belohnungen: 50 % Segen, 12 % Zauber, 23 % Relikt, 15 % Scherben (vorher 60/0/25/15).
+- Simulator (200 Runs, `--fresh`): balanced 92,0 % Siege (M3.2: 95,5 %), aggressive 21,5 % (27,5 %); Zauber-Schaden direkt ~3 %. Der Bericht listet jetzt die Zauber am Run-Ende mit Siegquote.
+
+### M3.4 Upgrade-Stufen (Doppel-, Dreifachgeschoss …) 🔜
 **Ziel:** Zauber und Riss-Geschoss wachsen im Run mit, mit spürbaren Sprüngen.
 
 **Umfang:**

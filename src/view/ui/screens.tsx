@@ -3,13 +3,14 @@ import { boonById, boonDescParams } from '../../content/boons';
 import { BEINGS } from '../../content/boons/beings';
 import { evolutionById } from '../../content/evolutions';
 import { relicById, relicDescParams } from '../../content/relics';
-import type { BoonSlot, EventDef, RoomType } from '../../content/schema';
+import type { BoonSlot, EventDef, RoomType, SpellDef } from '../../content/schema';
+import { spellById } from '../../content/spells';
 import { type TranslationKey, t } from '../../shared/i18n';
 import type { OwnedRelic } from '../../sim/effects/build';
 import { nodeReward, relicStacks, type ShopItem } from '../../sim/run/economy';
 import type { MapNode } from '../../sim/run/map';
 import type { BoonOffer, BoonOption } from '../../sim/run/rewards';
-import { availableNodes, type RunState } from '../../sim/run/run-state';
+import { availableNodes, type RunState, type SpellSlots } from '../../sim/run/run-state';
 import { NodeIcon } from './icons';
 import { LayoutEditor, type LayoutEditorScreen } from './layout-editor';
 import {
@@ -57,6 +58,13 @@ export type Screen =
       onReroll(): void;
     }
   | { kind: 'relic'; options: string[]; owned: OwnedRelic[]; onPick(id: string): void }
+  | {
+      kind: 'spell';
+      options: string[];
+      current: SpellSlots;
+      onPick(id: string): void;
+      onSkip(): void;
+    }
   | { kind: 'notice'; title: string; text: string; onContinue(): void }
   | {
       kind: 'shop';
@@ -279,7 +287,9 @@ function RewardMarker({ run, node }: { run: RunState; node: MapNode }) {
   if (reward.kind === 'boon') {
     return <span class="rb-node-reward" style={{ background: BEINGS[reward.being].css }} />;
   }
-  return <span class={`rb-node-reward ${reward.kind === 'relic' ? 'is-relic' : 'is-shards'}`} />;
+  const cls =
+    reward.kind === 'relic' ? 'is-relic' : reward.kind === 'spell' ? 'is-spell' : 'is-shards';
+  return <span class={`rb-node-reward ${cls}`} />;
 }
 
 /** Compact list of owned boons (coloured by being) and evolutions. */
@@ -449,6 +459,94 @@ function RelicCard({
   );
 }
 
+function cssColor(color: number): string {
+  return `#${color.toString(16).padStart(6, '0')}`;
+}
+
+/** One line on what the spell costs: its cooldown, or how often the aura pulses. */
+function spellTiming(def: SpellDef): string {
+  return def.kind === 'active'
+    ? t('spell.cooldown', { n: def.cooldownSec })
+    : t('spell.pulse', { n: def.pulseSec });
+}
+
+function SpellCard({
+  def,
+  replaces,
+  onClick,
+  autofocus,
+  price,
+}: {
+  def: SpellDef;
+  replaces: string | null;
+  onClick(): void;
+  autofocus?: boolean;
+  price?: { amount: number; sold: boolean; affordable: boolean };
+}) {
+  return (
+    <button
+      type="button"
+      class={`rb-card rb-spell spell-${def.kind} ${price?.sold ? 'is-sold' : ''}`}
+      style={{ '--being': cssColor(def.visual.color) }}
+      data-autofocus={autofocus ? true : undefined}
+      disabled={price ? price.sold || !price.affordable : undefined}
+      onClick={onClick}
+    >
+      <div class="rb-card-head">
+        <span class="rb-card-slot">{t(`spell.kind.${def.kind}` as TranslationKey)}</span>
+        <span class="rb-card-rarity">
+          {price
+            ? price.sold
+              ? t('shop.sold')
+              : `◆ ${t('shop.buy', { price: price.amount })}`
+            : t(`spell.school.${def.school}` as TranslationKey)}
+        </span>
+      </div>
+      <div class="rb-card-name">{t(`spell.${def.id}.name` as TranslationKey)}</div>
+      <div class="rb-card-desc">{t(`spell.${def.id}.desc` as TranslationKey)}</div>
+      <div class="rb-card-desc rb-spell-timing">{spellTiming(def)}</div>
+      {replaces && (
+        <div class="rb-card-replaces">
+          {t('reward.replaces', { name: t(`spell.${replaces}.name` as TranslationKey) })}
+        </div>
+      )}
+    </button>
+  );
+}
+
+function replacedSpell(current: SpellSlots, def: SpellDef): string | null {
+  return (def.kind === 'active' ? current.active?.id : current.aura?.id) ?? null;
+}
+
+function SpellScreen({ options, current, onPick, onSkip }: Extract<Screen, { kind: 'spell' }>) {
+  return (
+    <div class="rb-screen rb-center rb-boon-screen" style={{ '--being': '#b8a6ff' }}>
+      <div class="rb-being-name">{t('reward.spell_title')}</div>
+      <div class="rb-overlay-hint">{t('reward.choose_spell')}</div>
+      <Autofocus wide>
+        <div class="rb-cards">
+          {options.map((id, i) => {
+            const def = spellById(id);
+            if (!def) return null;
+            return (
+              <SpellCard
+                key={id}
+                def={def}
+                replaces={replacedSpell(current, def)}
+                autofocus={i === 0}
+                onClick={() => onPick(id)}
+              />
+            );
+          })}
+        </div>
+      </Autofocus>
+      <button type="button" class="rb-button" onClick={onSkip}>
+        {t('reward.skip')}
+      </button>
+    </div>
+  );
+}
+
 function RelicScreen({ options, owned, onPick }: Extract<Screen, { kind: 'relic' }>) {
   return (
     <div class="rb-screen rb-center rb-boon-screen" style={{ '--being': '#ffe6b0' }}>
@@ -496,6 +594,20 @@ function ShopScreen({ run, stock, onBuy, onLeave }: Extract<Screen, { kind: 'sho
           {stock.map((item, i) => {
             const sold = run.shopBought.includes(i);
             const affordable = run.shards >= item.price;
+            if (item.kind === 'spell') {
+              const def = spellById(item.id);
+              if (!def) return null;
+              return (
+                <SpellCard
+                  key={`spell-${i}`}
+                  def={def}
+                  replaces={replacedSpell(run.spells, def)}
+                  autofocus={i === 0}
+                  price={{ amount: item.price, sold, affordable }}
+                  onClick={() => onBuy(i)}
+                />
+              );
+            }
             let name: string;
             let desc: string;
             let tag: string;
@@ -661,6 +773,8 @@ export function UiRoot({ screen }: { screen: Screen }) {
       return <BoonScreen {...screen} />;
     case 'relic':
       return <RelicScreen {...screen} />;
+    case 'spell':
+      return <SpellScreen {...screen} />;
     case 'notice':
       return <NoticeScreen {...screen} />;
     case 'shop':

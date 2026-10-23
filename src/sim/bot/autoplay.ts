@@ -8,11 +8,13 @@ import { emptyRunMeta, type RunMeta } from '../meta/profile';
 import {
   addRelic,
   applyOutcomes,
+  equipRunSpell,
   eventFor,
   eventOptionAvailable,
   heal,
   nodeReward,
   rollRelicOffer,
+  rollSpellOffer,
   runStats,
   shopStock,
 } from '../run/economy';
@@ -62,6 +64,8 @@ export interface RunReport {
   boons: string[];
   relics: string[];
   evolutions: string[];
+  /** Spells equipped at the end of the run. */
+  spells: string[];
   rooms: RoomReport[];
   /** Damage taken per enemy id over the whole run. */
   damageBySource: Record<string, number>;
@@ -118,6 +122,10 @@ function grantReward(run: RunState, node: MapNode): void {
   else if (reward?.kind === 'relic') {
     const id = rollRelicOffer(run.seed, node.id, reward.rarityBonus, run.lockedRelics)[0];
     if (id) addRelic(run, id);
+  } else if (reward?.kind === 'spell') {
+    // Simple preference: the first offered spell (the offer is already random per seed).
+    const id = rollSpellOffer(run, node.id)[0];
+    if (id) equipRunSpell(run, id);
   } else if (reward?.kind === 'shards') {
     run.shards += Math.round(reward.amount * (1 + runStats(run).shardGain));
   }
@@ -131,11 +139,13 @@ function visitShop(run: RunState, node: MapNode): void {
     // Bots never take curses on purpose; healing only when hurt.
     if (item.kind === 'relic' && relicById(item.id)?.rarity === 'curse') continue;
     if (item.kind === 'heal' && run.hp > run.maxHp * 0.6) continue;
+    // Spells only come from fight rewards for the bot; shop shards go to power and healing.
+    if (item.kind === 'spell') continue;
     run.shards -= item.price;
     run.shopBought.push(i);
     if (item.kind === 'relic') addRelic(run, item.id);
     else if (item.kind === 'boon') pickBoon(run, item.option);
-    else heal(run, run.maxHp * item.fraction);
+    else if (item.kind === 'heal') heal(run, run.maxHp * item.fraction);
   }
   completeNonCombat(run);
 }
@@ -214,6 +224,7 @@ export function autoplayRun(
     boons: [],
     relics: [],
     evolutions: [],
+    spells: [],
     rooms: [],
     damageBySource: {},
     damageDealt: {},
@@ -252,5 +263,8 @@ export function autoplayRun(
   report.boons = run.boons.map((b) => b.id);
   report.relics = run.relics.map((r) => r.id);
   report.evolutions = [...run.evolutions];
+  report.spells = [run.spells.active?.id, run.spells.aura?.id].filter(
+    (id): id is string => id !== undefined,
+  );
   return report;
 }

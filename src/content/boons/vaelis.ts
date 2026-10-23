@@ -135,4 +135,13 @@ export const VAELIS_BOONS: readonly BoonDef[] = [
     values: { bonus: { base: 0.05, step: 0.025, percent: true } },
     effects: [{ kind: 'stat', stat: 'damageVsChilledPerStack', add: 'bonus' }],
   }),
+  defineBoon({
+    // M3.3: the frost being rewards patience with faster spells.
+    id: 'cold_focus',
+    being: 'vaelis',
+    slot: 'passive',
+    tags: ['frost', 'spell'],
+    values: { bonus: { base: 0.15, step: 0.07, percent: true } },
+    effects: [{ kind: 'stat', stat: 'cooldownReduction', add: 'bonus' }],
+  }),
 ];

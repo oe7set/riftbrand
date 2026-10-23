@@ -15,6 +15,8 @@ export const C = {
   Crowd: 1 << 9,
   /** Delayed ground blast (mines, volatile elites): fuse in projLifeTicks, blast radius = radius. */
   Hazard: 1 << 10,
+  /** Player spell area (meteor impact, poison cloud): pulses its hit, life in projLifeTicks. */
+  Zone: 1 << 11,
 } as const;
 
 /** What the view should draw for an entity; the sim never references textures. */
@@ -27,6 +29,7 @@ export const RenderKind = {
   RiftShot: 5,
   Firebird: 6,
   Hazard: 7,
+  Zone: 8,
 } as const;
 
 export type RenderKindId = (typeof RenderKind)[keyof typeof RenderKind];
@@ -121,6 +124,11 @@ export interface Components {
   /** Fractional windup progress carried between ticks while blinded. */
   windupCarry: Float64Array;
   frozenTicks: Int32Array;
+  // Player spell zones (hit data in projDamage/projStatus/projStacks/projKnockback)
+  zonePulseTicks: Int32Array;
+  zoneTimer: Int32Array;
+  /** Spell index the zone belongs to (colour, feedback). */
+  zoneSpell: Uint8Array;
   // Projectile
   projDamage: Float64Array;
   projLifeTicks: Int32Array;
@@ -180,6 +188,9 @@ export function createComponents(capacity: number): Components {
     statusTimer: new Int32Array(capacity * STATUS_COUNT),
     windupCarry: new Float64Array(capacity),
     frozenTicks: new Int32Array(capacity),
+    zonePulseTicks: new Int32Array(capacity),
+    zoneTimer: new Int32Array(capacity),
+    zoneSpell: new Uint8Array(capacity),
     projDamage: new Float64Array(capacity),
     projLifeTicks: new Int32Array(capacity),
     projKnockback: new Float64Array(capacity),

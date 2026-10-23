@@ -19,6 +19,7 @@ export const FROST_NOVA = defineSpell({
     freeze: true,
     stacks: 0,
     knockback: 260,
+    delaySec: 0,
   },
   visual: { color: 0x8fe3ff, glyph: 'nova' },
 });

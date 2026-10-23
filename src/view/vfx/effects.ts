@@ -567,6 +567,84 @@ export class Effects {
     });
   }
 
+  /**
+   * A straight beam from (x, y) along (dirX, dirY): a coloured sheath with a white core that
+   * flashes and fades (light lance).
+   */
+  beam(
+    x: number,
+    y: number,
+    dirX: number,
+    dirY: number,
+    length: number,
+    width: number,
+    color: number,
+  ): void {
+    const rotation = Math.atan2(dirY, dirX);
+    const cx = x + dirX * length * 0.5;
+    const cy = y + dirY * length * 0.5;
+    // The spark texture is 32 px long and ~6 px thick at scale 1.
+    const sheath = width / 6;
+    const core = width / 14;
+    this.fx.emit({
+      texture: this.tex.spark,
+      x: cx,
+      y: cy,
+      lifeSec: 0.35,
+      color,
+      alpha: 0.8,
+      scaleStart: sheath,
+      scaleEnd: sheath * 0.2,
+      rotation,
+      stretch: length / 32 / sheath,
+    });
+    this.fx.emit({
+      texture: this.tex.spark,
+      x: cx,
+      y: cy,
+      lifeSec: 0.2,
+      color: 0xffffff,
+      scaleStart: core,
+      scaleEnd: core * 0.2,
+      rotation,
+      stretch: length / 32 / core,
+    });
+    for (let i = 0; i < 10; i++) {
+      const t = rand(0, 1);
+      this.fx.emit({
+        texture: this.tex.dot,
+        x: x + dirX * length * t,
+        y: y + dirY * length * t,
+        vx: rand(-60, 60),
+        vy: rand(-60, 60),
+        lifeSec: rand(0.2, 0.4),
+        color,
+        scaleStart: rand(0.15, 0.3),
+        flags: PFlag.Shrink,
+      });
+    }
+  }
+
+  /** A slow drifting puff inside a lingering cloud. */
+  cloudPuff(x: number, y: number, radius: number, color: number): void {
+    for (let i = 0; i < 3; i++) {
+      const a = rand(0, Math.PI * 2);
+      const d = rand(0, radius * 0.8);
+      this.ground.emit({
+        texture: this.tex.dot,
+        x: x + Math.cos(a) * d,
+        y: y + Math.sin(a) * d,
+        vx: rand(-15, 15),
+        vy: rand(-25, -5),
+        lifeSec: rand(0.6, 1),
+        color,
+        alpha: 0.35,
+        scaleStart: rand(0.8, 1.4),
+        scaleEnd: rand(1.6, 2.2),
+      });
+    }
+  }
+
   /** A faint ring settling onto the aura's edge: shows its reach without stealing focus. */
   auraRing(x: number, y: number, radius: number, color: number, strong: boolean): void {
     this.ground.emit({

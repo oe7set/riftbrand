@@ -112,6 +112,61 @@ export function areaBurst(state: SimState, cx: number, cy: number, spec: BurstSp
   return caught;
 }
 
+/**
+ * Like areaBurst, but along the segment (x1, y1) → (x2, y2) with half-width spec.radiusPx
+ * (light lance). Returns how many enemies were caught.
+ */
+export function lineBurst(
+  state: SimState,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  spec: BurstSpec,
+): number {
+  const c = state.c;
+  const buffer = state.effectQueryBuffers[state.effectDepth] as Int32Array;
+  const pad = spec.radiusPx + 40;
+  const n = queryRect(
+    state.spatial,
+    Math.min(x1, x2) - pad,
+    Math.min(y1, y2) - pad,
+    Math.max(x1, x2) + pad,
+    Math.max(y1, y2) + pad,
+    buffer,
+  );
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const lenSq = dx * dx + dy * dy || 1;
+  const len = Math.sqrt(lenSq);
+  const swingId = ++state.swingCounter;
+  let caught = 0;
+  for (let i = 0; i < n; i++) {
+    const t = buffer[i] as number;
+    if (!isEnemy(state, t)) continue;
+    const ex = (c.posX[t] as number) - x1;
+    const ey = (c.posY[t] as number) - y1;
+    const along = Math.max(0, Math.min(1, (ex * dx + ey * dy) / lenSq));
+    const ox = ex - dx * along;
+    const oy = ey - dy * along;
+    const reach = spec.radiusPx + (c.radius[t] as number);
+    if (ox * ox + oy * oy > reach * reach) continue;
+    caught++;
+    if (spec.freeze) freeze(state, t);
+    else applyStatusTo(state, t, spec.status, spec.stacks);
+    if (spec.damage > 0 && isEnemy(state, t)) {
+      novaSpec.damage = spec.damage;
+      novaSpec.dirX = dx / len;
+      novaSpec.dirY = dy / len;
+      novaSpec.knockback = spec.knockback;
+      novaSpec.swingId = swingId;
+      novaSpec.source = spec.source;
+      damageEnemy(state, t, novaSpec);
+    }
+  }
+  return caught;
+}
+
 const burst: BurstSpec = {
   radiusPx: 0,
   damage: 0,

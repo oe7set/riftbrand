@@ -2,6 +2,7 @@ import { BEING_IDS } from '../../content/boons/beings';
 import { EVENTS } from '../../content/events';
 import { RELIC_ECONOMY, RELICS, relicById } from '../../content/relics';
 import type { BeingId, EventOutcome, Rarity, RelicRarity, RoomType } from '../../content/schema';
+import { SPELLS, spellById } from '../../content/spells';
 import { TUNING } from '../../content/tuning';
 import { compileBuild, healingFactor, type OwnedRelic, type Stats } from '../effects/build';
 import { createRng, hashString, nextFloat, nextInt, type Rng } from '../rng/rng';
@@ -47,6 +48,7 @@ export function relicStacks(relics: readonly OwnedRelic[], id: string): number {
 
 export type NodeReward =
   | { kind: 'boon'; being: BeingId }
+  | { kind: 'spell' }
   | { kind: 'relic'; rarityBonus: number }
   | { kind: 'shards'; amount: number };
 
@@ -56,7 +58,8 @@ export function nodeReward(seed: number, node: Pick<MapNode, 'id' | 'type'>): No
   switch (node.type) {
     case 'combat': {
       const roll = nextFloat(rng);
-      if (roll < 0.6) return { kind: 'boon', being: rewardBeing(seed, node.id) };
+      if (roll < 0.5) return { kind: 'boon', being: rewardBeing(seed, node.id) };
+      if (roll < 0.62) return { kind: 'spell' };
       if (roll < 0.85) return { kind: 'relic', rarityBonus: 0 };
       return { kind: 'shards', amount: RELIC_ECONOMY.shardsRewardAmount };
     }
@@ -129,15 +132,43 @@ export function rollRelicOffer(
   return [...picked];
 }
 
+// ── Spells (ROADMAP M3.3) ─────────────────────────────────────────────────
+
+/** Three spells the player doesn't have equipped, deterministic per seed and node. */
+export function rollSpellOffer(run: RunState, nodeId: number, count = 3): string[] {
+  const rng = createRng(hashString(`${run.seed}:spells:${nodeId}`));
+  const owned = new Set([run.spells.active?.id, run.spells.aura?.id]);
+  const pool = SPELLS.filter((s) => !owned.has(s.id)).map((s) => s.id);
+  const picked: string[] = [];
+  while (picked.length < count && pool.length > 0) {
+    const [id] = pool.splice(nextInt(rng, 0, pool.length), 1);
+    if (id) picked.push(id);
+  }
+  return picked;
+}
+
+/**
+ * Puts a spell into the slot of its kind. The replaced spell's level carries over, so trading
+ * a spell never throws away upgrades (ROADMAP M3.3).
+ */
+export function equipRunSpell(run: RunState, id: string): void {
+  const def = spellById(id);
+  if (!def) return;
+  if (def.kind === 'active') run.spells.active = { id, level: run.spells.active?.level ?? 1 };
+  else run.spells.aura = { id, level: run.spells.aura?.level ?? 1 };
+}
+
 // ── Shop ──────────────────────────────────────────────────────────────────
 
 export type ShopItem =
   | { kind: 'relic'; id: string; price: number }
   | { kind: 'boon'; being: BeingId; option: BoonOption; price: number }
-  | { kind: 'heal'; fraction: number; price: number };
+  | { kind: 'heal'; fraction: number; price: number }
+  | { kind: 'spell'; id: string; price: number };
 
 const BOON_PRICE: Record<Rarity, number> = { common: 55, rare: 75, epic: 100, heroic: 130 };
 const HEAL_PRICE = 35;
+const SPELL_PRICE = 90;
 const HEAL_FRACTION = 0.3;
 /** Curses are cheap: their price is the risk (GDD §7.2). */
 const CURSE_DISCOUNT = 0.6;
@@ -161,6 +192,8 @@ export function shopStock(run: RunState, node: Pick<MapNode, 'id'>): ShopItem[] 
   const offer = rollBoonOffer(run.seed, node.id + 10_000, being, run.boons, 0.5);
   const option = offer.options[0];
   if (option) items.push({ kind: 'boon', being, option, price: BOON_PRICE[option.rarity] });
+  const spell = rollSpellOffer(run, node.id + 20_000, 1)[0];
+  if (spell) items.push({ kind: 'spell', id: spell, price: SPELL_PRICE });
   items.push({ kind: 'heal', fraction: HEAL_FRACTION, price: HEAL_PRICE });
   return items;
 }

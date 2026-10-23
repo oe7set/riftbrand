@@ -1,6 +1,7 @@
 import { Container, Sprite, type Texture } from 'pixi.js';
 import { eliteOf } from '../../content/elites';
 import { attackOf, ENEMIES } from '../../content/enemies';
+import { SPELLS } from '../../content/spells';
 import { Status, statusDef } from '../../content/statuses';
 import { TUNING } from '../../content/tuning';
 import { AiState, C, RenderKind, stacksOf } from '../../sim/ecs/components';
@@ -140,6 +141,11 @@ export class EntityView {
         this.statusIcons.hide(eid);
         continue;
       }
+      if ((mask & renderMask) === renderMask && c.renderKind[eid] === RenderKind.Zone) {
+        this.syncZone(sim, eid, this.slotFor(eid, this.textures.disc));
+        this.statusIcons.hide(eid);
+        continue;
+      }
       if (
         (mask & renderMask) !== renderMask ||
         (!tex && c.renderKind[eid] !== RenderKind.EnemyProjectile)
@@ -255,6 +261,47 @@ export class EntityView {
     s.body.alpha = 1;
     s.body.tint = PALETTE.telegraph;
     s.body.scale.set(0.5);
+  }
+
+  /**
+   * Player spell zones in the spell's colour: a delayed blast (meteor) shows a ring with a disc
+   * filling up to the impact; a lingering cloud shows a slowly breathing disc.
+   */
+  private syncZone(sim: SimState, eid: number, s: Slot): void {
+    const c = sim.c;
+    this.hideSlot(s);
+    const x = c.posX[eid] as number;
+    const y = c.posY[eid] as number;
+    const scale = (c.radius[eid] as number) / BAKE_RADIUS_PX;
+    const color = SPELLS[c.zoneSpell[eid] as number]?.visual.color ?? PALETTE.playerSlash;
+    const total = Math.max(1, c.hazFuseTotal[eid] as number);
+    const left = c.projLifeTicks[eid] as number;
+    const delayed = (c.zonePulseTicks[eid] as number) >= total;
+    s.teleBack.visible = true;
+    s.teleBack.texture = this.textures.ring;
+    s.teleBack.anchor.set(0.5);
+    s.teleBack.position.set(x, y);
+    s.teleBack.rotation = 0;
+    s.teleBack.scale.set(scale);
+    s.teleBack.tint = color;
+    s.teleFill.visible = true;
+    s.teleFill.texture = this.textures.disc;
+    s.teleFill.anchor.set(0.5);
+    s.teleFill.position.set(x, y);
+    s.teleFill.rotation = 0;
+    s.teleFill.tint = color;
+    if (delayed) {
+      const progress = 1 - left / total;
+      s.teleBack.alpha = 0.9;
+      s.teleFill.scale.set(scale * progress);
+      s.teleFill.alpha = 0.2 + 0.35 * progress;
+    } else {
+      // Fades out over its last half second.
+      const fade = Math.min(1, left / 30);
+      s.teleBack.alpha = 0.5 * fade;
+      s.teleFill.scale.set(scale * (0.95 + 0.05 * Math.sin(this.time * 3 + eid)));
+      s.teleFill.alpha = (0.16 + 0.06 * Math.sin(this.time * 2 + eid)) * fade;
+    }
   }
 
   /** Elites: a coloured halo; shielded ones carry a bright arc on their facing side. */

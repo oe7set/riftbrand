@@ -72,6 +72,11 @@ export const Ev = {
   AuraPulse: 39,
   /** The active spell's cooldown ran out. value = spell index. */
   SpellReady: 40,
+  /** A spell zone pulsed (meteor impact, cloud tick). value = spell index, amount = radius,
+   * flags = enemies hit. */
+  ZonePulse: 41,
+  /** A ward dissolved an enemy shot at (x, y). value = spell index. */
+  ShotDissolved: 42,
 } as const;
 
 /** Player projectile kinds in event payloads (matches content projectile kinds). */
