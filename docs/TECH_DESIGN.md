@@ -428,7 +428,19 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Speicherung:** siehe ADR 0003 (IndexedDB, Backup-Slot, Export-Code).
 - **Oberfläche:** `view/ui/meta-screens.tsx` mit Zuflucht, Glutbaum, Nix' Waren, Speichern/Übertragen und Ergebnis. Textfelder sind von der WASD-Menünavigation ausgenommen.
 
-## 26. Risiken und Gegenmaßnahmen
+## 26. Stand nach M2.7 (Abrundung)
+- **Headless-Simulator** (`sim/bot/`, `scripts/sim.ts`, `pnpm sim`):
+  - `botInput` erzeugt pro Tick einen `InputFrame`. Strategie `balanced` weicht Telegraphs, Geschossen und Minen per Dash aus, kämpft im Nahkampf, nutzt Spezial, Wurf und Ultimate. `aggressive` weicht nie aus (Untergrenze für die Fairness).
+  - Hindernis-Steuerung über Sonden entlang des Wegs; bei Blockade dreht der Bot zu einer stabilen Seite.
+  - `autoplayRun` spielt den ganzen Run über die echten Run-Funktionen (Map, Belohnungen, Shop, Ereignisse, Rast, Altar, Evolution). Räume über 240 s gelten als Timeout.
+  - `summarize` und `toCsv` erzeugen den Bericht. Ein Vitest prüft Determinismus und dass kleine Stichproben ohne Timeout durchlaufen.
+- **Schaden pro Quelle:** `SimState.damageBySource` (Index = Gegnertyp, 255 = unbekannt).
+- **Run-Log** (`platform/storage/run-log.ts`): Die letzten 50 echten Runs mit Räumen (Typ, Ebene, Zeit, erlittener Schaden), Schaden pro Gegner, Build, Glutbaum-Stufen und Todesursache. Export als JSON im Debug-Menü.
+- **Musik:** siehe ADR 0004. `AudioEngine.setMusic('explore' | 'combat' | 'boss' | 'silent')` folgt dem Spielmodus; `RoomCleared` schaltet zurück auf Erkundung.
+- **Touch-Layout-Editor** (`view/ui/layout-editor.tsx`): Overrides pro Ausrichtung als Bildschirm-Anteile plus Größenfaktor (`computeTouchLayout(w, h, overrides)`, auf den Bildschirm begrenzt) und eine Deckkraft. Einstellungen v2.
+- **itch.io:** `.github/workflows/itch.yml` baut mit relativen Pfaden ohne Service Worker und lädt mit butler hoch, sobald `BUTLER_API_KEY` und `ITCH_TARGET` gesetzt sind.
+
+## 27. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |
