@@ -61,13 +61,17 @@ test('the first wave spawns enemies and the run stays error-free', async ({ page
   expect(errors).toEqual([]);
 });
 
-test('a run starts from the title: map, then a room', async ({ page }) => {
+test('a run starts from the title via the refuge: map, then a room', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
   await page.goto('/');
   await page.waitForFunction(() => window.__riftbrand?.ready === true);
   expect(await page.evaluate(() => window.__riftbrand?.mode())).toBe('title');
-  await page.getByRole('button', { name: /new run|neuer run/i }).click();
+  await page.getByRole('button', { name: /to the refuge|zur zuflucht/i }).click();
+  await expect(page.locator('.rb-hub')).toBeVisible();
+  // First visit: both refuge characters introduce themselves.
+  await expect(page.locator('.rb-speech')).toHaveCount(2);
+  await page.getByRole('button', { name: /set out|aufbrechen/i }).click();
   await expect(page.locator('.rb-map')).toBeVisible();
   // The pre-selected start node enters with one click; others need two (mis-tap guard).
   await page.locator('.rb-node.available.selected').click();

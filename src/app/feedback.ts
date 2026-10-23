@@ -270,6 +270,17 @@ export class FeedbackDirector {
         });
         break;
       }
+      case Ev.LastSpark:
+        // The tree caught you: unmistakable, a little holy, then back to the fight.
+        fx.ultimate(e.x, e.y, 160, PALETTE.ember);
+        fx.heal(e.x, e.y);
+        this.view.hud.onBanner(t('hud.last_spark'));
+        shake.add(0.6);
+        this.audio.play('ultimateReady', { pitch: 0.8, pitchVariation: 0 });
+        this.audio.play('heal', { pitchVariation: 0 });
+        this.haptics.pulse(60, 0.8);
+        this.requestSlowMo({ scale: 0.25, durationSec: 0.7 });
+        break;
       case Ev.BossDefeated: {
         const def = ENEMIES[e.value];
         fx.killBurst(e.x, e.y, 0, -1, def?.visual.color ?? PALETTE.ember, 60);

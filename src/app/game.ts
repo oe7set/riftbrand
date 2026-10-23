@@ -17,6 +17,18 @@ import {
 import { Haptics } from '../platform/haptics';
 import { MenuAction } from '../platform/input/bindings';
 import { InputManager } from '../platform/input/input-manager';
+import {
+  browserProfileStore,
+  copyToClipboard,
+  requestPersistentStorage,
+} from '../platform/storage/indexed-db';
+import {
+  exportProfile,
+  importProfile,
+  loadProfile,
+  type ProfileStore,
+  saveProfile,
+} from '../platform/storage/profile-save';
 import { clearRun, loadRun, saveRun } from '../platform/storage/run-save';
 import {
   browserStore,
@@ -37,6 +49,17 @@ import { C } from '../sim/ecs/components';
 import { packEnemy } from '../sim/enemy-code';
 import { Ev, type EventBuffer } from '../sim/events';
 import { hashSim } from '../sim/hash';
+import { markSeen, pickLine } from '../sim/meta/dialogue';
+import {
+  buyRank,
+  type LastRun,
+  lockedRelics,
+  type Profile,
+  respec,
+  runMetaFor,
+  settleRun,
+  unlockRelic,
+} from '../sim/meta/profile';
 import {
   addRelic,
   applyOutcomes,
@@ -48,6 +71,7 @@ import {
   runStats,
   shopStock,
 } from '../sim/run/economy';
+import type { MapNode } from '../sim/run/map';
 import { addBoon, type BoonOffer } from '../sim/run/rewards';
 import {
   availableEvolutions,
@@ -60,6 +84,7 @@ import {
   offerFor,
   pickBoon,
   type RunState,
+  rerollOffer,
   rest,
   restEvolve,
   roomSeed,
@@ -95,8 +120,8 @@ const DEATH_OVERLAY_DELAY_SEC = 1.1;
 const EXIT_TRANSITION_SEC = 0.35;
 const RESTART_BUTTONS = Button.Attack | Button.Dash | Button.Interact;
 
-/** Where the player is in the game flow (title → map ⇄ room/rest → victory or death). */
-type Mode = 'title' | 'map' | 'rest' | 'reward' | 'room' | 'arena' | 'victory';
+/** Where the player is in the game flow (title → hub → map ⇄ room/rest → result → hub). */
+type Mode = 'title' | 'hub' | 'map' | 'rest' | 'reward' | 'room' | 'arena' | 'result';
 
 function describeOutcome(o: ResolvedOutcome): string {
   switch (o.type) {
@@ -152,6 +177,13 @@ export class Game {
   private sim: SimState;
   private mode: Mode = 'title';
   private run: RunState | null = null;
+  /** Meta progression (GDD §8); `profileRaw` is the last saved JSON, kept as backup. */
+  private profile: Profile;
+  private profileRaw: string | null;
+  /** Hub dialogue for the current visit; cleared when a run ends so the next visit reacts. */
+  private hubLines: { maren: string | null; nix: string | null } | null = null;
+  /** Settlement of the run that just ended, shown on the result screen. */
+  private lastRun: LastRun | null = null;
   private readonly store = browserStore();
   private readonly input: InputManager;
   private readonly audio = new AudioEngine();
@@ -185,7 +217,11 @@ export class Game {
   private constructor(
     root: HTMLElement,
     private readonly view: GameView,
+    private readonly profileStore: ProfileStore | null,
+    loaded: { profile: Profile; raw: string | null },
   ) {
+    this.profile = loaded.profile;
+    this.profileRaw = loaded.raw;
     this.sim = this.backdropSim();
     root.append(view.canvas);
     this.input = new InputManager(view.canvas, hasTouchScreen());
@@ -242,6 +278,15 @@ export class Game {
         giveShards: (n) => {
           this.sim.shards += n;
           if (this.run) this.run.shards += n;
+        },
+        giveMeta: (ember, dust) => {
+          this.profile.ember += ember;
+          this.profile.dust += dust;
+          this.persistProfile();
+          // Refresh whichever meta screen is open so the new balance shows.
+          if (this.ui.kind === 'tree') this.showTree();
+          else if (this.ui.kind === 'wares') this.showWares();
+          else if (this.ui.kind === 'hub') this.showHub();
         },
         fillUltimate: () => {
           this.sim.player.ultCharge = 1;
@@ -310,7 +355,9 @@ export class Game {
   static async start(root: HTMLElement): Promise<Game> {
     setLocale(resolveLocale(preferredLanguages()));
     const view = await GameView.create(readViewport());
-    const game = new Game(root, view);
+    const profileStore = browserProfileStore();
+    requestPersistentStorage();
+    const game = new Game(root, view, profileStore, await loadProfile(profileStore));
     game.exposeDebugHandle();
     // ?seed=… jumps straight into the endless arena, handy for tuning and bug reports.
     const urlSeed = seedFromUrl();
@@ -362,13 +409,143 @@ export class Game {
       canContinue: saved !== null,
       version: this.version,
       onContinue: () => this.continueRun(),
-      onNewRun: () => this.startRun(),
+      onRefuge: () => this.showHub(),
       onArena: () => this.startArena(randomSeed()),
     });
   }
 
+  private persistProfile(): void {
+    void saveProfile(this.profileStore, this.profile, this.profileRaw).then((raw) => {
+      this.profileRaw = raw;
+    });
+  }
+
+  /** The refuge (GDD §2.3): dialogue, Ember Tree, Nix, and the way into the next run. */
+  private showHub(): void {
+    if (this.mode === 'room' || this.mode === 'arena') this.loadSim(this.backdropSim());
+    this.setMode('hub');
+    if (!this.hubLines) {
+      const maren = pickLine(this.profile, 'maren');
+      const nix = pickLine(this.profile, 'nix');
+      if (maren) markSeen(this.profile, maren);
+      if (nix) markSeen(this.profile, nix);
+      this.hubLines = { maren: maren?.id ?? null, nix: nix?.id ?? null };
+      this.persistProfile();
+    }
+    this.ui.show({
+      kind: 'hub',
+      profile: this.profile,
+      lines: this.hubLines,
+      hasRun: loadRun(this.store) !== null,
+      onDepart: () => this.startRun(),
+      onContinue: () => this.continueRun(),
+      onAbandon: () => this.abandonRun(),
+      onTree: () => this.showTree(),
+      onWares: () => this.showWares(),
+      onProfile: () => this.showProfile(null),
+      onTitle: () => this.showTitle(),
+    });
+  }
+
+  private showTree(): void {
+    this.ui.show({
+      kind: 'tree',
+      profile: this.profile,
+      onBuy: (id) => {
+        if (!buyRank(this.profile, id)) return;
+        this.persistProfile();
+        this.audio.play('boonPick', { pitch: 0.9, pitchVariation: 0 });
+        this.showTree();
+      },
+      onRespec: () => {
+        respec(this.profile);
+        this.persistProfile();
+        this.showTree();
+      },
+      onBack: () => this.showHub(),
+    });
+  }
+
+  private showWares(): void {
+    this.ui.show({
+      kind: 'wares',
+      profile: this.profile,
+      onUnlock: (id) => {
+        if (!unlockRelic(this.profile, id)) return;
+        this.persistProfile();
+        this.audio.play('shard', { pitch: 0.8, pitchVariation: 0 });
+        this.showWares();
+      },
+      onBack: () => this.showHub(),
+    });
+  }
+
+  private showProfile(message: string | null): void {
+    const render = (code: string | null) =>
+      this.ui.show({
+        kind: 'profile',
+        exportCode: code,
+        message,
+        onCopy: () => {
+          if (!code) return;
+          void copyToClipboard(code).then((ok) => {
+            message = ok ? t('profile.copied') : t('profile.copy_failed');
+            render(code);
+          });
+        },
+        onImport: (text) => {
+          void importProfile(text).then((imported) => {
+            if (!imported) {
+              this.showProfile(t('profile.import_bad'));
+              return;
+            }
+            this.profile = imported;
+            this.hubLines = null;
+            this.persistProfile();
+            this.showProfile(t('profile.import_ok'));
+          });
+        },
+        onBack: () => this.showHub(),
+      });
+    render(null);
+    void exportProfile(this.profile).then((code) => {
+      if (this.ui.kind === 'profile') render(code);
+    });
+  }
+
+  /** Books the ended run into the profile and shows what it earned. */
+  private endRun(result: 'won' | 'lost', killedBy: string | null): void {
+    const run = this.run;
+    if (!run) return;
+    clearRun(this.store);
+    this.lastRun = settleRun(this.profile, run, result, killedBy);
+    this.hubLines = null;
+    this.persistProfile();
+  }
+
+  private showResult(): void {
+    const last = this.lastRun;
+    this.run = null;
+    if (!last) {
+      this.showHub();
+      return;
+    }
+    if (this.mode === 'room') this.loadSim(this.backdropSim());
+    this.setMode('result');
+    this.ui.show({ kind: 'result', last, profile: this.profile, onContinue: () => this.showHub() });
+  }
+
+  private abandonRun(): void {
+    const run = loadRun(this.store);
+    if (run) {
+      this.run = run;
+      this.endRun('lost', null);
+      this.showResult();
+    }
+  }
+
   private startRun(): void {
-    this.run = createRun(randomSeed());
+    this.run = createRun(randomSeed(), runMetaFor(this.profile), lockedRelics(this.profile));
     saveRun(this.store, this.run);
     this.showMap();
   }
@@ -422,7 +599,7 @@ export class Game {
     const evolution = availableEvolutions(run)[0];
     const toBoons = () => {
       const offer = offerFor(run, node);
-      if (offer) this.showBoonChoice(offer, () => completeNonCombat(run));
+      if (offer) this.showBoonChoice(offer, node, () => completeNonCombat(run));
       else {
         completeNonCombat(run);
         saveRun(this.store, run);
@@ -448,7 +625,7 @@ export class Game {
   }
 
   /** Shows a boon offer; `beforeSave` runs after the pick (e.g. marking the node done). */
-  private showBoonChoice(offer: BoonOffer, beforeSave?: () => void): void {
+  private showBoonChoice(offer: BoonOffer, node: MapNode, beforeSave?: () => void): void {
     const run = this.run;
     if (!run) return;
     if (this.mode === 'room') this.loadSim(this.backdropSim());
@@ -456,6 +633,14 @@ export class Game {
     this.ui.show({
       kind: 'boon',
       offer,
+      rerolls: run.rerolls,
+      onReroll: () => {
+        if (!rerollOffer(run)) return;
+        saveRun(this.store, run);
+        this.audio.play('shard', { pitch: 0.7, pitchVariation: 0 });
+        const next = offerFor(run, node);
+        if (next) this.showBoonChoice(next, node, beforeSave);
+      },
       onPick: (option) => {
         pickBoon(run, option);
         beforeSave?.();
@@ -511,6 +696,7 @@ export class Game {
       timeSec: this.sim.room.elapsedTicks / TICK_RATE_HZ,
       shards: this.sim.shards,
       ultCharge: this.sim.player.ultCharge,
+      lastSparks: this.sim.lastSparks,
     };
   }
 
@@ -519,10 +705,8 @@ export class Game {
     if (!run) return;
     completeRoom(run, this.roomResult());
     if (run.status === 'won') {
-      clearRun(this.store);
-      this.loadSim(this.backdropSim());
-      this.setMode('victory');
-      this.ui.show({ kind: 'victory', run, onTitle: () => this.showTitle() });
+      this.endRun('won', null);
+      this.showResult();
       return;
     }
     const node = run.map.nodes[run.currentNodeId];
@@ -530,11 +714,11 @@ export class Game {
     if (node && reward?.kind === 'boon') {
       const offer = offerFor(run, node);
       if (offer) {
-        this.showBoonChoice(offer);
+        this.showBoonChoice(offer, node);
         return;
       }
     } else if (node && reward?.kind === 'relic') {
-      this.showRelicChoice(rollRelicOffer(run.seed, node.id, reward.rarityBonus));
+      this.showRelicChoice(rollRelicOffer(run.seed, node.id, reward.rarityBonus, run.lockedRelics));
       return;
     } else if (reward?.kind === 'shards') {
       const amount = Math.round(reward.amount * (1 + runStats(run).shardGain));
@@ -639,7 +823,7 @@ export class Game {
     let stats: string;
     if (this.mode === 'room' && run) {
       failRun(run, this.roomResult());
-      clearRun(this.store);
+      this.endRun('lost', ENEMIES[this.sim.killedBy]?.id ?? null);
       stats = t('death.run_stats', { rooms: run.roomsCleared + 1, kills: run.kills });
     } else {
       stats = t('death.stats', { wave: this.sim.waves.wave, kills: this.sim.player.kills });
@@ -649,10 +833,7 @@ export class Game {
 
   private afterDeath(): void {
     if (this.mode === 'arena') this.startArena(randomSeed());
-    else {
-      this.run = null;
-      this.showTitle();
-    }
+    else this.showResult();
   }
 
   // ── Misc ────────────────────────────────────────────────────────────────

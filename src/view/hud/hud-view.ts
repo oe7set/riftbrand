@@ -1,7 +1,6 @@
 import { Container, Sprite, Text, type Texture } from 'pixi.js';
 import { RIFT_SHOT } from '../../content/abilities';
 import { ENEMIES } from '../../content/enemies';
-import { TUNING } from '../../content/tuning';
 import { type TranslationKey, t } from '../../shared/i18n';
 import { C } from '../../sim/ecs/components';
 import type { SimState } from '../../sim/sim';
@@ -198,6 +197,11 @@ export class HudView {
     }
   }
 
+  onBanner(text: string): void {
+    this.banner.text = text;
+    this.bannerSec = BANNER_SEC;
+  }
+
   onBoss(name: string): void {
     this.banner.text = name;
     this.bannerSec = BANNER_SEC * 1.5;
@@ -353,7 +357,7 @@ export class HudView {
     this.hpLag.scale.set(HP_WIDTH_PX * this.lagHp, HP_HEIGHT_PX);
     this.hpFill.tint = ratio < 0.3 ? PALETTE.hpFill : PALETTE.hpPlayer;
 
-    const segments = Math.min(this.pipsBack.length, Math.round(TUNING.staminaMax));
+    const segments = Math.min(this.pipsBack.length, Math.round(sim.staminaMax));
     const stamina = sim.player.stamina;
     const pulse = this.staminaPulseSec > 0 ? Math.sin(this.time * 50) * 0.5 + 0.5 : 0;
     this.staminaPulseSec = Math.max(0, this.staminaPulseSec - dtSec);

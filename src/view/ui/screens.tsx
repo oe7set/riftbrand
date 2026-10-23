@@ -11,18 +11,28 @@ import type { MapNode } from '../../sim/run/map';
 import type { BoonOffer, BoonOption } from '../../sim/run/rewards';
 import { availableNodes, type RunState } from '../../sim/run/run-state';
 import { NodeIcon } from './icons';
+import {
+  HubScreen,
+  type MetaScreen,
+  ProfileScreen,
+  ResultScreen,
+  TreeScreen,
+  WaresScreen,
+} from './meta-screens';
 
 const MAP_ROW_PX = 92;
 const MAP_PAD_PX = 56;
 
 export type Screen =
+  | MetaScreen
   | { kind: 'none' }
   | {
       kind: 'title';
       canContinue: boolean;
       version: string;
       onContinue(): void;
-      onNewRun(): void;
+      /** Enters the refuge (hub); new runs start from there. */
+      onRefuge(): void;
       onArena(): void;
     }
   | { kind: 'map'; run: RunState; onEnter(nodeId: number): void }
@@ -36,8 +46,14 @@ export type Screen =
       onEvolve(): void;
     }
   | { kind: 'evolution'; id: string; onAccept(): void; onLater(): void }
-  | { kind: 'victory'; run: RunState; onTitle(): void }
-  | { kind: 'boon'; offer: BoonOffer; onPick(option: BoonOption): void }
+  | {
+      kind: 'boon';
+      offer: BoonOffer;
+      onPick(option: BoonOption): void;
+      /** Rerolls left (Ember Tree "Second Choice"); the button shows only when > 0. */
+      rerolls: number;
+      onReroll(): void;
+    }
   | { kind: 'relic'; options: string[]; owned: OwnedRelic[]; onPick(id: string): void }
   | { kind: 'notice'; title: string; text: string; onContinue(): void }
   | {
@@ -56,12 +72,6 @@ export type Screen =
       onChoose(optionId: string): void;
       onContinue(): void;
     };
-
-function formatTime(sec: number): string {
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
 
 function Autofocus({ children, wide }: { children: preact.ComponentChildren; wide?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -97,9 +107,9 @@ function TitleScreen(props: Extract<Screen, { kind: 'title' }>) {
             type="button"
             class={`rb-button ${props.canContinue ? '' : 'rb-primary'}`}
             data-autofocus={props.canContinue ? undefined : true}
-            onClick={props.onNewRun}
+            onClick={props.onRefuge}
           >
-            {t('title.new_run')}
+            {t('title.refuge')}
           </button>
           <button type="button" class="rb-button" onClick={props.onArena}>
             {t('title.arena')}
@@ -347,7 +357,7 @@ const SLOT_KEYS: Record<BoonSlot, TranslationKey> = {
 };
 
 /** Three boon cards from one rift being (GDD §7.1). */
-function BoonScreen({ offer, onPick }: Extract<Screen, { kind: 'boon' }>) {
+function BoonScreen({ offer, onPick, rerolls, onReroll }: Extract<Screen, { kind: 'boon' }>) {
   const being = BEINGS[offer.being];
   return (
     <div class="rb-screen rb-center rb-boon-screen" style={{ '--being': being.css }}>
@@ -393,6 +403,11 @@ function BoonScreen({ offer, onPick }: Extract<Screen, { kind: 'boon' }>) {
           })}
         </div>
       </Autofocus>
+      {rerolls > 0 && (
+        <button type="button" class="rb-button rb-reroll" onClick={onReroll}>
+          {t('reward.reroll', { n: rerolls })}
+        </button>
+      )}
     </div>
   );
 }
@@ -630,25 +645,6 @@ function RestScreen({
   );
 }
 
-function VictoryScreen({ run, onTitle }: Extract<Screen, { kind: 'victory' }>) {
-  return (
-    <div class="rb-screen rb-center rb-victory">
-      <div class="rb-overlay-title">{t('victory.title')}</div>
-      <div class="rb-overlay-hint">{t('victory.desc')}</div>
-      <div class="rb-stats">
-        <div>{t('stats.rooms', { n: run.roomsCleared })}</div>
-        <div>{t('stats.kills', { n: run.kills })}</div>
-        <div>{t('stats.time', { time: formatTime(run.playTimeSec) })}</div>
-      </div>
-      <Autofocus>
-        <button type="button" class="rb-button rb-primary" data-autofocus onClick={onTitle}>
-          {t('victory.to_title')}
-        </button>
-      </Autofocus>
-    </div>
-  );
-}
-
 export function UiRoot({ screen }: { screen: Screen }) {
   switch (screen.kind) {
     case 'title':
@@ -659,8 +655,6 @@ export function UiRoot({ screen }: { screen: Screen }) {
       return <RestScreen {...screen} />;
     case 'evolution':
       return <EvolutionScreen {...screen} />;
-    case 'victory':
-      return <VictoryScreen {...screen} />;
     case 'boon':
       return <BoonScreen {...screen} />;
     case 'relic':
@@ -671,6 +665,16 @@ export function UiRoot({ screen }: { screen: Screen }) {
       return <ShopScreen {...screen} />;
     case 'event':
       return <EventScreen {...screen} />;
+    case 'hub':
+      return <HubScreen {...screen} />;
+    case 'tree':
+      return <TreeScreen {...screen} />;
+    case 'wares':
+      return <WaresScreen {...screen} />;
+    case 'profile':
+      return <ProfileScreen {...screen} />;
+    case 'result':
+      return <ResultScreen {...screen} />;
     case 'none':
       return null;
   }
