@@ -2,13 +2,15 @@ import { BitmapFont, BitmapText, Container, Sprite } from 'pixi.js';
 import { STATUS_COUNT, STATUSES, Status } from '../../content/statuses';
 import { stacksOf } from '../../sim/ecs/components';
 import type { SimState } from '../../sim/sim';
-import { BAKE_RADIUS_PX, type BakedTextures } from '../render/textures';
+import type { BakedTextures } from '../render/textures';
 
 export const STATUS_FONT = 'rb-status';
 /** Icons shown per enemy at most; the highest-priority statuses win. */
 const ICONS_PER_ENEMY = 3;
 /** On-screen icon diameter and spacing (world pixels). */
 const ICON_SIZE_PX = 15;
+/** Icon texture width per status-circle width (SVG viewBox 36 / circle 25). */
+const STATUS_ICON_SPAN = 36 / 25;
 const ICON_SPACING_PX = 24;
 /** Height of the icon row above the enemy's health bar. */
 const ICON_LIFT_PX = 22;
@@ -120,7 +122,8 @@ export class StatusIcons {
       icon.position.set(left, y);
       // Frozen solid: the frost icon pulses instead of showing a count.
       const pulse = frozenChill ? 1 + 0.15 * Math.sin(time * 12) : 1;
-      icon.scale.set((ICON_SIZE_PX / (BAKE_RADIUS_PX * 2)) * pulse);
+      // The status circle covers 25 of the icon's 36 units; it should be ICON_SIZE_PX wide.
+      icon.scale.set(((ICON_SIZE_PX * STATUS_ICON_SPAN) / (icon.texture.width || 1)) * pulse);
       const label = frozenChill ? 0 : Math.min(stacks, STATUS_LABELS.length - 1);
       if (group.shown[slot] !== label) {
         group.shown[slot] = label;

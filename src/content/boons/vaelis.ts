@@ -4,6 +4,7 @@ import { type BoonDef, defineBoon } from '../schema';
 export const VAELIS_BOONS: readonly BoonDef[] = [
   defineBoon({
     id: 'frost_strike',
+    icon: { glyph: 'blade' },
     being: 'vaelis',
     slot: 'attack',
     tags: ['frost'],
@@ -19,6 +20,7 @@ export const VAELIS_BOONS: readonly BoonDef[] = [
   }),
   defineBoon({
     id: 'glacial_whirl',
+    icon: { glyph: 'swirl' },
     being: 'vaelis',
     slot: 'special',
     tags: ['frost'],
@@ -38,6 +40,7 @@ export const VAELIS_BOONS: readonly BoonDef[] = [
   }),
   defineBoon({
     id: 'ice_shard',
+    icon: { glyph: 'shard' },
     being: 'vaelis',
     slot: 'cast',
     tags: ['frost', 'cast'],
@@ -57,6 +60,7 @@ export const VAELIS_BOONS: readonly BoonDef[] = [
   }),
   defineBoon({
     id: 'frost_step',
+    icon: { glyph: 'boot' },
     being: 'vaelis',
     slot: 'dash',
     tags: ['frost', 'dash'],
@@ -78,6 +82,7 @@ export const VAELIS_BOONS: readonly BoonDef[] = [
   }),
   defineBoon({
     id: 'cold_grip',
+    icon: { glyph: 'hand' },
     being: 'vaelis',
     slot: 'passive',
     tags: ['frost'],
@@ -86,6 +91,7 @@ export const VAELIS_BOONS: readonly BoonDef[] = [
   }),
   defineBoon({
     id: 'shatter',
+    icon: { glyph: 'nova' },
     being: 'vaelis',
     slot: 'passive',
     tags: ['frost'],
@@ -94,6 +100,7 @@ export const VAELIS_BOONS: readonly BoonDef[] = [
   }),
   defineBoon({
     id: 'ice_age',
+    icon: { glyph: 'hourglass' },
     being: 'vaelis',
     slot: 'passive',
     tags: ['frost', 'dash'],
@@ -108,6 +115,7 @@ export const VAELIS_BOONS: readonly BoonDef[] = [
   }),
   defineBoon({
     id: 'glacier_skin',
+    icon: { glyph: 'shield' },
     being: 'vaelis',
     slot: 'passive',
     tags: ['frost'],
@@ -129,6 +137,7 @@ export const VAELIS_BOONS: readonly BoonDef[] = [
   }),
   defineBoon({
     id: 'biting_cold',
+    icon: { glyph: 'fang' },
     being: 'vaelis',
     slot: 'passive',
     tags: ['frost'],
@@ -138,6 +147,7 @@ export const VAELIS_BOONS: readonly BoonDef[] = [
   defineBoon({
     // M3.3: the frost being rewards patience with faster spells.
     id: 'cold_focus',
+    icon: { glyph: 'eye' },
     being: 'vaelis',
     slot: 'passive',
     tags: ['frost', 'spell'],

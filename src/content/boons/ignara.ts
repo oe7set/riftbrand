@@ -4,6 +4,7 @@ import { type BoonDef, defineBoon } from '../schema';
 export const IGNARA_BOONS: readonly BoonDef[] = [
   defineBoon({
     id: 'searing_strike',
+    icon: { glyph: 'blade' },
     being: 'ignara',
     slot: 'attack',
     tags: ['fire'],
@@ -19,6 +20,7 @@ export const IGNARA_BOONS: readonly BoonDef[] = [
   }),
   defineBoon({
     id: 'inferno_whirl',
+    icon: { glyph: 'swirl' },
     being: 'ignara',
     slot: 'special',
     tags: ['fire'],
@@ -38,6 +40,7 @@ export const IGNARA_BOONS: readonly BoonDef[] = [
   }),
   defineBoon({
     id: 'ember_shot',
+    icon: { glyph: 'shot' },
     being: 'ignara',
     slot: 'cast',
     tags: ['fire', 'cast'],
@@ -57,6 +60,7 @@ export const IGNARA_BOONS: readonly BoonDef[] = [
   }),
   defineBoon({
     id: 'spark_trail',
+    icon: { glyph: 'trail' },
     being: 'ignara',
     slot: 'dash',
     tags: ['fire', 'dash'],
@@ -78,6 +82,7 @@ export const IGNARA_BOONS: readonly BoonDef[] = [
   }),
   defineBoon({
     id: 'ignition',
+    icon: { glyph: 'spark' },
     being: 'ignara',
     slot: 'passive',
     tags: ['fire', 'kill'],
@@ -100,6 +105,7 @@ export const IGNARA_BOONS: readonly BoonDef[] = [
   }),
   defineBoon({
     id: 'ember_heart',
+    icon: { glyph: 'heart' },
     being: 'ignara',
     slot: 'passive',
     tags: ['fire'],
@@ -108,6 +114,7 @@ export const IGNARA_BOONS: readonly BoonDef[] = [
   }),
   defineBoon({
     id: 'blazing_fury',
+    icon: { glyph: 'flame' },
     being: 'ignara',
     slot: 'passive',
     tags: ['fire'],
@@ -116,6 +123,7 @@ export const IGNARA_BOONS: readonly BoonDef[] = [
   }),
   defineBoon({
     id: 'ashes_to_ashes',
+    icon: { glyph: 'skull' },
     being: 'ignara',
     slot: 'passive',
     tags: ['fire'],
@@ -124,6 +132,7 @@ export const IGNARA_BOONS: readonly BoonDef[] = [
   }),
   defineBoon({
     id: 'phoenix_ember',
+    icon: { glyph: 'wing' },
     being: 'ignara',
     slot: 'passive',
     tags: ['fire', 'kill', 'heal'],
@@ -140,6 +149,7 @@ export const IGNARA_BOONS: readonly BoonDef[] = [
   defineBoon({
     // M3.3: Ignara's fire spreads further around the player.
     id: 'ember_circle',
+    icon: { glyph: 'ring' },
     being: 'ignara',
     slot: 'passive',
     tags: ['fire', 'spell'],

@@ -542,7 +542,15 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Elite-Darstellung** (`syncRigElite`): Glow-Farbe bzw. Puls über `RigInstance.setGlow()`. Der Schildbogen wird vor die Figur gesetzt.
 - **Einstellungen v7:** `simpleGraphics` schaltet `EntityView.look` auf 'classic'.
 
-## 35. Risiken und Gegenmaßnahmen
+## 36. Stand nach M4.3 (Icon-Set)
+- **`view/render/icons/glyphs.ts`:** `GLYPHS` (Glyphen als SVG-Pfadteile mit Malart fill, stroke, core, hole), `FRAMES` (Rahmen pro Art) und `GLYPH_SCALE`.
+- **`icon-svg.ts`:** `iconSvg(spec)` erzeugt eigenständiges SVG mit Glow-Filter. `iconUrl(spec)` liefert eine gecachte Data-URL.
+- **`specs.ts`:** `boonIcon()`, `relicIcon()`, `spellIcon()`, `upgradeIcon()`, `statusIcon()` und `RARITY_COLORS`.
+- **`rasterize.ts`:** `rasterizeIcons()` rastert beim Start (asynchron in `GameView.create`) auf 96 px. `bakeTextures()` bekommt die Zauber- und Status-Texturen übergeben; das alte Pixi-`drawGlyph` ist entfallen.
+- **Content:** `iconSchema` (`{ glyph }`) ist Pflicht für Segen und Relikte; `glyphSchema` hat 29 Glyphen.
+- **Oberfläche:** `Icon` und `CardTitle` in `view/ui/icons.tsx`; Klasse `.rb-icon`.
+
+## 37. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

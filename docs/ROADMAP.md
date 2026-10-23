@@ -687,11 +687,11 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
 - **„Einfache Grafik“** in Pause → Einstellungen schaltet auf die klassischen Formen (Settings v7).
 - **Debug-Menü:** „Gather enemies“ stellt alle Gegner im Kreis um Vesper auf, zum Anschauen.
 
-### M4.3 Icon-Set im Neon-Stil ⬜
+### M4.3 Icon-Set im Neon-Stil ✅
 **Ziel:** Segen, Relikte, Zauber, Upgrades, Status und Map-Knoten sind an ihren Icons erkennbar, ohne dass man Text lesen muss.
 
 **Umfang:**
-- [ ] **Einheitliche Icon-Sprache:** Die Form des Rahmens zeigt die Art.
+- [x] **Einheitliche Icon-Sprache:** Die Form des Rahmens zeigt die Art.
 
   | Art | Rahmen |
   |---|---|
@@ -705,15 +705,41 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
   | Quest | Wappenschild |
 
   Die Rahmenfarbe zeigt die Seltenheit (GDD §7.2); innen sitzt eine Glyphe.
-- [ ] **Prozeduraler Icon-Generator** in `src/view/render/icons/`:
+- [x] **Prozeduraler Icon-Generator** in `src/view/render/icons/`:
   - Glyphen aus Grundformen als Daten: Flamme, Schneeflocke, Tropfen, Strahl, Auge, Herz, Klinge, Stern, Schädel …
   - Die Icons werden zur Ladezeit ins Atlas gebacken.
   - Preact-Menüs verwenden sie als Bild-URL wieder.
-- [ ] **Content-Feld** `icon: { glyph, accent }` für jeden Segen, jedes Relikt, jeden Zauber, jeden Status, jedes Map-Symbol und jedes Material. Der Content-Test prüft, dass jedes Element ein Icon hat.
-- [ ] **Einsatzorte:** Belohnungs-Auswahl, Build-Übersicht im Pause-Menü, HUD (Zauber, Status), Map, Shop, Ergebnis-Bildschirm.
-- [ ] **Barrierefreiheit:** Icons unterscheiden sich in der Form, nicht nur in der Farbe.
+- [x] **Content-Feld** `icon: { glyph, accent }` für jeden Segen, jedes Relikt, jeden Zauber, jeden Status, jedes Map-Symbol und jedes Material. Der Content-Test prüft, dass jedes Element ein Icon hat.
+- [x] **Einsatzorte:** Belohnungs-Auswahl, Build-Übersicht im Pause-Menü, HUD (Zauber, Status), Map, Shop, Ergebnis-Bildschirm.
+- [x] **Barrierefreiheit:** Icons unterscheiden sich in der Form, nicht nur in der Farbe.
 
 **Abhängig von:** M3.3 (Zauber existieren). Das Paket kann parallel zu M4.2 laufen.
+
+**Umgesetzt (Abweichungen vom Plan):**
+- **Eine Quelle für alle Icons:**
+  - Glyphen und Rahmen sind SVG-Pfaddaten (`src/view/render/icons/`).
+  - Menüs zeigen sie als SVG-Bild.
+  - Für HUD und Status-Overlay werden sie beim Start in Texturen gerastert.
+  - Ins Atlas gebacken wird nicht, Einzeltexturen reichen für die wenigen HUD-Icons.
+- **29 Glyphen**, darunter Flamme, Schneeflocke, Klinge, Herz, Schädel, Flügel, Sanduhr, Schild, Edelstein und Krone.
+- **Rahmen:**
+  - Segen: Kreis in der Wesensfarbe, ab Selten mit Rand in der Seltenheitsfarbe.
+  - Relikte: Sechseck in der Seltenheitsfarbe.
+  - Zauber: Raute; Auren: Raute mit Ring.
+  - Upgrades: Doppelwinkel.
+  - Status: kleiner Kreis.
+  - Für Material und Quest sind die Rahmen schon da; Inhalte dafür kommen ab M5.
+- **Content-Feld `icon: { glyph }`** für alle 21 Segen und 12 Relikte (Pflichtfeld im Schema). Zauber und Status nutzen ihr bestehendes `visual.glyph`.
+- **Einsatzorte:**
+  - Karten für Segen, Relikte, Zauber und Upgrades
+  - Shop
+  - Segen-Chips auf der Map
+  - Build-Übersicht im Pause-Menü
+  - Sels Runenturm und Nix' Relikt-Laden
+  - HUD (Zauber, Boss-Status) und Status-Symbole über Gegnern
+- **Nicht umgesetzt:**
+  - Die Map-Symbole bleiben die eigenen SVG-Symbole aus M2.6; sie sind schon formverschieden.
+  - Der Ergebnis-Bildschirm zeigt bisher keinen Build, dort gibt es noch keine Icons.
 
 ### M4.4 Effekte und Umgebung ⬜
 - [ ] Zauber- und Aura-Effekte überarbeiten: Meteor-Schweif, Schwaden der Giftwolke, Glanz der Lichtlanze.

@@ -1,8 +1,5 @@
 import { Graphics, Rectangle, type Renderer, Texture } from 'pixi.js';
 import { ENEMIES } from '../../content/enemies';
-import type { Glyph } from '../../content/schema';
-import { SPELLS } from '../../content/spells';
-import { STATUSES } from '../../content/statuses';
 import { PALETTE } from './palette';
 
 /** Base radius the body textures are drawn at; sprites scale by actualRadius / BAKE_RADIUS_PX. */
@@ -32,9 +29,9 @@ export interface BakedTextures {
   disc: Texture;
   /** Frontal shield arc pointing along +x (shielded elites). */
   shieldArc: Texture;
-  /** Status icons (dark disc, coloured rim and glyph), indexed by status index. */
+  /** Status icons (rasterised SVG, ROADMAP M4.3), indexed by status index. */
   statusIcons: Texture[];
-  /** Spell icons, indexed by spell index. */
+  /** Spell icons (rasterised SVG), indexed by spell index. */
   spellIcons: Texture[];
   /** 1×1 white for bars and rectangles. */
   white: Texture;
@@ -111,117 +108,11 @@ function projectileTextures(texture: Texture): BodyTextures {
   return { normal: texture, flash: texture };
 }
 
-/** Glyphs differ in shape, not only colour, so statuses stay readable for colour-blind players. */
-function drawGlyph(g: Graphics, glyph: Glyph, r: number, color: number): void {
-  switch (glyph) {
-    case 'flame':
-      g.poly([
-        -0.1 * r,
-        -0.8 * r,
-        0.08 * r,
-        -0.35 * r,
-        0.3 * r,
-        -0.55 * r,
-        0.45 * r,
-        0.12 * r,
-        0.25 * r,
-        0.55 * r,
-        -0.25 * r,
-        0.55 * r,
-        -0.45 * r,
-        0.12 * r,
-        -0.3 * r,
-        -0.2 * r,
-      ]).fill({ color });
-      g.circle(0, 0.25 * r, 0.16 * r).fill({ color: 0xffffff });
-      break;
-    case 'snowflake':
-      for (let i = 0; i < 3; i++) {
-        const a = (i * Math.PI) / 3 + Math.PI / 2;
-        const dx = Math.cos(a) * 0.62 * r;
-        const dy = Math.sin(a) * 0.62 * r;
-        g.moveTo(-dx, -dy)
-          .lineTo(dx, dy)
-          .stroke({ color, width: r * 0.16, cap: 'round' });
-      }
-      g.circle(0, 0, 0.14 * r).fill({ color: 0xffffff });
-      break;
-    case 'drop':
-      g.poly([0, -0.68 * r, 0.34 * r, 0.02 * r, -0.34 * r, 0.02 * r]).fill({ color });
-      g.circle(0, 0.18 * r, 0.38 * r).fill({ color });
-      g.circle(-0.12 * r, 0.1 * r, 0.1 * r).fill({ color: 0xffffff, alpha: 0.85 });
-      break;
-    case 'eye':
-      g.ellipse(0, 0, 0.66 * r, 0.36 * r).stroke({ color, width: r * 0.14 });
-      g.circle(0, 0, 0.2 * r).fill({ color });
-      for (let i = 0; i < 4; i++) {
-        const a = -Math.PI / 2 + (i - 1.5) * 0.45;
-        g.moveTo(Math.cos(a) * 0.5 * r, Math.sin(a) * 0.5 * r - 0.1 * r)
-          .lineTo(Math.cos(a) * 0.78 * r, Math.sin(a) * 0.78 * r - 0.1 * r)
-          .stroke({ color, width: r * 0.08, cap: 'round' });
-      }
-      break;
-    case 'nova':
-      g.circle(0, 0, 0.22 * r).fill({ color: 0xffffff });
-      for (let i = 0; i < 8; i++) {
-        const a = (i * Math.PI) / 4;
-        g.moveTo(Math.cos(a) * 0.38 * r, Math.sin(a) * 0.38 * r)
-          .lineTo(Math.cos(a) * 0.72 * r, Math.sin(a) * 0.72 * r)
-          .stroke({ color, width: r * 0.13, cap: 'round' });
-      }
-      break;
-    case 'ray':
-      g.moveTo(-0.62 * r, 0.62 * r)
-        .lineTo(0.5 * r, -0.5 * r)
-        .stroke({ color, width: r * 0.2, cap: 'round' });
-      g.star(0.5 * r, -0.5 * r, 4, 0.3 * r, 0.1 * r).fill({ color: 0xffffff });
-      break;
-    case 'meteor':
-      for (let i = 0; i < 3; i++) {
-        const o = (i - 1) * 0.22 * r;
-        g.moveTo(-0.65 * r + o, -0.1 * r - o)
-          .lineTo(0.05 * r + o, 0.6 * r - o)
-          .stroke({ color, width: r * 0.09, cap: 'round', alpha: 0.7 });
-      }
-      g.circle(0.25 * r, -0.25 * r, 0.32 * r).fill({ color });
-      g.circle(0.32 * r, -0.32 * r, 0.12 * r).fill({ color: 0xffffff });
-      break;
-    case 'cloud':
-      g.circle(-0.3 * r, 0.1 * r, 0.3 * r).fill({ color });
-      g.circle(0.05 * r, -0.12 * r, 0.36 * r).fill({ color });
-      g.circle(0.35 * r, 0.12 * r, 0.27 * r).fill({ color });
-      g.rect(-0.3 * r, 0.1 * r, 0.65 * r, 0.3 * r).fill({ color });
-      break;
-  }
-}
-
-/**
- * Spell icons: a diamond frame in the school colour (auras get a ring around it), so spells
- * never read as statuses (round) or relics.
- */
-function spellIcon(renderer: Renderer, glyph: Glyph, color: number, aura: boolean): Texture {
-  const r = BAKE_RADIUS_PX;
-  const g = new Graphics();
-  const diamond = [0, -r, r, 0, 0, r, -r, 0];
-  if (aura) g.circle(0, 0, r * 1.12).stroke({ color, width: r * 0.08, alpha: 0.8 });
-  g.poly(diamond).fill({ color: PALETTE.background, alpha: 0.9 });
-  g.poly(diamond).stroke({ color, width: r * 0.12 });
-  drawGlyph(g, glyph, r * 0.62, color);
-  return bake(renderer, g, r * 1.25);
-}
-
-function statusIcon(renderer: Renderer, glyph: Glyph, color: number): Texture {
-  const r = BAKE_RADIUS_PX;
-  const g = new Graphics();
-  g.circle(0, 0, r * 1.15).fill({ color, alpha: 0.18 });
-  g.circle(0, 0, r).fill({ color: PALETTE.background, alpha: 0.9 });
-  g.circle(0, 0, r).stroke({ color, width: r * 0.12 });
-  drawGlyph(g, glyph, r * 0.85, color);
-  return bake(renderer, g, r * 1.2);
-}
-
 /** Procedural vector art (GDD §12.1), rendered once into textures at startup. */
-export function bakeTextures(renderer: Renderer): BakedTextures {
+export function bakeTextures(
+  renderer: Renderer,
+  icons: { spells: Texture[]; statuses: Texture[] },
+): BakedTextures {
   const r = BAKE_RADIUS_PX;
 
   const player = new Graphics();
@@ -293,10 +184,8 @@ export function bakeTextures(renderer: Renderer): BakedTextures {
     ring: bake(renderer, ring, r),
     disc: bake(renderer, disc, r),
     shieldArc: bake(renderer, shieldArc, r),
-    statusIcons: STATUSES.map((s) => statusIcon(renderer, s.visual.glyph, s.visual.color)),
-    spellIcons: SPELLS.map((s) =>
-      spellIcon(renderer, s.visual.glyph, s.visual.color, s.kind === 'aura'),
-    ),
+    statusIcons: icons.statuses,
+    spellIcons: icons.spells,
     white: Texture.WHITE,
     softGlow: radialTexture(GLOW_TEXTURE_PX, [
       [0, 'rgba(255,255,255,1)'],

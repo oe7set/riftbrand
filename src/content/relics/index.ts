@@ -9,6 +9,7 @@ import { registerTunables } from '../tunables';
 export const RELICS: readonly RelicDef[] = [
   defineRelic({
     id: 'spark_ring',
+    icon: { glyph: 'ring' },
     rarity: 'rare',
     tags: ['fire', 'kill'],
     price: 70,
@@ -34,6 +35,7 @@ export const RELICS: readonly RelicDef[] = [
   }),
   defineRelic({
     id: 'cold_core',
+    icon: { glyph: 'gem' },
     rarity: 'rare',
     tags: ['frost'],
     price: 70,
@@ -50,6 +52,7 @@ export const RELICS: readonly RelicDef[] = [
   }),
   defineRelic({
     id: 'ember_stone',
+    icon: { glyph: 'stone' },
     rarity: 'common',
     tags: ['damage'],
     price: 45,
@@ -58,6 +61,7 @@ export const RELICS: readonly RelicDef[] = [
   }),
   defineRelic({
     id: 'heart_shard',
+    icon: { glyph: 'heart' },
     rarity: 'common',
     tags: ['defense'],
     price: 45,
@@ -66,6 +70,7 @@ export const RELICS: readonly RelicDef[] = [
   }),
   defineRelic({
     id: 'light_soles',
+    icon: { glyph: 'boot' },
     rarity: 'common',
     tags: ['movement'],
     price: 40,
@@ -74,6 +79,7 @@ export const RELICS: readonly RelicDef[] = [
   }),
   defineRelic({
     id: 'whetstone',
+    icon: { glyph: 'blade' },
     rarity: 'common',
     tags: ['crit'],
     price: 45,
@@ -82,6 +88,7 @@ export const RELICS: readonly RelicDef[] = [
   }),
   defineRelic({
     id: 'executioner_mark',
+    icon: { glyph: 'skull' },
     rarity: 'rare',
     unlockCost: 3,
     tags: ['crit'],
@@ -91,6 +98,7 @@ export const RELICS: readonly RelicDef[] = [
   }),
   defineRelic({
     id: 'breath_stone',
+    icon: { glyph: 'wind' },
     rarity: 'rare',
     unlockCost: 2,
     tags: ['dash'],
@@ -100,6 +108,7 @@ export const RELICS: readonly RelicDef[] = [
   }),
   defineRelic({
     id: 'leech_charm',
+    icon: { glyph: 'fang' },
     rarity: 'epic',
     tags: ['heal', 'kill'],
     price: 110,
@@ -108,6 +117,7 @@ export const RELICS: readonly RelicDef[] = [
   }),
   defineRelic({
     id: 'second_wind',
+    icon: { glyph: 'wing' },
     rarity: 'common',
     unlockCost: 3,
     tags: ['heal'],
@@ -119,6 +129,7 @@ export const RELICS: readonly RelicDef[] = [
   }),
   defineRelic({
     id: 'greedy_heart',
+    icon: { glyph: 'coin' },
     rarity: 'curse',
     tags: ['damage', 'curse'],
     price: 30,
@@ -133,6 +144,7 @@ export const RELICS: readonly RelicDef[] = [
   }),
   defineRelic({
     id: 'glass_bones',
+    icon: { glyph: 'bone' },
     rarity: 'curse',
     unlockCost: 2,
     tags: ['crit', 'curse'],
