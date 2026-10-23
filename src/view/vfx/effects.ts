@@ -7,6 +7,9 @@ const rand = (min: number, max: number) => min + Math.random() * (max - min);
 
 /** Named particle recipes for the feedback director (GDD §4.7). */
 export class Effects {
+  /** The aura's reach ring is opt-in (settings): a steady pulse around Vesper reads as noise. */
+  auraRingEnabled = false;
+
   constructor(
     private readonly fx: ParticleSystem,
     private readonly ground: ParticleSystem,
@@ -647,6 +650,7 @@ export class Effects {
 
   /** A faint ring settling onto the aura's edge: shows its reach without stealing focus. */
   auraRing(x: number, y: number, radius: number, color: number, strong: boolean): void {
+    if (!this.auraRingEnabled) return;
     this.ground.emit({
       texture: this.tex.ring,
       x,

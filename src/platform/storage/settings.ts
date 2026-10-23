@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const STORAGE_KEY = 'riftbrand.settings';
-export const SETTINGS_VERSION = 4;
+export const SETTINGS_VERSION = 5;
 
 const unit = z.number().min(0).max(1);
 
@@ -18,7 +18,7 @@ const layoutProfile = z.partialRecord(
 
 /**
  * Player settings (GDD §13). Every field has a default via `.catch`, so a missing, corrupt or
- * older save never breaks loading: v1 → … → v4 is exactly that (new fields get their defaults).
+ * older save never breaks loading: v1 → … → v5 is exactly that (new fields get their defaults).
  * New fields → bump SETTINGS_VERSION and extend migrate.
  */
 const settingsSchema = z.object({
@@ -39,6 +39,8 @@ const settingsSchema = z.object({
   touchOpacity: z.number().min(0.1).max(1).catch(0.35),
   // v3 (M3.1): status icons above enemies can be hidden for a calmer screen.
   statusIcons: z.boolean().catch(true),
+  // v5: the aura's pulse ring around Vesper is opt-in; the aura itself keeps working.
+  auraRing: z.boolean().catch(false),
 });
 
 export type Settings = z.infer<typeof settingsSchema>;

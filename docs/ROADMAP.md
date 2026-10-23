@@ -89,6 +89,36 @@ M0 Fundament ─▶ M1 Prototyp ─▶ M2 Vertical Slice ─▶ M3 Kampftiefe �
 | A4 | **Zauber-Taste:** Nur der aktive Zauber braucht eine Taste, die Aura wirkt von selbst. Am Handy kommt genau **ein** Button dazu. | Annahme, im PR zu M3.2 prüfen | M3.2 |
 | A5 | Weitere Hades-Elemente (Rüstungsleisten bei Gegnern, Dash-Angriff) wurden nicht gewünscht und bleiben im Ideen-Pool. | Annahme | – |
 
+### PO-Ideen, Runde 2 (2026-10-23, nach M3)
+Der PO findet das aktuelle Kampfmodell gut und möchte es **erweitern, ohne den Einstieg zu verkomplizieren**. Alles Neue wird im Lauf des Spiels freigeschaltet. Als Nächstes kommt die Grafik (M4). Die Ideen sind hier festgehalten und eingeschätzt. Was mit ❓ markiert ist, entscheidet der PO, bevor das Paket startet.
+
+| Nr. | Idee | Einschätzung | Vorschlag wann |
+|---|---|---|---|
+| I1 | **Blocken**, dazu **perfekter Block → Konterangriff** | Passt sehr gut zum Kampf (Gegenstück zur Parierhaltung des Glut-Duellanten, die es in der Simulation schon gibt). Mittlerer Aufwand. ❓ Steuerung am Handy: eigener Button oder „Dash halten = Block“? | **K2.1**, direkt nach M4. Die Block-Pose profitiert von den Körper-Rigs aus M4. |
+| I2 | **Springen**, dazu **Sprungangriff** (Landung als Flächenschlag) | Top-down: Sprung = Höhe mit Schatten, überspringt Bodenwellen, Minen und Fallen. Mittlerer bis hoher Aufwand (neue Höhen-Achse in Sim und Darstellung, Gegner-Muster, die man überspringen kann). ❓ Steuerung am Handy (Wischen oder Button). | **K2.2**, nach dem Block |
+| I3 | **Kombo-Folgen**: perfekter Block → Konter, Sprung → Sprungangriff, Dash → Dash-Schlag | Günstig, sobald I1 und I2 stehen: Folge-Aktionen als Daten („nach Aktion X innerhalb von N Ticks wird Taste Y zu Z“). | **K2.3** |
+| I4 | **Mehr Zauber** | Bereits geplant (M6.4: ca. 20 Zauber in allen Schulen). | M6.4 |
+| I5 | **Bodenziel wie in WoW**: Zauber wählen, dann die Stelle anklicken, wo der Schaden passiert | Am Handy gibt es das schon (Ziehen vom Zauber-Button mit Vorschau). Für Maus fehlt nur „Zauber landet am Mauszeiger, begrenzt auf die Reichweite“. Kleiner Aufwand. | **K2.4**, auch vorziehbar |
+| I6 | **Frei belegbare Zauberleiste** wie in WoW | Widerspricht E5 (2 Slots) nicht, wenn sie **wächst**: Start 1 aktiver Zauber + 1 Aura, weitere aktive Slots (bis ca. 4) schaltet man frei. Am Handy z. B. 2 Buttons plus Halten für ein Rad-Menü. Mittlerer Aufwand, Balancing-Risiko (Magie-Anteil, siehe M3.7). ❓ Wie viele Slots maximal? | **K2.5** |
+| I7 | **Taktische Kämpfe mit weniger Bewegung** | Als **eigener Raumtyp bzw. eigene Begegnung**, nicht als Ersatz: Gegner wirken lange, angekündigte Zauber, die man unterbrechen, blocken oder umgehen muss, Stellung halten, Abklingzeiten planen. Setzt Block (I1) und Zauberleiste (I6) voraus. Mittlerer Aufwand, vor allem Content. | **K2.6** (erster Raumtyp), mehr in M6 |
+| I8 | **Zufällige Sammel-Drops** (Materialien) zum Aufwerten | Passt direkt zu M5.4: Toll braucht Materialien, eine Quelle war noch offen. Gegner bzw. Räume lassen weltspezifische Materialien fallen. Kleiner bis mittlerer Aufwand. | **M5.4** (mit Schmied und Rüstungen) |
+| I9 | **Mehrere Fähigkeitsbäume parallel**, die man sich erarbeitet (z. B. Bollwerk/Tank, Licht/Heilung, Klinge/Schaden, Runen/Zauber) | Lohnt sich schon im Einzelspieler: Der Glutbaum wird zu mehreren Pfaden, die man nacheinander freischaltet. Jeder kann alles; die Skillung entscheidet die Rolle. Mittlerer Aufwand (Meta-Daten, Oberfläche, Balancing). | **K2.7** bzw. mit M5 (Zuflucht) |
+| I10 | **Mehrspieler** mit Tank, Heiler und Schadensverursacher | Größter Brocken. Die deterministische Simulation ist eine gute Grundlage (Lockstep bzw. Rollback). Schwierig: Online-Spiel im Browser braucht einen kleinen Vermittlungs-Server (WebRTC-Signalisierung); bisher ist alles statisch (GitHub Pages). Empfehlung in Stufen: **(1) jetzt schon** die Simulation mehrspielerfähig halten (mehrere Spielfiguren statt einer festen `playerEid`), das ist später teuer nachzurüsten; **(2) lokaler Koop** (2 Gamepads an einem PC, kein Server); **(3) Online-Koop** für 2–4 Spieler. ❓ Wie wichtig ist Mehrspieler (vor oder nach Version 1.0)? | (1) technische Vorbereitung in K2, (2) und (3) eigener Meilenstein, voraussichtlich nach M6 |
+
+**Leitlinie „nicht zu kompliziert am Anfang“:** Der erste Run hat nur Angriff, Dash, Riss-Geschoss und einen Zauber. Block, Sprung, weitere Zauber-Slots und Fähigkeitsbäume werden über die ersten Stunden freigeschaltet (Freischaltungs-Fahrplan GDD §8.3), jeweils mit einer kurzen Einführung.
+
+**Vorschlag Kampf II (K2), nach M4:**
+- K2.1 Block und perfekter Block
+- K2.2 Sprung und Sprungangriff
+- K2.3 Kombo-Folgen
+- K2.4 Bodenziel am Mauszeiger
+- K2.5 Wachsende Zauberleiste
+- K2.6 Taktischer Raumtyp
+- K2.7 Fähigkeitsbäume
+- Technisch: Simulation für mehrere Spielfiguren vorbereiten
+
+Ob K2 vor oder nach der Hub-Welt (M5) kommt, entscheidet der PO (❓). Die Nummerierung der Meilensteine wird angepasst, sobald das feststeht.
+
 ---
 
 ## Glossar (Deutsch → Code)
@@ -973,6 +1003,7 @@ Richtwerte. Wenn sich die Reihenfolge der Pakete ändert, verschieben sich die N
 | M3.4 | | | **v7** | Stufen, Zweige, Segen-Stufen |
 | M3.5 | | | **v8** | Knotentyp `duel` in der Map |
 | M3.6 | | **v2** | | freigeschaltete und entdeckte Zauber, Ausrüstung |
+| nach M3 ✅ | **v5** | | | Einstellung „Aura-Ring um Vesper anzeigen“ (Standard: aus) |
 | M5.2 | | **v3** | **v9** | Welt-Fortschritt, `worldId` |
 | M5.3 | | **v4** | | Materialien, Gebäude-Stufen |
 | M5.4 | | **v5** | | Rüstungen |
@@ -1003,7 +1034,7 @@ Richtwerte. Wenn sich die Reihenfolge der Pakete ändert, verschieben sich die N
 - weitere Sprachen
 - App-Store-Versionen (Capacitor)
 - Mod- bzw. Daten-Support für Community-Content
-- Koop (aufwendig, nur bei großem Erfolg)
+- Koop bzw. Mehrspieler: jetzt eingeplant als I10 (siehe „PO-Ideen, Runde 2“)
 
 ---
 

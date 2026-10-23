@@ -462,5 +462,6 @@
   "dialogue.sel_filler_1": "A meteor is just a promise the sky keeps. Aim it well.",
   "dialogue.sel_filler_2": "Auras are patient spells. Let them work while you fight.",
   "dialogue.sel_filler_3": "Rune Shards out there? Each one is a sentence. Collect enough and the spell speaks louder.",
-  "dialogue.sel_filler_4": "Light, poison, frost, flame. Every school asks for a different kind of patience."
+  "dialogue.sel_filler_4": "Light, poison, frost, flame. Every school asks for a different kind of patience.",
+  "settings.aura_ring": "Show aura ring around Vesper"
 }
