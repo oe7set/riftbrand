@@ -228,7 +228,8 @@ export const biomeSchema = z.object({
 export const beingIdSchema = z.enum(['ignara', 'vaelis']);
 export const boonSlotSchema = z.enum(['attack', 'special', 'cast', 'dash', 'passive']);
 export const raritySchema = z.enum(['common', 'rare', 'epic', 'heroic']);
-export const statusIdSchema = z.enum(['burn', 'chill']);
+/** Order matters: it is the status index in the sim's per-entity status arrays. Append only. */
+export const statusIdSchema = z.enum(['burn', 'chill', 'poison', 'blind']);
 /** Additive stat bonuses; +0.15 means +15 %. */
 export const statIdSchema = z.enum([
   'attackDamage',
@@ -561,6 +562,41 @@ export function defineEnemy(def: EnemyDef): EnemyDef {
       throw new Error(`enemy ${enemy.id}: boss phases must have falling hpBelow`);
   }
   return enemy;
+}
+
+// ── Status effects (ROADMAP M3.1) ─────────────────────────────────────────
+
+export const statusGlyphSchema = z.enum(['flame', 'snowflake', 'drop', 'eye']);
+
+export const statusSchema = z.object({
+  id: statusIdSchema,
+  maxStacks: z.number().int().min(1).max(20),
+  /** Refreshed by every application; when it runs out, all stacks drop at once. */
+  durationSec: z.number().positive(),
+  /** Damage over time per stack (0 = none), dealt every tickSec. */
+  damagePerStackPerSec: z.number().nonnegative(),
+  tickSec: z.number().positive(),
+  /** Movement slow per stack. */
+  slowPerStack: z.number().min(0).max(1),
+  /** Reaching this many stacks freezes the enemy and clears the status (0 = never). */
+  freezeAtStacks: z.number().int().nonnegative(),
+  /** Enemy attack windups take this many times longer (1 = unaffected). */
+  windupMultiplier: z.number().min(1).max(3),
+  /** Enemy volleys veer off their aim by this angle (0 = unaffected). */
+  aimErrorDeg: z.number().min(0).max(90),
+  visual: z.object({
+    color: z.number().int().nonnegative(),
+    glyph: statusGlyphSchema,
+    /** Higher shows first when an enemy carries more statuses than icon slots. */
+    priority: z.number().int(),
+  }),
+});
+
+export type StatusDef = z.infer<typeof statusSchema>;
+export type StatusGlyph = z.infer<typeof statusGlyphSchema>;
+
+export function defineStatus(def: StatusDef): StatusDef {
+  return statusSchema.parse(def);
 }
 
 // ── Elite modifiers (GDD §5.1) ────────────────────────────────────────────

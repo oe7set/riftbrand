@@ -5,7 +5,7 @@ import { damagePlayer, releaseToken } from '../combat/damage';
 import { spawnHazard } from '../combat/hazards';
 import { AiState, C, RenderKind, Team, Token } from '../ecs/components';
 import { addComponents } from '../ecs/world';
-import { chillSpeedFactor } from '../effects/status';
+import { aimErrorDeg, chillSpeedFactor, windupRate } from '../effects/status';
 import { packEnemy } from '../enemy-code';
 import { Ev, pushEvent } from '../events';
 import { nextFloat, nextInt, nextRange } from '../rng/rng';
@@ -58,7 +58,9 @@ export function currentAttack(state: SimState, eid: number, def: EnemyDef): Enem
 function fireVolley(state: SimState, eid: number, atk: EnemyAttackDef): void {
   if (atk.kind !== 'volley') return;
   const c = state.c;
-  const baseAngle = Math.atan2(c.aiDirY[eid] as number, c.aiDirX[eid] as number);
+  // Blinded enemies miss: the volley veers off to alternating sides.
+  const veer = aimErrorDeg(state, eid) * DEG * ((state.tick + eid) % 2 === 0 ? 1 : -1);
+  const baseAngle = Math.atan2(c.aiDirY[eid] as number, c.aiDirX[eid] as number) + veer;
   const count = atk.projectileCount;
   const ring = atk.spreadDeg >= 180;
   for (let i = 0; i < count; i++) {
@@ -240,7 +242,19 @@ export function enemyAiSystem(state: SimState): void {
       ux /= dist;
       uy /= dist;
     }
-    const ticks = (c.aiTicks[eid] as number) + 1;
+    let ticks = (c.aiTicks[eid] as number) + 1;
+    if (c.aiState[eid] === AiState.Windup) {
+      // Blinded enemies wind up slower: the timer only advances by a fraction per tick.
+      const rate = windupRate(state, eid);
+      if (rate < 1) {
+        const carry = (c.windupCarry[eid] as number) + rate;
+        if (carry >= 1) c.windupCarry[eid] = carry - 1;
+        else {
+          c.windupCarry[eid] = carry;
+          ticks -= 1;
+        }
+      }
+    }
     c.aiTicks[eid] = ticks;
 
     if (def.poise > 0 && (c.poiseRegenTicks[eid] as number) > 0) {

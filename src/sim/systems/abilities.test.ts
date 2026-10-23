@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { BRAND_BURST, RIFT_SHOT } from '../../content/abilities';
 import { ENEMY_TYPE } from '../../content/enemies';
+import { Status, statusDef } from '../../content/statuses';
 import { resetTunables } from '../../content/tunables';
 import { TUNING } from '../../content/tuning';
 import { Button, createInputFrame, type InputFrame } from '../../shared/input-frame';
 import { damageEnemy, type PlayerHitSpec } from '../combat/damage';
-import { C, RenderKind } from '../ecs/components';
+import { C, RenderKind, statusSlot } from '../ecs/components';
 import { dominantBeing, type OwnedBoon } from '../effects/build';
 import { applyBurn, applyChill } from '../effects/status';
 import { Ev } from '../events';
@@ -104,7 +105,7 @@ describe('rift shot (cast)', () => {
     const s = sim([{ id: 'ice_shard', rarity: 'common' }]);
     const e = enemyAt(s, 150);
     press(s, Button.Cast, 40);
-    expect(s.c.chillStacks[e]).toBe(2);
+    expect(s.c.statusStacks[statusSlot(e, Status.Chill)]).toBe(2);
     expect(120 - (s.c.hp[e] ?? 0)).toBeCloseTo(RIFT_SHOT.damage * 1.25);
   });
 });
@@ -146,7 +147,7 @@ describe('brand burst (ultimate)', () => {
     ign.player.ultCharge = 1;
     const a = enemyAt(ign, 150);
     press(ign, Button.Ultimate, secondsToTicks(BRAND_BURST.windupSec) + 3);
-    expect(ign.c.burnStacks[a]).toBe(BRAND_BURST.variants.ignara.stacks);
+    expect(ign.c.statusStacks[statusSlot(a, Status.Burn)]).toBe(BRAND_BURST.variants.ignara.stacks);
 
     const vae = sim([{ id: 'shatter', rarity: 'common' }]);
     vae.player.ultCharge = 1;
@@ -181,9 +182,9 @@ describe('steam burst (duo)', () => {
     const neighbour = enemyAt(s, 260);
     idle(s);
     applyBurn(s, target, 2);
-    applyChill(s, target, TUNING.chillMaxStacks);
+    applyChill(s, target, statusDef(Status.Chill).freezeAtStacks);
     expect(count(s, Ev.Nova)).toBe(1);
-    expect(s.c.burnStacks[target]).toBe(0);
+    expect(s.c.statusStacks[statusSlot(target, Status.Burn)]).toBe(0);
     expect(s.c.frozenTicks[target]).toBe(0);
     expect(s.c.hp[target]).toBeLessThan(120);
     expect(s.c.hp[neighbour]).toBeLessThan(120);
@@ -193,7 +194,7 @@ describe('steam burst (duo)', () => {
     const s = sim([{ id: 'steam_burst', rarity: 'epic' }]);
     const target = enemyAt(s, 200);
     idle(s);
-    applyChill(s, target, TUNING.chillMaxStacks);
+    applyChill(s, target, statusDef(Status.Chill).freezeAtStacks);
     expect(count(s, Ev.Nova)).toBe(0);
     applyBurn(s, target, 1);
     expect(count(s, Ev.Nova)).toBe(1);
@@ -254,8 +255,8 @@ describe('phoenix blade (evolution)', () => {
       birds = Math.max(birds, projectiles(s, RenderKind.Firebird));
     }
     expect(birds).toBe(1);
-    expect(s.c.burnStacks[a]).toBeGreaterThan(0);
-    expect(s.c.burnStacks[b]).toBeGreaterThan(0);
+    expect(s.c.statusStacks[statusSlot(a, Status.Burn)]).toBeGreaterThan(0);
+    expect(s.c.statusStacks[statusSlot(b, Status.Burn)]).toBeGreaterThan(0);
   });
 
   it('without the evolution, no firebird', () => {

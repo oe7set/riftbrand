@@ -1,5 +1,7 @@
 import { Graphics, Rectangle, type Renderer, Texture } from 'pixi.js';
 import { ENEMIES } from '../../content/enemies';
+import type { StatusGlyph } from '../../content/schema';
+import { STATUSES } from '../../content/statuses';
 import { PALETTE } from './palette';
 
 /** Base radius the body textures are drawn at; sprites scale by actualRadius / BAKE_RADIUS_PX. */
@@ -29,6 +31,8 @@ export interface BakedTextures {
   disc: Texture;
   /** Frontal shield arc pointing along +x (shielded elites). */
   shieldArc: Texture;
+  /** Status icons (dark disc, coloured rim and glyph), indexed by status index. */
+  statusIcons: Texture[];
   /** 1×1 white for bars and rectangles. */
   white: Texture;
   vignette: Texture;
@@ -98,6 +102,69 @@ function radialTexture(size: number, stops: Array<[number, string]>): Texture {
 /** Projectiles don't flash on hit; both slots share one texture. */
 function projectileTextures(texture: Texture): BodyTextures {
   return { normal: texture, flash: texture };
+}
+
+/** Glyphs differ in shape, not only colour, so statuses stay readable for colour-blind players. */
+function statusGlyph(g: Graphics, glyph: StatusGlyph, r: number, color: number): void {
+  switch (glyph) {
+    case 'flame':
+      g.poly([
+        -0.1 * r,
+        -0.8 * r,
+        0.08 * r,
+        -0.35 * r,
+        0.3 * r,
+        -0.55 * r,
+        0.45 * r,
+        0.12 * r,
+        0.25 * r,
+        0.55 * r,
+        -0.25 * r,
+        0.55 * r,
+        -0.45 * r,
+        0.12 * r,
+        -0.3 * r,
+        -0.2 * r,
+      ]).fill({ color });
+      g.circle(0, 0.25 * r, 0.16 * r).fill({ color: 0xffffff });
+      break;
+    case 'snowflake':
+      for (let i = 0; i < 3; i++) {
+        const a = (i * Math.PI) / 3 + Math.PI / 2;
+        const dx = Math.cos(a) * 0.62 * r;
+        const dy = Math.sin(a) * 0.62 * r;
+        g.moveTo(-dx, -dy)
+          .lineTo(dx, dy)
+          .stroke({ color, width: r * 0.16, cap: 'round' });
+      }
+      g.circle(0, 0, 0.14 * r).fill({ color: 0xffffff });
+      break;
+    case 'drop':
+      g.poly([0, -0.68 * r, 0.34 * r, 0.02 * r, -0.34 * r, 0.02 * r]).fill({ color });
+      g.circle(0, 0.18 * r, 0.38 * r).fill({ color });
+      g.circle(-0.12 * r, 0.1 * r, 0.1 * r).fill({ color: 0xffffff, alpha: 0.85 });
+      break;
+    case 'eye':
+      g.ellipse(0, 0, 0.66 * r, 0.36 * r).stroke({ color, width: r * 0.14 });
+      g.circle(0, 0, 0.2 * r).fill({ color });
+      for (let i = 0; i < 4; i++) {
+        const a = -Math.PI / 2 + (i - 1.5) * 0.45;
+        g.moveTo(Math.cos(a) * 0.5 * r, Math.sin(a) * 0.5 * r - 0.1 * r)
+          .lineTo(Math.cos(a) * 0.78 * r, Math.sin(a) * 0.78 * r - 0.1 * r)
+          .stroke({ color, width: r * 0.08, cap: 'round' });
+      }
+      break;
+  }
+}
+
+function statusIcon(renderer: Renderer, glyph: StatusGlyph, color: number): Texture {
+  const r = BAKE_RADIUS_PX;
+  const g = new Graphics();
+  g.circle(0, 0, r * 1.15).fill({ color, alpha: 0.18 });
+  g.circle(0, 0, r).fill({ color: PALETTE.background, alpha: 0.9 });
+  g.circle(0, 0, r).stroke({ color, width: r * 0.12 });
+  statusGlyph(g, glyph, r * 0.85, color);
+  return bake(renderer, g, r * 1.2);
 }
 
 /** Procedural vector art (GDD §12.1), rendered once into textures at startup. */
@@ -173,6 +240,7 @@ export function bakeTextures(renderer: Renderer): BakedTextures {
     ring: bake(renderer, ring, r),
     disc: bake(renderer, disc, r),
     shieldArc: bake(renderer, shieldArc, r),
+    statusIcons: STATUSES.map((s) => statusIcon(renderer, s.visual.glyph, s.visual.color)),
     white: Texture.WHITE,
     vignette: radialTexture(256, [
       [0, 'rgba(0,0,0,0)'],

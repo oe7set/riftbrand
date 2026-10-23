@@ -31,7 +31,7 @@ export const Ev = {
   RoomCleared: 18,
   /** Player stepped into the open exit. */
   ExitReached: 19,
-  /** value = status (StatusCode), amount = stacks now. */
+  /** value = status (StatusCode), amount = stacks now, flags = StatusFlag. */
   StatusApplied: 20,
   Frozen: 21,
   /** Effect area burst; amount = radius, value = StatusCode (0 = none). */
@@ -64,6 +64,8 @@ export const Ev = {
   BossDefeated: 35,
   /** Last Spark (Ember Tree) refused a lethal hit. amount = HP afterwards. */
   LastSpark: 36,
+  /** A status ran out on an enemy. value = StatusCode. */
+  StatusExpired: 37,
 } as const;
 
 /** Player projectile kinds in event payloads (matches content projectile kinds). */
@@ -87,7 +89,24 @@ export const StatusCode = {
   Freeze: 3,
   /** Duo explosion that consumed burn and frost. */
   Steam: 4,
+  Poison: 5,
+  Blind: 6,
 } as const;
+
+export const StatusFlag = {
+  /** The enemy had no stacks of this status before. */
+  First: 1 << 0,
+  /** This application reached the stack cap. */
+  Full: 1 << 1,
+} as const;
+
+/** StatusCode per status index (content/statuses order). */
+export const STATUS_CODES: readonly number[] = [
+  StatusCode.Burn,
+  StatusCode.Chill,
+  StatusCode.Poison,
+  StatusCode.Blind,
+];
 
 export type EventType = (typeof Ev)[keyof typeof Ev];
 

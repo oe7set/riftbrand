@@ -172,6 +172,8 @@ body {
 
 .rb-debug {
   position: absolute;
+  /* Above menu screens and overlays, which are full-screen and would swallow the clicks. */
+  z-index: 100;
   top: max(8px, env(safe-area-inset-top));
   left: max(8px, env(safe-area-inset-left));
   width: min(340px, calc(100vw - 16px));

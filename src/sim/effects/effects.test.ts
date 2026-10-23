@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { ENEMY_TYPE } from '../../content/enemies';
+import { Status, statusDef } from '../../content/statuses';
 import { resetTunables } from '../../content/tunables';
 import { TUNING } from '../../content/tuning';
 import { BRAND_BLADE } from '../../content/weapons/brand-blade';
 import { Button, createInputFrame, type InputFrame } from '../../shared/input-frame';
 import { damagePlayer } from '../combat/damage';
-import { AiState } from '../ecs/components';
+import { AiState, statusSlot } from '../ecs/components';
 import { Ev } from '../events';
 import { createSim, type SimState, setBuild, spawnEnemy, stepSim } from '../sim';
 import { secondsToTicks } from '../time';
@@ -80,11 +81,11 @@ describe('burn (Ignara)', () => {
     const s = sim([{ id: 'searing_strike', rarity: 'common' }]);
     const e = enemyAt(s, 50);
     attackRight(s);
-    expect(s.c.burnStacks[e]).toBe(1);
+    expect(s.c.statusStacks[statusSlot(e, Status.Burn)]).toBe(1);
     const hpAfterHit = s.c.hp[e] ?? 0;
-    idle(s, secondsToTicks(TUNING.burnDurationSec + 0.5));
+    idle(s, secondsToTicks(statusDef(Status.Burn).durationSec + 0.5));
     expect(s.c.hp[e]).toBeLessThan(hpAfterHit);
-    expect(s.c.burnStacks[e]).toBe(0);
+    expect(s.c.statusStacks[statusSlot(e, Status.Burn)]).toBe(0);
   });
 
   it('blazing fury raises attack damage', () => {
@@ -103,11 +104,11 @@ describe('burn (Ignara)', () => {
     const victim = enemyAt(s, 50, 0, ENEMY_TYPE.slag);
     const neighbour = enemyAt(s, 110, 0);
     s.c.hp[victim] = 1;
-    s.c.burnStacks[victim] = 5;
-    s.c.burnTicks[victim] = 100;
+    s.c.statusStacks[statusSlot(victim, Status.Burn)] = 5;
+    s.c.statusTicks[statusSlot(victim, Status.Burn)] = 100;
     attackRight(s, 6);
     expect(s.c.hp[neighbour]).toBeLessThan(s.c.maxHp[neighbour] ?? 0);
-    expect(s.c.burnStacks[neighbour]).toBeGreaterThan(0);
+    expect(s.c.statusStacks[statusSlot(neighbour, Status.Burn)]).toBeGreaterThan(0);
   });
 
   it('phoenix ember heals on burning kills', () => {
@@ -115,8 +116,8 @@ describe('burn (Ignara)', () => {
     s.c.hp[s.playerEid] = 50;
     const victim = enemyAt(s, 50, 0, ENEMY_TYPE.slag);
     s.c.hp[victim] = 1;
-    s.c.burnStacks[victim] = 1;
-    s.c.burnTicks[victim] = 100;
+    s.c.statusStacks[statusSlot(victim, Status.Burn)] = 1;
+    s.c.statusTicks[statusSlot(victim, Status.Burn)] = 100;
     attackRight(s, 6);
     expect(s.c.hp[s.playerEid]).toBe(52);
   });
@@ -129,7 +130,7 @@ describe('burn (Ignara)', () => {
     input.moveX = -1;
     stepSim(s, input);
     expect(s.c.hp[e]).toBeLessThan(s.c.maxHp[e] ?? 0);
-    expect(s.c.burnStacks[e]).toBe(1);
+    expect(s.c.statusStacks[statusSlot(e, Status.Burn)]).toBe(1);
   });
 });
 
@@ -138,9 +139,9 @@ describe('chill and freeze (Vaelis)', () => {
     const s = sim([]);
     const e = enemyAt(s, 50, 0, ENEMY_TYPE.slag);
     s.c.aiCooldownTicks[e] = 0;
-    applyChill(s, e, TUNING.chillMaxStacks);
+    applyChill(s, e, statusDef(Status.Chill).freezeAtStacks);
     expect(s.c.frozenTicks[e]).toBeGreaterThan(0);
-    expect(s.c.chillStacks[e]).toBe(0);
+    expect(s.c.statusStacks[statusSlot(e, Status.Chill)]).toBe(0);
     const x0 = s.c.posX[e];
     idle(s, 30);
     expect(s.c.posX[e]).toBe(x0);
@@ -157,7 +158,9 @@ describe('chill and freeze (Vaelis)', () => {
     const far = enemyAt(s, 400, 0, ENEMY_TYPE.slag);
     applyChill(s, far, 3);
     idle(s, 1);
-    expect(Math.abs(s.c.velX[far] ?? 0)).toBeCloseTo(115 * (1 - 3 * TUNING.chillSlowPerStack));
+    expect(Math.abs(s.c.velX[far] ?? 0)).toBeCloseTo(
+      115 * (1 - 3 * statusDef(Status.Chill).slowPerStack),
+    );
   });
 
   it('ice age freezes nearby enemies on a perfect dash', () => {
@@ -176,7 +179,7 @@ describe('chill and freeze (Vaelis)', () => {
     // One tick so the new enemy is in the broadphase the nova queries.
     idle(s, 1);
     damagePlayer(s, 10, 200, 200);
-    expect(s.c.chillStacks[e]).toBe(3);
+    expect(s.c.statusStacks[statusSlot(e, Status.Chill)]).toBe(3);
   });
 });
 
@@ -189,8 +192,8 @@ describe('effect safety', () => {
     for (let i = 0; i < 40; i++) {
       const e = enemyAt(s, 40 + (i % 8) * 20, Math.floor(i / 8) * 20 - 40, ENEMY_TYPE.slag);
       s.c.hp[e] = 1;
-      s.c.burnStacks[e] = 5;
-      s.c.burnTicks[e] = 100;
+      s.c.statusStacks[statusSlot(e, Status.Burn)] = 5;
+      s.c.statusTicks[statusSlot(e, Status.Burn)] = 100;
     }
     attackRight(s, 30);
     expect(s.effectDepth).toBe(0);

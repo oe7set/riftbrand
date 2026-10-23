@@ -77,7 +77,12 @@ export class GameView {
     this.entities = new EntityView(this.textures);
     this.roomView = new RoomView(this.textures);
     this.effects = new Effects(this.fxParticles, this.groundParticles, this.textures);
-    this.hud = new HudView(this.textures.white, this.textures.vignette, this.textures.spark);
+    this.hud = new HudView(
+      this.textures.white,
+      this.textures.vignette,
+      this.textures.spark,
+      this.textures.statusIcons,
+    );
     this.aimPreview = new AimPreview(this.textures.white, this.textures.ring);
     this.fxParticles.root.blendMode = 'add';
     this.groundParticles.root.blendMode = 'add';
@@ -90,6 +95,7 @@ export class GameView {
       this.entities.bodyLayer,
       this.fxParticles.root,
       this.entities.overlayLayer,
+      this.entities.statusIcons.root,
       this.damageNumbers.root,
       this.debugDraw.graphics,
     );

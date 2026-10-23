@@ -1,3 +1,5 @@
+import { STATUS_COUNT } from '../../content/statuses';
+
 /** Component bits. Keep below bit 31 (reserved for ALIVE_BIT). */
 export const C = {
   Transform: 1 << 0,
@@ -111,12 +113,13 @@ export interface Components {
   /** Bosses: current phase and the attack pattern picked for the current attack. */
   aiPhase: Uint8Array;
   aiPattern: Uint8Array;
-  // Status effects
-  burnStacks: Uint8Array;
-  burnTicks: Int32Array;
-  burnTickTimer: Int32Array;
-  chillStacks: Uint8Array;
-  chillTicks: Int32Array;
+  // Status effects: STATUS_COUNT slots per entity, see statusSlot()
+  statusStacks: Uint8Array;
+  statusTicks: Int32Array;
+  /** Ticks until the next damage-over-time tick. */
+  statusTimer: Int32Array;
+  /** Fractional windup progress carried between ticks while blinded. */
+  windupCarry: Float64Array;
   frozenTicks: Int32Array;
   // Projectile
   projDamage: Float64Array;
@@ -126,7 +129,7 @@ export interface Components {
   projPoise: Float64Array;
   /** 1 = flies through enemies, hitting each once. */
   projPierce: Uint8Array;
-  /** StatusCode applied on hit, with projStacks stacks. */
+  /** Status index + 1 applied on hit (0 = none), with projStacks stacks. */
   projStatus: Uint8Array;
   projStacks: Uint8Array;
   /** 1 = cast (triggers onHit cast boons), 0 = effect. */
@@ -172,11 +175,10 @@ export function createComponents(capacity: number): Components {
     eliteMod: new Uint8Array(capacity),
     aiPhase: new Uint8Array(capacity),
     aiPattern: new Uint8Array(capacity),
-    burnStacks: new Uint8Array(capacity),
-    burnTicks: new Int32Array(capacity),
-    burnTickTimer: new Int32Array(capacity),
-    chillStacks: new Uint8Array(capacity),
-    chillTicks: new Int32Array(capacity),
+    statusStacks: new Uint8Array(capacity * STATUS_COUNT),
+    statusTicks: new Int32Array(capacity * STATUS_COUNT),
+    statusTimer: new Int32Array(capacity * STATUS_COUNT),
+    windupCarry: new Float64Array(capacity),
     frozenTicks: new Int32Array(capacity),
     projDamage: new Float64Array(capacity),
     projLifeTicks: new Int32Array(capacity),
@@ -198,9 +200,9 @@ const arrayLists = new WeakMap<Components, Array<{ [i: number]: number }>>();
 export function resetComponents(c: Components, eid: number): void {
   let arrays = arrayLists.get(c);
   if (!arrays) {
-    // hitHistory is laid out per slot, not per entity; it is reset separately below.
+    // These are laid out with several slots per entity; they are reset separately below.
     arrays = Object.entries(c)
-      .filter(([key]) => key !== 'hitHistory')
+      .filter(([key]) => !MULTI_SLOT_KEYS.includes(key))
       .map(([, array]) => array) as Array<{ [i: number]: number }>;
     arrayLists.set(c, arrays);
   }
@@ -209,4 +211,19 @@ export function resetComponents(c: Components, eid: number): void {
   // The generic loop above only clears index `eid`; the history spans several slots.
   c.hitHistory.fill(-1, eid * HIT_HISTORY, eid * HIT_HISTORY + HIT_HISTORY);
   c.hitHistoryNext[eid] = 0;
+  const first = eid * STATUS_COUNT;
+  c.statusStacks.fill(0, first, first + STATUS_COUNT);
+  c.statusTicks.fill(0, first, first + STATUS_COUNT);
+  c.statusTimer.fill(0, first, first + STATUS_COUNT);
+}
+
+const MULTI_SLOT_KEYS = ['hitHistory', 'statusStacks', 'statusTicks', 'statusTimer'];
+
+/** Index into statusStacks/statusTicks/statusTimer for one status of one entity. */
+export function statusSlot(eid: number, status: number): number {
+  return eid * STATUS_COUNT + status;
+}
+
+export function stacksOf(c: Components, eid: number, status: number): number {
+  return c.statusStacks[eid * STATUS_COUNT + status] as number;
 }

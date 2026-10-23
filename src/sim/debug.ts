@@ -1,5 +1,8 @@
+import type { StatusId } from '../content/schema';
+import { type StatusIndex, statusIndex } from '../content/statuses';
 import { killEnemy } from './combat/damage';
 import { C } from './ecs/components';
+import { applyStatus } from './effects/status';
 import type { SimState } from './sim';
 import { forceClearRoom, scheduleSpawn, startWave, WavePhase } from './systems/waves';
 
@@ -12,6 +15,14 @@ export function debugSpawnEnemy(state: SimState, code: number): void {
 export function debugKillAllEnemies(state: SimState): void {
   for (let eid = 0; eid < state.world.highWater; eid++) {
     if (((state.world.masks[eid] as number) & C.Enemy) !== 0) killEnemy(state, eid, 0, -1, false);
+  }
+}
+
+export function debugApplyStatus(state: SimState, id: StatusId, stacks: number): void {
+  const status: StatusIndex = statusIndex(id);
+  for (let eid = 0; eid < state.world.highWater; eid++) {
+    if (((state.world.masks[eid] as number) & C.Enemy) !== 0)
+      applyStatus(state, eid, status, stacks);
   }
 }
 

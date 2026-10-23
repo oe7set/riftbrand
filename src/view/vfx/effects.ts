@@ -482,6 +482,21 @@ export class Effects {
     });
   }
 
+  /** A slow green bubble rising off a poisoned enemy. */
+  poisonBubble(x: number, y: number, radius: number, color: number): void {
+    this.fx.emit({
+      texture: this.tex.ring,
+      x: x + rand(-radius, radius) * 0.6,
+      y: y + rand(-radius, radius) * 0.4,
+      vx: rand(-10, 10),
+      vy: rand(-45, -20),
+      lifeSec: rand(0.5, 0.8),
+      color,
+      scaleStart: rand(0.2, 0.35),
+      flags: PFlag.Shrink,
+    });
+  }
+
   statusPuff(x: number, y: number, color: number): void {
     for (let i = 0; i < 6; i++) {
       const a = rand(0, Math.PI * 2);

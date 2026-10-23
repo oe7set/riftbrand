@@ -1,11 +1,13 @@
 import { Container, Sprite, type Texture } from 'pixi.js';
 import { eliteOf } from '../../content/elites';
 import { attackOf, ENEMIES } from '../../content/enemies';
+import { Status, statusDef } from '../../content/statuses';
 import { TUNING } from '../../content/tuning';
-import { AiState, C, RenderKind } from '../../sim/ecs/components';
+import { AiState, C, RenderKind, stacksOf } from '../../sim/ecs/components';
 import { PlayerAction } from '../../sim/player-state';
 import type { SimState } from '../../sim/sim';
 import { secondsToTicks } from '../../sim/time';
+import { StatusIcons } from '../vfx/status-overlay';
 import { PALETTE } from './palette';
 import { BAKE_RADIUS_PX, type BakedTextures, type BodyTextures } from './textures';
 
@@ -22,8 +24,12 @@ interface Slot {
   teleFill: Sprite;
   hpBack: Sprite;
   hpFill: Sprite;
-  /** Status aura: ember glow (burn) or ice shell (frozen). */
+  /** Status aura: ember glow (burn), poison haze or ice shell (frozen). */
   aura: Sprite;
+  /** Ice crust that thickens with chill stacks. */
+  crust: Sprite;
+  /** Light halo over the head of blinded enemies. */
+  halo: Sprite;
   /** Elite marker: coloured halo, plus the frontal shield arc for shielded elites. */
   eliteRing: Sprite;
   shield: Sprite;
@@ -38,6 +44,7 @@ export class EntityView {
   readonly groundLayer = new Container();
   readonly bodyLayer = new Container();
   readonly overlayLayer = new Container();
+  readonly statusIcons: StatusIcons;
   private readonly slots: Array<Slot | undefined> = [];
   private readonly flashSec = new Float32Array(4096);
   private readonly squashSec = new Float32Array(4096);
@@ -46,7 +53,9 @@ export class EntityView {
   private readonly ageSec = new Float32Array(4096);
   private time = 0;
 
-  constructor(private readonly textures: BakedTextures) {}
+  constructor(private readonly textures: BakedTextures) {
+    this.statusIcons = new StatusIcons(textures);
+  }
 
   /** Hit feedback: white flash plus a squash along the hit direction. */
   hit(eid: number, dirX: number, dirY: number): void {
@@ -90,6 +99,8 @@ export class EntityView {
       hpBack: make(this.textures.white, this.overlayLayer),
       hpFill: make(this.textures.white, this.overlayLayer),
       aura: make(this.textures.disc, this.overlayLayer),
+      crust: make(this.textures.ring, this.overlayLayer),
+      halo: make(this.textures.ring, this.overlayLayer),
       eliteRing: make(this.textures.ring, this.groundLayer),
       shield: make(this.textures.shieldArc, this.overlayLayer),
       generation: -1,
@@ -108,6 +119,8 @@ export class EntityView {
     slot.hpBack.visible = false;
     slot.hpFill.visible = false;
     slot.aura.visible = false;
+    slot.crust.visible = false;
+    slot.halo.visible = false;
     slot.eliteRing.visible = false;
     slot.shield.visible = false;
   }
@@ -124,6 +137,7 @@ export class EntityView {
       const tex = this.bodyTextures(sim, eid);
       if ((mask & renderMask) === renderMask && c.renderKind[eid] === RenderKind.Hazard) {
         this.syncHazard(sim, eid, this.slotFor(eid, this.textures.disc));
+        this.statusIcons.hide(eid);
         continue;
       }
       if (
@@ -131,6 +145,7 @@ export class EntityView {
         (!tex && c.renderKind[eid] !== RenderKind.EnemyProjectile)
       ) {
         if (slot) this.hideSlot(slot);
+        this.statusIcons.hide(eid);
         continue;
       }
       const s = this.slotFor(eid, tex?.normal ?? this.textures.enemyShot);
@@ -189,6 +204,9 @@ export class EntityView {
       else {
         s.body.tint = 0xffffff;
         s.aura.visible = false;
+        s.crust.visible = false;
+        s.halo.visible = false;
+        this.statusIcons.hide(eid);
         s.eliteRing.visible = false;
         s.shield.visible = false;
         s.teleBack.visible = false;
@@ -200,6 +218,7 @@ export class EntityView {
     for (let i = world.highWater; i < this.slots.length; i++) {
       const slot = this.slots[i];
       if (slot) this.hideSlot(slot);
+      this.statusIcons.hide(i);
     }
   }
 
@@ -258,19 +277,27 @@ export class EntityView {
     s.shield.alpha = (sim.c.frozenTicks[eid] as number) > 0 ? 0.25 : 0.95;
   }
 
-  /** Frozen: icy tint plus a translucent shell. Chilled: cooler tint. Burning: flickering glow. */
+  /**
+   * Status looks (ROADMAP M3.1): frozen = icy tint and shell; chill = cooler tint and an ice
+   * crust that thickens per stack; burn = flickering ember glow; poison = green tint and haze;
+   * blind = light halo over the head. Icons with stack counts are drawn by StatusIcons.
+   */
   private syncStatus(sim: SimState, eid: number, s: Slot, x: number, y: number, r: number): void {
     const c = sim.c;
     const frozen = (c.frozenTicks[eid] as number) > 0;
-    const chill = c.chillStacks[eid] as number;
-    const burn = c.burnStacks[eid] as number;
+    const chill = stacksOf(c, eid, Status.Chill);
+    const burn = stacksOf(c, eid, Status.Burn);
+    const poison = stacksOf(c, eid, Status.Poison);
+    const blind = stacksOf(c, eid, Status.Blind);
     s.body.tint = frozen
       ? PALETTE.frozen
       : chill > 0
         ? chill >= 3
           ? PALETTE.chillHeavy
           : PALETTE.chillLight
-        : 0xffffff;
+        : poison > 0
+          ? PALETTE.poisonTint
+          : 0xffffff;
     const aura = s.aura;
     if (frozen) {
       aura.visible = true;
@@ -286,8 +313,37 @@ export class EntityView {
       aura.alpha = 0.25 + 0.15 * Math.sin(this.time * 18 + eid) + Math.min(0.3, burn * 0.03);
       aura.position.set(x, y);
       aura.scale.set((r * 2.2) / BAKE_RADIUS_PX);
+    } else if (poison > 0) {
+      // Slow, sickly breathing instead of burn's fast flicker.
+      aura.visible = true;
+      aura.texture = this.textures.dot;
+      aura.tint = statusDef(Status.Poison).visual.color;
+      aura.alpha = 0.18 + 0.08 * Math.sin(this.time * 4 + eid) + Math.min(0.25, poison * 0.025);
+      aura.position.set(x, y);
+      aura.scale.set((r * 2) / BAKE_RADIUS_PX);
     } else {
       aura.visible = false;
+    }
+
+    const crust = s.crust;
+    crust.visible = chill > 0 && !frozen;
+    if (crust.visible) {
+      crust.tint = PALETTE.frost;
+      crust.position.set(x, y);
+      crust.rotation = 0;
+      crust.scale.set((r * (1.1 + 0.06 * chill)) / BAKE_RADIUS_PX);
+      crust.alpha = 0.3 + 0.12 * chill;
+    }
+
+    const halo = s.halo;
+    halo.visible = blind > 0;
+    if (halo.visible) {
+      halo.tint = statusDef(Status.Blind).visual.color;
+      halo.position.set(x, y - r * 1.05);
+      halo.rotation = 0;
+      // A flat ellipse reads as a halo above the body.
+      halo.scale.set((r * 0.8) / BAKE_RADIUS_PX, (r * 0.3) / BAKE_RADIUS_PX);
+      halo.alpha = 0.65 + 0.3 * Math.sin(this.time * 9 + eid);
     }
   }
 
@@ -311,6 +367,7 @@ export class EntityView {
       s.hpFill.position.set(x - HP_BAR_WIDTH_PX / 2, top);
       s.hpFill.scale.set(HP_BAR_WIDTH_PX * Math.max(0, hp / maxHp), HP_BAR_HEIGHT_PX);
     }
+    this.statusIcons.sync(sim, eid, x, y - r - 10, this.time);
 
     const state = c.aiState[eid];
     const atk = attackOf(def, c.aiPhase[eid] as number, c.aiPattern[eid] as number);

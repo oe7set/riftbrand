@@ -109,6 +109,18 @@ export class PauseOverlay {
     numbersRow.append(numbers, div('rb-setting-label', t('settings.damage_numbers')));
     box.append(numbersRow);
 
+    const icons = document.createElement('input');
+    icons.type = 'checkbox';
+    icons.checked = s.statusIcons;
+    icons.addEventListener('change', () => {
+      s.statusIcons = icons.checked;
+      this.onSettingsChange(s);
+    });
+    const iconsRow = document.createElement('label');
+    iconsRow.className = 'rb-setting rb-setting-inline';
+    iconsRow.append(icons, div('rb-setting-label', t('settings.status_icons')));
+    box.append(iconsRow);
+
     const quality = document.createElement('select');
     for (const value of ['high', 'low'] as const) {
       const option = document.createElement('option');

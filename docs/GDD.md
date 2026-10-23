@@ -1,6 +1,7 @@
 # Riftbrand: Game Design Document
 
 > Status: v0.1 (Planungsphase) · Stand: 2026-10-22
+> **Hinweis (2026-10-23):** Der Product Owner hat den Ausbau erweitert: Zauber mit Aura, Upgrade-Stufen, Duell-Räume mit Mini-Bossen, animierte Körper, Icon-Set, eine begehbare Zuflucht mit freier Weltwahl per Portal (ein Run = eine Welt), Wiederaufbau, Quests und Rüstungen. Die Entscheidungen stehen in der [ROADMAP](./ROADMAP.md#product-owner-entscheidungen-2026-10-23). Die betroffenen Abschnitte dieses Dokuments (u. a. §3, §4, §6, §7, §12) werden im jeweiligen Paket angepasst und gelten bis dahin nur, soweit sie den Entscheidungen nicht widersprechen.
 > Alle Zahlen sind **Startwerte zum Tunen**, keine finalen Werte. Sie liegen später als Tuning-Daten im Code und sind über das Debug-Menü live veränderbar.
 
 ---
@@ -251,6 +252,17 @@ Ab Biom 3 können **Orbitale** erscheinen: automatisch auslösende Begleit-Effek
 Elite-Modifikatoren (M2.5): *Hastig* (+40 % Tempo, kürzere Pausen), *Geschirmt* (Frontschild im 140°-Kegel: nur 20 % Schaden, kein Rückstoß, kein Stagger; Rückseite und gefrorene Gegner sind ungeschützt), *Flüchtig* (hinterlässt beim Tod eine Explosion nach 0,9 s, Radius 110 px). Elites haben 60 % mehr Leben, sind etwas größer und tragen einen farbigen Ring. Elite-Räume enthalten 2 Elites: den Splitterkoloss der ersten Welle und einen zufälligen Gegner der zweiten.
 
 **Balancing (M2.8, per Simulator):** Kampfräume haben 3 Wellen (ab Ebene 2: 4) mit einem Budget von 7 + 1,8 pro Ebene, Horden dauern 60 s. Der Funkenspucker schießt seltener (alle 2,2–3,0 s) und schwächer (8 Schaden).
+
+**Status-Effekte (M3.1):** Alle Status funktionieren gleich: Stapel bis zu einer Obergrenze, jede Anwendung erneuert die Dauer, und wenn sie abläuft, fallen alle Stapel auf einmal weg. Die Werte stehen in `src/content/statuses.ts` und sind im Debug-Menü tunbar.
+
+| Status | Symbol | Stapel | Dauer | Wirkung |
+|---|---|---|---|---|
+| **Brand** (Ignara) | Flamme, orange | 10 | 3 s | 3 Schaden pro Stapel und Sekunde |
+| **Kälte** (Vaelis) | Schneeflocke, eisblau | 5 | 4 s | −10 % Tempo pro Stapel; bei 5 Stapeln **gefroren** (1,6 s) |
+| **Gift** (neu) | Tropfen, grün | 10 | 6 s | 1,6 Schaden pro Stapel und Sekunde; hält lange, wenn man nachlegt |
+| **Blenden** (neu) | Auge, hellgelb | 1 | 3 s | Angriffs-Vorbereitung dauert 30 % länger, Salven verziehen um 25° |
+
+Status-Resistenz (Bosse 50 %) halbiert Schaden über Zeit, Einfrier-Dauer und die Wirkung von Blenden. Sichtbar ist jeder Status am Körper (Glut, Eiskruste, grüner Dunst und Blasen, Lichtkranz) und als Symbol mit Stapelzahl über dem Gegner bzw. unter der Boss-Leiste. Die Symbole lassen sich in den Einstellungen ausblenden. Gift und Blenden haben bis zu den Zaubern (M3.3) nur das Debug-Menü als Quelle.
 
 Jeder Gegner hat die Phasen **Vorbereitung → aktiv → Erholung**. Die Erholung ist das Strafbarkeitsfenster: Hier soll der Spieler zuschlagen.
 
@@ -544,3 +556,5 @@ Die zuletzt verwendete Eingabemethode bestimmt die angezeigten Hinweise und die 
 3. Monetarisierungsmodell (Entscheidung zur Beta).
 4. ~~Hochformat: Nach dem Prototyp-Test bestätigen oder auf Querformat beschränken.~~ → Entschieden nach M1: Hoch- und Querformat bleiben beide.
 5. Ein 6. Wesen (Erz) nach Version 1.0?
+6. Gift und Licht sind Zauber-Schulen (entschieden 2026-10-23). Offen: zusätzlich eigene Wesen mit Segen? (ROADMAP A1, vor M6.4)
+7. ~~Zuflucht „wie Cult of the Lamb“: Wiederaufbau ja, Anhänger-Management nein?~~ → Entschieden 2026-10-23: genau so (ROADMAP A2).

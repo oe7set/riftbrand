@@ -1,7 +1,8 @@
 import type { ProjectileKind, StatusId } from '../../content/schema';
+import { statusIndex } from '../../content/statuses';
 import { C, RenderKind, Team } from '../ecs/components';
 import { addComponents } from '../ecs/world';
-import { Ev, ProjectileCode, pushEvent, StatusCode } from '../events';
+import { Ev, ProjectileCode, pushEvent } from '../events';
 import { type SimState, spawnEntity } from '../sim';
 import { TICK_RATE_HZ } from '../time';
 
@@ -55,12 +56,7 @@ export function spawnPlayerShot(
   c.projKnockback[eid] = spec.knockback;
   c.projPoise[eid] = spec.poiseDamage;
   c.projPierce[eid] = spec.pierce ? 1 : 0;
-  c.projStatus[eid] =
-    spec.status === 'burn'
-      ? StatusCode.Burn
-      : spec.status === 'chill'
-        ? StatusCode.Chill
-        : StatusCode.None;
+  c.projStatus[eid] = spec.status === null ? 0 : statusIndex(spec.status) + 1;
   c.projStacks[eid] = spec.stacks;
   c.projIsCast[eid] = spec.isCast ? 1 : 0;
   c.projSwing[eid] = ++state.swingCounter;

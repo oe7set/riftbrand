@@ -713,6 +713,76 @@ export const SFX = {
       delaySec: 0.08,
     },
   ],
+  // Poison: a wet, low bubble; full stacks add a sickly falling tone.
+  poisonApply: [
+    {
+      wave: 'sine',
+      freq: 260,
+      freqEnd: 420,
+      attackSec: 0.005,
+      sustainSec: 0.03,
+      releaseSec: 0.1,
+      volume: 0.22,
+      lowpass: 1200,
+    },
+    {
+      wave: 'sine',
+      freq: 340,
+      freqEnd: 560,
+      attackSec: 0.005,
+      sustainSec: 0.02,
+      releaseSec: 0.08,
+      volume: 0.15,
+      lowpass: 1200,
+      delaySec: 0.06,
+    },
+  ],
+  poisonFull: [
+    {
+      wave: 'saw',
+      freq: 320,
+      freqEnd: 140,
+      attackSec: 0.01,
+      sustainSec: 0.08,
+      releaseSec: 0.25,
+      volume: 0.2,
+      lowpass: 900,
+      vibratoHz: 9,
+      vibratoDepth: 0.04,
+    },
+    {
+      wave: 'noise',
+      freq: 0,
+      attackSec: 0.01,
+      sustainSec: 0.05,
+      releaseSec: 0.2,
+      volume: 0.12,
+      lowpass: 1400,
+    },
+  ],
+  // Blind: a bright glassy shimmer.
+  blindApply: [
+    {
+      wave: 'triangle',
+      freq: 1800,
+      freqEnd: 2600,
+      attackSec: 0.002,
+      sustainSec: 0.03,
+      releaseSec: 0.25,
+      volume: 0.14,
+      vibratoHz: 14,
+      vibratoDepth: 0.02,
+    },
+    {
+      wave: 'sine',
+      freq: 2700,
+      attackSec: 0.002,
+      sustainSec: 0.02,
+      releaseSec: 0.2,
+      volume: 0.08,
+      delaySec: 0.05,
+    },
+  ],
 } satisfies Record<string, SfxRecipe>;
 
 export type SfxId = keyof typeof SFX;

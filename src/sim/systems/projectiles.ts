@@ -1,9 +1,10 @@
+import type { StatusIndex } from '../../content/statuses';
 import { queryRect } from '../collision/spatial-hash';
 import { damageEnemy, damagePlayer, type PlayerHitSpec, rollCrit } from '../combat/damage';
 import { C, RenderKind, Team, wasHitBy } from '../ecs/components';
 import { destroyEntity } from '../ecs/world';
-import { applyBurn, applyChill } from '../effects/status';
-import { Ev, ProjectileCode, pushEvent, StatusCode } from '../events';
+import { applyStatus } from '../effects/status';
+import { Ev, ProjectileCode, pushEvent } from '../events';
 import { overlapsObstacle } from '../room';
 import type { SimState } from '../sim';
 
@@ -60,8 +61,7 @@ function playerShot(state: SimState, eid: number, x: number, y: number, r: numbe
     if (dx * dx + dy * dy > hitR * hitR) continue;
     const status = c.projStatus[eid] as number;
     // Status first, so the hit itself already profits from it (e.g. freeze bonus).
-    if (status === StatusCode.Burn) applyBurn(state, t, c.projStacks[eid] as number);
-    else if (status === StatusCode.Chill) applyChill(state, t, c.projStacks[eid] as number);
+    if (status > 0) applyStatus(state, t, (status - 1) as StatusIndex, c.projStacks[eid] as number);
     if (((state.world.masks[t] as number) & C.Enemy) === 0) continue;
     const isCast = c.projIsCast[eid] === 1;
     shotHit.damage = c.projDamage[eid] as number;
