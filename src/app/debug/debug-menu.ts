@@ -34,6 +34,8 @@ export interface DebugHooks {
   fillUltimate(): void;
   refillCast(): void;
   giveEvolution(id: string): void;
+  /** Adds stacks of a status to every enemy (status id from content/statuses). */
+  applyStatus(id: string, stacks: number): void;
 }
 
 export interface DebugStats {
@@ -133,6 +135,12 @@ export class DebugMenu {
           this.button('Clear room', () => this.hooks.clearRoom()),
           this.button('Warp to exit', () => this.hooks.warpToExit()),
           this.button('Next wave', () => this.hooks.nextWave()),
+        ]),
+        el('div', { className: 'rb-debug-row' }, [
+          this.button('Apply burn ×3', () => this.hooks.applyStatus('burn', 3)),
+          this.button('Apply chill ×2', () => this.hooks.applyStatus('chill', 2)),
+          this.button('Apply poison ×5', () => this.hooks.applyStatus('poison', 5)),
+          this.button('Apply blind', () => this.hooks.applyStatus('blind', 1)),
         ]),
       ]),
       this.section('Boons (rare)', false, [

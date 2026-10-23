@@ -453,7 +453,16 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 
   Der Bot weicht nahezu perfekt aus und greift ohne Pause an; Menschen brauchen erfahrungsgemäß etwa doppelt so lange. Die Zielwerte für Menschen (Run 6–8 min, Boss 2–4 min) prüft der Playtest.
 
-## 28. Risiken und Gegenmaßnahmen
+## 28. Stand nach M3.1 (sichtbare Status-Effekte)
+- **Status als Daten:** `src/content/statuses.ts` (`defineStatus()`, Zod-Schema `statusSchema`) beschreibt Brand, Kälte, Gift und Blenden: Stapel-Obergrenze, Dauer, Schaden über Zeit, Verlangsamung, Einfrier-Schwelle, Windup-Faktor, Zielfehler, Farbe, Glyphe, Anzeige-Priorität. Die Reihenfolge von `statusIdSchema` ist der Index in der Simulation (nur anhängen). Die alten `TUNING.burn*`/`chill*`-Werte sind dorthin umgezogen.
+- **Speicherung im ECS:** `statusStacks`, `statusTicks`, `statusTimer` mit `STATUS_COUNT` Plätzen pro Entität (`statusSlot(eid, status)`, `stacksOf()`); sie werden wie `hitHistory` gesondert zurückgesetzt. `windupCarry` trägt den Bruchteil-Fortschritt geblendeter Gegner.
+- **Logik:** `sim/effects/status.ts` mit `applyStatus()` (generisch; `applyBurn`/`applyChill` bleiben als Kurzformen), `statusSystem()`, `chillSpeedFactor()`, `windupRate()`, `aimErrorDeg()`. Geschosse speichern `Status-Index + 1` in `projStatus`.
+- **Events:** `Ev.StatusApplied` trägt `StatusFlag.First`/`Full`, neu ist `Ev.StatusExpired`; `StatusCode` hat `Poison` und `Blind`, `STATUS_CODES` bildet Index → Code ab.
+- **Darstellung:** `view/vfx/status-overlay.ts` (`StatusIcons`): bis zu 3 Symbole mit Stapelzahl pro Gegner, gepoolte Sprites und `BitmapText`, vorgefertigte Zahl-Strings (keine Allokation pro Frame). Die Symbole werden in `textures.ts` gebacken (Glyphen Flamme, Schneeflocke, Tropfen, Auge). `EntityView` hat pro Slot zusätzlich `crust` (Eiskruste) und `halo` (Lichtkranz); die Boss-Leiste zeigt alle Status des Bosses.
+- **Settings v3:** `statusIcons` (Standard an).
+- **Simulator:** unverändert gegenüber M2.8 (200 Runs, balanced: 82,5 % Siege, Run 190 s, Boss Ø 54 s), der Umbau ändert also das Verhalten von Brand und Kälte nicht.
+
+## 29. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

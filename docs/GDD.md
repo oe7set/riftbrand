@@ -253,6 +253,17 @@ Elite-Modifikatoren (M2.5): *Hastig* (+40 % Tempo, kürzere Pausen), *Geschirmt*
 
 **Balancing (M2.8, per Simulator):** Kampfräume haben 3 Wellen (ab Ebene 2: 4) mit einem Budget von 7 + 1,8 pro Ebene, Horden dauern 60 s. Der Funkenspucker schießt seltener (alle 2,2–3,0 s) und schwächer (8 Schaden).
 
+**Status-Effekte (M3.1):** Alle Status funktionieren gleich: Stapel bis zu einer Obergrenze, jede Anwendung erneuert die Dauer, und wenn sie abläuft, fallen alle Stapel auf einmal weg. Die Werte stehen in `src/content/statuses.ts` und sind im Debug-Menü tunbar.
+
+| Status | Symbol | Stapel | Dauer | Wirkung |
+|---|---|---|---|---|
+| **Brand** (Ignara) | Flamme, orange | 10 | 3 s | 3 Schaden pro Stapel und Sekunde |
+| **Kälte** (Vaelis) | Schneeflocke, eisblau | 5 | 4 s | −10 % Tempo pro Stapel; bei 5 Stapeln **gefroren** (1,6 s) |
+| **Gift** (neu) | Tropfen, grün | 10 | 6 s | 1,6 Schaden pro Stapel und Sekunde; hält lange, wenn man nachlegt |
+| **Blenden** (neu) | Auge, hellgelb | 1 | 3 s | Angriffs-Vorbereitung dauert 30 % länger, Salven verziehen um 25° |
+
+Status-Resistenz (Bosse 50 %) halbiert Schaden über Zeit, Einfrier-Dauer und die Wirkung von Blenden. Sichtbar ist jeder Status am Körper (Glut, Eiskruste, grüner Dunst und Blasen, Lichtkranz) und als Symbol mit Stapelzahl über dem Gegner bzw. unter der Boss-Leiste. Die Symbole lassen sich in den Einstellungen ausblenden. Gift und Blenden haben bis zu den Zaubern (M3.3) nur das Debug-Menü als Quelle.
+
 Jeder Gegner hat die Phasen **Vorbereitung → aktiv → Erholung**. Die Erholung ist das Strafbarkeitsfenster: Hier soll der Spieler zuschlagen.
 
 ### 5.3 Bosse

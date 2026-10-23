@@ -46,15 +46,7 @@ export const TUNING = {
   /** Exponential decay rate of knockback velocity per second. */
   knockbackDecayPerSec: 12,
 
-  // Status effects (GDD §2.4: Ignara burns, Vaelis chills and freezes)
-  burnDurationSec: 3,
-  burnTickSec: 0.5,
-  burnDamagePerStackPerSec: 3,
-  burnMaxStacks: 10,
-  chillDurationSec: 4,
-  chillMaxStacks: 5,
-  /** Movement slow per chill stack. */
-  chillSlowPerStack: 0.1,
+  // Freezing (GDD §2.4: Vaelis). Stacking statuses live in content/statuses.ts.
   freezeDurationSec: 1.6,
   /** Extra damage taken while frozen ("shatter"), before boons. */
   frozenDamageBonus: 0.3,
@@ -146,7 +138,7 @@ registerTunables(
   SOURCE,
   TUNING,
   {},
-  keysWithPrefix('burn', 'chill', 'freeze', 'frozen', 'effect'),
+  keysWithPrefix('freeze', 'frozen', 'effect'),
 );
 registerTunables(
   'feel',

@@ -26,6 +26,8 @@ export const PALETTE = {
   chillLight: 0xd6f4ff,
   chillHeavy: 0xa6dcff,
   frost: 0x8fe3ff,
+  /** Body tint of poisoned enemies. */
+  poisonTint: 0xc8ffb8,
   burnText: 0xffa64d,
   heal: 0x6bff9a,
   shard: 0xffd36b,

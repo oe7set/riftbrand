@@ -2,8 +2,9 @@ import { BRAND_BURST } from '../../content/abilities';
 import { eliteOf } from '../../content/elites';
 import { ENEMIES } from '../../content/enemies';
 import type { HitSource, HitstopLevel } from '../../content/schema';
+import { Status } from '../../content/statuses';
 import { TUNING } from '../../content/tuning';
-import { AiState, C, rememberHit, Token, wasHitBy } from '../ecs/components';
+import { AiState, C, rememberHit, stacksOf, Token, wasHitBy } from '../ecs/components';
 import { destroyEntity } from '../ecs/world';
 import { fireOnDamaged, fireOnHit, fireOnKill, fireOnPerfectDash } from '../effects/runtime';
 import { Ev, EvFlag, pushEvent } from '../events';
@@ -90,9 +91,9 @@ function damageMultiplier(state: SimState, eid: number, source: HitSource): numb
   if (source === 'attack') mult += stats.attackDamage;
   else if (source === 'special') mult += stats.specialDamage;
   else if (source === 'cast') mult += stats.castDamage;
-  if ((c.burnStacks[eid] as number) > 0) mult += stats.damageVsBurning;
+  if (stacksOf(c, eid, Status.Burn) > 0) mult += stats.damageVsBurning;
   if ((c.frozenTicks[eid] as number) > 0) mult += TUNING.frozenDamageBonus + stats.damageVsFrozen;
-  mult += (c.chillStacks[eid] as number) * stats.damageVsChilledPerStack;
+  mult += stacksOf(c, eid, Status.Chill) * stats.damageVsChilledPerStack;
   return mult;
 }
 
@@ -207,7 +208,7 @@ export function killEnemy(
   const c = state.c;
   const x = c.posX[eid] as number;
   const y = c.posY[eid] as number;
-  const burn = c.burnStacks[eid] as number;
+  const burn = stacksOf(c, eid, Status.Burn);
   const frozen = (c.frozenTicks[eid] as number) > 0;
   const type = c.enemyType[eid] as number;
   const elite = eliteOf(c.eliteMod[eid] as number);

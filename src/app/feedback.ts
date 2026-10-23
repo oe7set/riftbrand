@@ -1,11 +1,12 @@
 import { eliteOf } from '../content/elites';
 import { attackOf, ENEMIES, ENEMY_TYPE } from '../content/enemies';
+import { Status, statusDef } from '../content/statuses';
 import { TUNING } from '../content/tuning';
 import { BRAND_BLADE } from '../content/weapons/brand-blade';
 import type { AudioEngine } from '../platform/audio/audio-engine';
 import type { Haptics } from '../platform/haptics';
 import { type TranslationKey, t } from '../shared/i18n';
-import { C, RenderKind } from '../sim/ecs/components';
+import { C, RenderKind, stacksOf } from '../sim/ecs/components';
 import {
   BurstCode,
   Ev,
@@ -13,7 +14,9 @@ import {
   EvFlag,
   ProjectileCode,
   type SimEvent,
+  STATUS_CODES,
   StatusCode,
+  StatusFlag,
 } from '../sim/events';
 import { PlayerAction } from '../sim/player-state';
 import type { SimState } from '../sim/sim';
@@ -27,9 +30,18 @@ const AFTERIMAGE_INTERVAL_SEC = 1 / 45;
 /** Ember emission rate per burn stack (per second), capped per enemy. */
 const EMBERS_PER_STACK_PER_SEC = 3;
 const MAX_EMBERS_PER_SEC = 18;
+/** Poison bubbles per stack (per second), capped per enemy. */
+const BUBBLES_PER_STACK_PER_SEC = 2;
+const MAX_BUBBLES_PER_SEC = 14;
 /** Trail particles per second behind player projectiles. */
 const RIFT_TRAIL_PER_SEC = 40;
 const FIREBIRD_TRAIL_PER_SEC = 70;
+
+/** Colour of a status from its event code (content/statuses visual colour). */
+function statusColor(code: number): number {
+  const index = STATUS_CODES.indexOf(code);
+  return index < 0 ? PALETTE.playerSlash : statusDef(index).visual.color;
+}
 
 function burstColor(code: number): number {
   if (code === BurstCode.Ignara) return PALETTE.ultimate;
@@ -69,9 +81,9 @@ export class FeedbackDirector {
     for (let i = 0; i < events.count; i++) this.handle(events.items[i] as SimEvent);
   }
 
-  /** Continuous, per-frame feedback (dash afterimages, embers on burning enemies). */
+  /** Continuous, per-frame feedback (dash afterimages, embers and poison bubbles on enemies). */
   update(sim: SimState, dtSec: number): void {
-    this.emitEmbers(sim, dtSec);
+    this.emitStatusParticles(sim, dtSec);
     this.emitTrails(sim, dtSec);
     const p = sim.player;
     if (p.action !== PlayerAction.Dash) {
@@ -90,20 +102,26 @@ export class FeedbackDirector {
     );
   }
 
-  private emitEmbers(sim: SimState, dtSec: number): void {
+  private emitStatusParticles(sim: SimState, dtSec: number): void {
     if (dtSec <= 0) return;
     const { world, c } = sim;
     for (let eid = 0; eid < world.highWater; eid++) {
-      const stacks = c.burnStacks[eid] as number;
-      if (stacks === 0 || ((world.masks[eid] as number) & C.Enemy) === 0) continue;
-      // Poisson-ish: expected embers this frame, resolved with a random draw (cosmetic only).
-      const expected = Math.min(MAX_EMBERS_PER_SEC, stacks * EMBERS_PER_STACK_PER_SEC) * dtSec;
-      if (Math.random() < expected) {
-        this.view.effects.ember(
-          c.posX[eid] as number,
-          c.posY[eid] as number,
-          c.radius[eid] as number,
-        );
+      if (((world.masks[eid] as number) & C.Enemy) === 0) continue;
+      const x = c.posX[eid] as number;
+      const y = c.posY[eid] as number;
+      const r = c.radius[eid] as number;
+      // Poisson-ish: expected particles this frame, resolved with a random draw (cosmetic only).
+      const burn = stacksOf(c, eid, Status.Burn);
+      if (burn > 0) {
+        const expected = Math.min(MAX_EMBERS_PER_SEC, burn * EMBERS_PER_STACK_PER_SEC) * dtSec;
+        if (Math.random() < expected) this.view.effects.ember(x, y, r);
+      }
+      const poison = stacksOf(c, eid, Status.Poison);
+      if (poison > 0) {
+        const expected = Math.min(MAX_BUBBLES_PER_SEC, poison * BUBBLES_PER_STACK_PER_SEC) * dtSec;
+        if (Math.random() < expected) {
+          this.view.effects.poisonBubble(x, y, r, statusDef(Status.Poison).visual.color);
+        }
       }
     }
   }
@@ -375,18 +393,34 @@ export class FeedbackDirector {
         this.view.hud.onDenied(e.value === 2);
         this.audio.play('staminaEmpty', { pitchVariation: 0, pitch: 1.2 });
         break;
-      case Ev.StatusApplied:
+      case Ev.StatusApplied: {
+        const first = (e.flags & StatusFlag.First) !== 0;
+        const full = (e.flags & StatusFlag.Full) !== 0;
         if (e.value === StatusCode.Burn) {
           fx.statusPuff(e.x, e.y, PALETTE.ember);
           this.audio.play('burnApply', { pan: this.pan(e.x), volume: 0.6 });
-        } else {
+        } else if (e.value === StatusCode.Chill) {
           fx.statusPuff(e.x, e.y, PALETTE.frost);
           this.audio.play('chillApply', {
             pan: this.pan(e.x),
             volume: 0.6,
             pitch: 1 + e.amount * 0.05,
           });
+        } else {
+          // Poison and blind tick often (auras); only the first and the full stack make a sound.
+          const color = statusColor(e.value);
+          if (first || full) fx.statusPuff(e.x, e.y, color);
+          if (full) fx.nova(e.x, e.y, 36, color);
+          if (e.value === StatusCode.Poison && (first || full)) {
+            this.audio.play(full ? 'poisonFull' : 'poisonApply', { pan: this.pan(e.x) });
+          } else if (e.value === StatusCode.Blind && first) {
+            this.audio.play('blindApply', { pan: this.pan(e.x) });
+          }
         }
+        break;
+      }
+      case Ev.StatusExpired:
+        fx.statusPuff(e.x, e.y, statusColor(e.value));
         break;
       case Ev.Frozen:
         fx.freezeBurst(e.x, e.y, 24);
@@ -410,7 +444,9 @@ export class FeedbackDirector {
             ? PALETTE.ember
             : e.value === StatusCode.None
               ? PALETTE.playerSlash
-              : PALETTE.frost;
+              : e.value === StatusCode.Chill || e.value === StatusCode.Freeze
+                ? PALETTE.frost
+                : statusColor(e.value);
         fx.nova(e.x, e.y, e.amount, color);
         this.audio.play('nova', { pan: this.pan(e.x) });
         break;

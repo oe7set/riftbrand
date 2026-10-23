@@ -1,4 +1,5 @@
-import { C } from './ecs/components';
+import { STATUS_COUNT } from '../content/statuses';
+import { C, stacksOf } from './ecs/components';
 import type { SimState } from './sim';
 
 function fnv1a(hash: number, value: number): number {
@@ -55,8 +56,7 @@ export function hashSim(state: SimState): number {
     h = mixFloat(h, c.hp[eid] as number);
     h = fnv1a(h, c.aiState[eid] as number);
     h = fnv1a(h, c.aiTicks[eid] as number);
-    h = fnv1a(h, c.burnStacks[eid] as number);
-    h = fnv1a(h, c.chillStacks[eid] as number);
+    for (let s = 0; s < STATUS_COUNT; s++) h = fnv1a(h, stacksOf(c, eid, s));
     h = fnv1a(h, c.frozenTicks[eid] as number);
     h = fnv1a(h, c.eliteMod[eid] as number);
     h = fnv1a(h, c.aiPhase[eid] as number);

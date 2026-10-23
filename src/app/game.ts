@@ -5,6 +5,7 @@ import { ELITES } from '../content/elites';
 import { ENEMIES, ENEMY_TYPE } from '../content/enemies';
 import { EVOLUTIONS } from '../content/evolutions';
 import { RELICS } from '../content/relics';
+import { statusIdSchema } from '../content/schema';
 import { AudioEngine } from '../platform/audio/audio-engine';
 import type { MusicMode } from '../platform/audio/music-player';
 import {
@@ -48,6 +49,7 @@ import { resolveLocale, setLocale, type TranslationKey, t } from '../shared/i18n
 import { Button, createInputFrame } from '../shared/input-frame';
 import type { RoomReport } from '../sim/bot/autoplay';
 import {
+  debugApplyStatus,
   debugClearRoom,
   debugKillAllEnemies,
   debugNextWave,
@@ -321,6 +323,10 @@ export class Game {
             id,
           ]);
           if (this.run) evolve(this.run, id);
+        },
+        applyStatus: (id, stacks) => {
+          const parsed = statusIdSchema.safeParse(id);
+          if (parsed.success) debugApplyStatus(this.sim, parsed.data, stacks);
         },
       },
       ENEMIES.map((e) => e.id),
@@ -922,6 +928,7 @@ export class Game {
     this.view.shake.intensity = s.shake;
     this.view.hud.flashIntensity = s.flashes;
     this.view.damageNumbers.enabled = s.damageNumbers;
+    this.view.entities.statusIcons.enabled = s.statusIcons;
     this.view.setGlowQuality(s.quality);
     this.haptics.intensity = s.vibration;
     this.view.setTouchOpacity(s.touchOpacity);

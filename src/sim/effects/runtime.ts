@@ -1,14 +1,15 @@
 import type { HitSource, StatusId } from '../../content/schema';
+import { Status, statusIndex } from '../../content/statuses';
 import { TUNING } from '../../content/tuning';
 import { queryRect } from '../collision/spatial-hash';
 import { damageEnemy, type PlayerHitSpec } from '../combat/damage';
 import { type PlayerShotSpec, spawnPlayerShot } from '../combat/player-projectiles';
-import { C } from '../ecs/components';
-import { Ev, pushEvent, StatusCode } from '../events';
+import { C, stacksOf, statusSlot } from '../ecs/components';
+import { Ev, pushEvent, STATUS_CODES, StatusCode } from '../events';
 import { nextFloat } from '../rng/rng';
 import type { SimState } from '../sim';
 import { type CompiledEffect, healingFactor } from './build';
-import { applyBurn, applyChill, freeze } from './status';
+import { applyStatus, freeze } from './status';
 
 /** Effects that trigger effects stop at this depth (TECH_DESIGN §6.5). */
 export const MAX_EFFECT_DEPTH = 3;
@@ -62,8 +63,7 @@ function applyStatusTo(
   status: StatusId | null,
   stacks: number,
 ): void {
-  if (status === 'burn') applyBurn(state, eid, stacks);
-  else if (status === 'chill') applyChill(state, eid, stacks);
+  if (status !== null) applyStatus(state, eid, statusIndex(status), stacks);
 }
 
 /** Parameters of an area burst; one shared instance, filled in by the caller. */
@@ -126,8 +126,9 @@ function nova(state: SimState, eff: CompiledEffect, ctx: TriggerContext): void {
   const cy = a.at === 'player' ? (c.posY[state.playerEid] as number) : ctx.y;
   if (a.consumeStatuses && isEnemy(state, ctx.target)) {
     // Consumed first, so the burst's own status changes cannot fire the combo again.
-    c.burnStacks[ctx.target] = 0;
-    c.burnTicks[ctx.target] = 0;
+    const slot = statusSlot(ctx.target, Status.Burn);
+    c.statusStacks[slot] = 0;
+    c.statusTicks[slot] = 0;
     c.frozenTicks[ctx.target] = 0;
   }
   const e = pushEvent(state.events, Ev.Nova, cx, cy);
@@ -137,11 +138,9 @@ function nova(state: SimState, eff: CompiledEffect, ctx: TriggerContext): void {
       ? StatusCode.Steam
       : a.freeze
         ? StatusCode.Freeze
-        : a.status === 'burn'
-          ? StatusCode.Burn
-          : a.status === 'chill'
-            ? StatusCode.Chill
-            : StatusCode.None;
+        : a.status === null
+          ? StatusCode.None
+          : (STATUS_CODES[statusIndex(a.status)] as number);
   }
   burst.radiusPx = a.radiusPx;
   burst.damage = a.damage;
@@ -253,7 +252,7 @@ function fireOnTarget(
       target,
       c.posX[target] as number,
       c.posY[target] as number,
-      c.burnStacks[target] as number,
+      stacksOf(c, target, Status.Burn),
       (c.frozenTicks[target] as number) > 0,
     ),
     source,

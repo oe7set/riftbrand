@@ -1,11 +1,13 @@
-import { Container, Sprite, Text, type Texture } from 'pixi.js';
+import { BitmapText, Container, Sprite, Text, type Texture } from 'pixi.js';
 import { RIFT_SHOT } from '../../content/abilities';
 import { ENEMIES } from '../../content/enemies';
+import { STATUS_COUNT, Status } from '../../content/statuses';
 import { type TranslationKey, t } from '../../shared/i18n';
-import { C } from '../../sim/ecs/components';
+import { C, stacksOf } from '../../sim/ecs/components';
 import type { SimState } from '../../sim/sim';
 import { TICK_RATE_HZ } from '../../sim/time';
 import { PALETTE } from '../render/palette';
+import { installStatusFont, STATUS_FONT, STATUS_LABELS } from '../vfx/status-overlay';
 
 const MARGIN_PX = 16;
 const HP_WIDTH_PX = 180;
@@ -21,6 +23,9 @@ const ULT_HEIGHT_PX = 5;
 const DENIED_PULSE_SEC = 0.35;
 const BOSS_BAR_MAX_WIDTH_PX = 520;
 const BOSS_BAR_HEIGHT_PX = 12;
+/** Status icons under the boss bar (screen pixels). */
+const BOSS_STATUS_ICON_PX = 20;
+const BOSS_STATUS_GAP_PX = 42;
 
 function bar(texture: Texture, tint: number, anchorX = 0): Sprite {
   const s = new Sprite(texture);
@@ -58,6 +63,10 @@ export class HudView {
   private readonly bossFill: Sprite;
   private readonly bossMarks: Sprite[] = [];
   private readonly bossName: Text;
+  /** One icon and stack count per status, shown under the boss bar while active. */
+  private readonly bossStatusIcons: Sprite[] = [];
+  private readonly bossStatusCounts: BitmapText[] = [];
+  private readonly bossStatusShown = new Int8Array(STATUS_COUNT).fill(-1);
   private bossType = -1;
   private bossLagRatio = 1;
   private bossVisible = false;
@@ -74,7 +83,7 @@ export class HudView {
   /** Player setting 0..1 for full-screen flashes (photosensitivity, GDD §13). */
   flashIntensity = 1;
 
-  constructor(white: Texture, vignette: Texture, arrow: Texture) {
+  constructor(white: Texture, vignette: Texture, arrow: Texture, statusIcons: readonly Texture[]) {
     this.vignette = new Sprite(vignette);
     this.vignette.tint = 0xff2040;
     this.vignette.alpha = 0;
@@ -145,6 +154,44 @@ export class HudView {
       ...this.bossMarks,
       this.bossName,
     );
+    installStatusFont();
+    for (let s = 0; s < STATUS_COUNT; s++) {
+      const icon = new Sprite(statusIcons[s] ?? white);
+      icon.anchor.set(0.5);
+      icon.visible = false;
+      const count = new BitmapText({ text: '', style: { fontFamily: STATUS_FONT, fontSize: 24 } });
+      count.anchor.set(0, 0.5);
+      count.scale.set(0.6);
+      count.visible = false;
+      this.bossStatusIcons.push(icon);
+      this.bossStatusCounts.push(count);
+      this.root.addChild(icon, count);
+    }
+  }
+
+  /** Statuses on the boss, left-aligned under its bar (ROADMAP M3.1). */
+  private syncBossStatus(sim: SimState, boss: number, x: number, y: number): void {
+    const c = sim.c;
+    const frozen = boss >= 0 && (c.frozenTicks[boss] as number) > 0;
+    let left = x + BOSS_STATUS_ICON_PX / 2;
+    for (let s = 0; s < STATUS_COUNT; s++) {
+      const icon = this.bossStatusIcons[s] as Sprite;
+      const count = this.bossStatusCounts[s] as BitmapText;
+      const stacks = boss >= 0 ? stacksOf(c, boss, s) : 0;
+      const on = stacks > 0 || (frozen && s === Status.Chill);
+      icon.visible = on;
+      count.visible = on && stacks > 1;
+      if (!on) continue;
+      icon.position.set(left, y);
+      icon.scale.set((BOSS_STATUS_ICON_PX / (icon.texture.width || BOSS_STATUS_ICON_PX)) * 1.2);
+      const label = Math.min(stacks, STATUS_LABELS.length - 1);
+      if (this.bossStatusShown[s] !== label) {
+        this.bossStatusShown[s] = label;
+        count.text = STATUS_LABELS[label] as string;
+      }
+      count.position.set(left + BOSS_STATUS_ICON_PX * 0.45, y + 2);
+      left += BOSS_STATUS_GAP_PX;
+    }
   }
 
   /** Big boss bar with name and phase marks (GDD §11); hidden without a boss. */
@@ -163,7 +210,10 @@ export class HudView {
     this.bossBack.visible = this.bossLag.visible = this.bossFill.visible = visible;
     this.bossName.visible = visible;
     for (const m of this.bossMarks) m.visible = false;
-    if (!visible) return;
+    if (!visible) {
+      this.syncBossStatus(sim, -1, 0, 0);
+      return;
+    }
     const type = c.enemyType[boss] as number;
     const def = ENEMIES[type];
     if (type !== this.bossType) {
@@ -189,6 +239,7 @@ export class HudView {
     const last = (c.aiPhase[boss] as number) >= phases.length - 1 && phases.length > 1;
     this.bossFill.tint = last ? PALETTE.hpFill : PALETTE.ultimate;
     this.bossName.position.set(this.width / 2, y - 4);
+    this.syncBossStatus(sim, boss, x, y + BOSS_BAR_HEIGHT_PX + BOSS_STATUS_ICON_PX * 0.75);
     for (let i = 1; i < phases.length && i - 1 < this.bossMarks.length; i++) {
       const mark = this.bossMarks[i - 1] as Sprite;
       mark.visible = true;

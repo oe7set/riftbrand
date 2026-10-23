@@ -225,29 +225,29 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
 
 **Warum zuerst:** Kampf ist der Kern des Spiels (Design-Säulen 1 und 3). Die späteren Meilensteine bauen darauf auf: Icons für Zauber (M4), Rig-Animationen für Mini-Bosse (M4), der Zauberlehrer in der Zuflucht (M5).
 
-### M3.1 Sichtbare Status-Effekte 🔜
+### M3.1 Sichtbare Status-Effekte ✅
 **Ziel:** Man sieht jedem Gegner sofort an, welche Effekte auf ihm liegen und wie stark sie sind.
 
 **Umfang:**
-- [ ] **Status-Framework:** Status werden zu Daten statt fest kodierter Fälle, in `src/content/statuses.ts` mit `defineStatus()` und Zod-Schema. Felder:
+- [x] **Status-Framework:** Status werden zu Daten statt fest kodierter Fälle, in `src/content/statuses.ts` mit `defineStatus()` und Zod-Schema. Felder:
   - `id`, Farbe, Icon-Glyphe
   - `maxStacks`, Dauer bzw. Verfall, Tick-Intervall
   - Wirkung: Schaden pro Stapel, Tempo-Faktor, Schadens-Verstärkung, Schwelle (z. B. 5 Kälte → gefroren)
   - Die Status-Resistenz (`statusResist`) gilt weiter.
-- [ ] **Bestehende Status überführen:** Brand (`burn`) und Kälte bzw. Gefroren (`chill`). Das Verhalten bleibt gleich, der Determinismus-Hash für bestehende Seeds bleibt stabil.
-- [ ] **Neue Status** (vorerst nur über das Debug-Menü auslösbar, Quellen kommen in M3.3):
+- [x] **Bestehende Status überführen:** Brand (`burn`) und Kälte bzw. Gefroren (`chill`). Das Verhalten bleibt gleich, der Determinismus-Hash für bestehende Seeds bleibt stabil.
+- [x] **Neue Status** (vorerst nur über das Debug-Menü auslösbar, Quellen kommen in M3.3):
   - **Gift** (`poison`): stapelt bis 10, macht langsam Schaden und verfällt nicht stapelweise. Ohne neuen Stapel endet es nach 6 s komplett.
   - **Blenden** (`blind`): Die Vorbereitung der Gegner-Angriffe dauert 30 % länger, Gegner-Geschosse streuen stärker. Dauer 3 s.
-- [ ] **Darstellung am Gegner:**
+- [x] **Darstellung am Gegner:**
   - Brand: Glutpartikel und ein orangener Rand, der mit den Stapeln heller wird
   - Kälte: Eiskruste, die mit den Stapeln wächst; gefroren: Eisblock
   - Gift: grüne Blasen und Tropfen, grünlicher Farbton
   - Blenden: weißer Lichtkranz um den Kopf
-- [ ] **Status-Symbole über dem Gegner** mit Stapelzahl: höchstens 3 sichtbar, das wichtigste zuerst. Auch die Boss-Leiste zeigt die Status des Bosses.
-- [ ] **Feedback:** Events `Ev.StatusApplied` und `Ev.StatusExpired` in `src/sim/events.ts`, umgesetzt in `src/app/feedback.ts`:
+- [x] **Status-Symbole über dem Gegner** mit Stapelzahl: höchstens 3 sichtbar, das wichtigste zuerst. Auch die Boss-Leiste zeigt die Status des Bosses.
+- [x] **Feedback:** Events `Ev.StatusApplied` und `Ev.StatusExpired` in `src/sim/events.ts`, umgesetzt in `src/app/feedback.ts`:
   - kurzer Farbblitz beim ersten Stapel
   - eigene Sounds für „gefroren“ und „Gift voll (10)“
-- [ ] **Einstellung** „Status-Symbole über Gegnern“ (an/aus), Standard: an
+- [x] **Einstellung** „Status-Symbole über Gegnern“ (an/aus), Standard: an
 
 **Technik:**
 - `src/sim/effects/status.ts` arbeitet datengetrieben.
@@ -268,7 +268,12 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
 
 **Abhängig von:** –
 
-### M3.2 Zauber-System (Kern) ⬜
+**Umgesetzt (Abweichungen vom Plan):**
+- Blenden lässt Gegner-Salven um 25° abwechselnd nach links bzw. rechts verziehen (statt einer zufälligen Streuung, damit es deterministisch und lesbar bleibt).
+- Die Einstellung „Status-Symbole über Gegnern“ erhöht die Settings-Version auf **v3**; der Zauber-Button in M3.2 bekommt deshalb v4.
+- Die Symbol-Reihenfolge über den Gegnern ist Kälte → Brand → Gift → Blenden (Blenden zeigt zusätzlich der Lichtkranz).
+
+### M3.2 Zauber-System (Kern) 🔜
 **Ziel:** Vesper hat zwei Zauber-Slots: einen aktiven Zauber mit Abklingzeit und eine Aura.
 
 **Umfang:**
@@ -303,7 +308,7 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
   - `damageBySource` wird um Spieler-Quellen erweitert (Waffe, Spezial, Wurf, Zauber, Aura, Status).
 
 **Technik:**
-- **Settings v3:** `touchLayout` bekommt den Button `spell` (Migration v2 → v3, Standardposition einsetzen).
+- **Settings v4:** `touchLayout` bekommt den Button `spell` (Migration v3 → v4, Standardposition einsetzen).
 - **Run-Save v6:** ausgerüstete Zauber und Abklingzeiten (Migration v5 → v6: Start-Zauber eintragen).
 - Sonderverhalten nur als benannter Handler in `src/sim/effects/handlers/` (Architekturregel 4).
 
@@ -907,7 +912,8 @@ Richtwerte. Wenn sich die Reihenfolge der Pakete ändert, verschieben sich die N
 | Paket | Settings | Profil | Run-Save | Inhalt |
 |---|---|---|---|---|
 | heute (M2.8) | v2 | v1 | v5 | – |
-| M3.2 | **v3** | | **v6** | Touch-Button `spell`, ausgerüstete Zauber im Run |
+| M3.1 ✅ | **v3** | | | Einstellung „Status-Symbole über Gegnern“ |
+| M3.2 | **v4** | | **v6** | Touch-Button `spell`, ausgerüstete Zauber im Run |
 | M3.4 | | | **v7** | Stufen, Zweige, Segen-Stufen |
 | M3.5 | | | **v8** | Knotentyp `duel` in der Map |
 | M3.6 | | **v2** | | freigeschaltete und entdeckte Zauber, Ausrüstung |
