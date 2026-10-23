@@ -211,7 +211,8 @@ export function completeRoom(run: RunState, result: RoomResult): void {
   run.lastSparks = result.lastSparks;
   run.roomsCleared++;
   const node = run.map.nodes[run.currentNodeId];
-  if (node?.type === 'elite') run.clearedElite++;
+  // Duels pay out like elite rooms (Glut and Rissstaub, ROADMAP M3.5).
+  if (node?.type === 'elite' || node?.type === 'duel') run.clearedElite++;
   else if (node?.type === 'boss') run.clearedBoss++;
   else run.clearedCombat++;
   // Glutheilung (Ember Tree): a little health after every fight.

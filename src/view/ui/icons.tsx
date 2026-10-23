@@ -57,6 +57,12 @@ export function NodeIcon({ type }: { type: RoomType }) {
           <circle cx="12" cy="19" r="1.3" fill="currentColor" />
         </g>
       )}
+      {type === 'duel' && (
+        <g {...STROKE}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M7.5 16.5 L16.5 7.5 M16.5 16.5 L7.5 7.5" />
+        </g>
+      )}
       {type === 'boss' && (
         <g {...STROKE}>
           <path d="M3 18 L5 7 L9.5 12 L12 5 L14.5 12 L19 7 L21 18 Z" />

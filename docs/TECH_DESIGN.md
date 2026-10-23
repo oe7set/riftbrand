@@ -487,7 +487,26 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Speicherstand:** Run-Save **v7** (`OwnedSpell.branches`, `RunState.cast`, optionales `level` an Segen; Migration v6 → v7).
 - **UI:** Screen `upgrade` mit `UpgradeCard`; Build-Übersicht im Pause-Menü mit Zauber-Abschnitt. Debug-Menü: „Spell/Aura/Cast +1 (A/B)“.
 
-## 32. Risiken und Gegenmaßnahmen
+## 32. Stand nach M3.5 (Duelle und Mini-Bosse)
+- **Daten:**
+  - Raumtyp `duel`.
+  - Gegner-Rolle `champion`; Phasen über das bestehende `boss.phases`.
+  - Angriffsart `guard` (Parierhaltung: `counterDamage`, `counterRangePx`, `frontArcDeg`, `brokenStaggerSec`).
+  - Optionales `link` am Gegner (Partner, Reichweite, Schadensreduktion, Wiederbelebung).
+  - Biom-Felder `duelMinLayer`, `duelsMin`, `duelsMax`, `duelEncounters`.
+- **Map:** `placeDuels()` wandelt nach der Generierung 1–2 Kampfknoten ab `duelMinLayer` in Duelle um (nie auf der Rast-Ebene). `buildEncounter('duel')` wählt eine Aufstellung (eine Welle).
+- **Logik in `sim/systems/champions.ts` (benannte Handler):**
+  - `linkOnSpawn()` verbindet Zwillinge beim Spawn (`Components.linkEid`, Index + 1).
+  - `linkedDamageFactor()` wirkt in `damageMultiplier()`.
+  - `phaseRatio()` nutzt das gemeinsame Leben bzw. erzwingt die letzte Phase, wenn der verbundene Partner gefallen ist.
+  - `onLinkedDeath()` und `reviveSystem()` steuern den Wiederbelebungs-Countdown (`reviveTicks`, `reviveType`).
+  - `activeGuard()` und `hitsGuardedFront()` werden in `damageEnemy()` über `resolveGuard()` ausgewertet: Parieren bricht den Treffer ab und kontert; jede andere Quelle bricht die Haltung (verlängerter Stagger).
+- **Events:** `Ev.Parry`, `Ev.GuardBroken`, `Ev.TwinReviveStart`, `Ev.TwinRevived`.
+- **Darstellung:** Parierhaltung in `PALETTE.guard` (blauer Ring und Schildbogen, nie warme Angriffsfarben); Band als Linie zwischen den Zwillingen; Countdown-Ring am Überlebenden. Die Boss-Leiste zeigt auch Champions, für Zwillinge das gemeinsame Leben.
+- **Bot:** Er schlägt nicht in eine Parierhaltung, sondern bricht sie mit Riss-Geschoss oder Zauber; Champions zählen für Ultimate und Zauber wie Bosse.
+- **Speicherstand:** Run-Save **v8** (Knotentyp `duel`; alte Maps bleiben gültig). Duelle zählen für die Meta-Auszahlung wie Elite-Räume.
+
+## 33. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

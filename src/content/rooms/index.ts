@@ -21,7 +21,7 @@ export const ROOMS: readonly RoomTemplateDef[] = [
     id: 'open_ash',
     widthPx: W,
     heightPx: H,
-    types: ['combat', 'elite', 'horde'],
+    types: ['combat', 'elite', 'horde', 'duel'],
     obstacles: [],
     playerStart: start,
     exit,
@@ -31,7 +31,7 @@ export const ROOMS: readonly RoomTemplateDef[] = [
     id: 'four_pillars',
     widthPx: W,
     heightPx: H,
-    types: ['combat', 'elite'],
+    types: ['combat', 'elite', 'duel'],
     obstacles: [
       { kind: 'circle', x: 330, y: 330, r: 48 },
       { kind: 'circle', x: W - 330, y: 330, r: 48 },

@@ -61,6 +61,8 @@ export interface SlowMoRequest {
  * vibration and slow motion. Tuning lives in TUNING and the effect recipes.
  */
 export class FeedbackDirector {
+  /** One duel banner per room, even when two twins spawn. */
+  championAnnounced = false;
   private afterimageTimer = 0;
   private panWidth = 960;
 
@@ -290,6 +292,31 @@ export class FeedbackDirector {
         });
         break;
       }
+      case Ev.Parry:
+        // Steel on steel: the player hit the guarded front.
+        fx.hitSparks(e.x, e.y, -e.dirX, -e.dirY, PALETTE.guard, 14);
+        fx.nova(e.x, e.y, 50, PALETTE.guard);
+        shake.add(TUNING.shakeHeavyTrauma);
+        this.audio.play('block', { pan: this.pan(e.x), pitch: 1.4 });
+        this.audio.play('hitHeavy', { pan: this.pan(e.x), pitch: 0.7 });
+        this.haptics.pulse(35, 0.8);
+        break;
+      case Ev.GuardBroken:
+        fx.killBurst(e.x, e.y, 0, -1, PALETTE.guard, 18);
+        shake.add(TUNING.shakeLightTrauma);
+        this.audio.play('shotDissolved', { pan: this.pan(e.x), pitch: 0.6 });
+        this.haptics.pulse(20, 0.5);
+        break;
+      case Ev.TwinReviveStart:
+        this.view.hud.onBanner(t('hud.twin_revive', { n: Math.round(e.amount) }));
+        this.audio.play('roar', { pitchVariation: 0, pitch: 1.4, volume: 0.6 });
+        break;
+      case Ev.TwinRevived:
+        fx.portal(e.x, e.y, 0.4, PALETTE.hpFill);
+        fx.slamShockwave(e.x, e.y, 120);
+        shake.add(0.5);
+        this.audio.play('roar', { pitchVariation: 0, pitch: 1.2 });
+        break;
       case Ev.LastSpark:
         // The tree caught you: unmistakable, a little holy, then back to the fight.
         fx.ultimate(e.x, e.y, 160, PALETTE.ember);
@@ -333,6 +360,13 @@ export class FeedbackDirector {
       case Ev.Spawn: {
         const def = ENEMIES[e.value];
         fx.spawnFlash(e.x, e.y, eliteOf(e.flags)?.color ?? def?.visual.color ?? PALETTE.portal);
+        if (def?.role === 'champion' && !this.championAnnounced) {
+          // Twins spawn together: one banner for the pair.
+          this.championAnnounced = true;
+          this.view.hud.onBoss(t(`boss.${def.id}.name` as TranslationKey));
+          shake.add(0.4);
+          this.audio.play('roar', { pitchVariation: 0, pitch: 1.3, volume: 0.7 });
+        }
         if (def?.role === 'boss') {
           this.view.hud.onBoss(t(`boss.${def.id}.name` as TranslationKey));
           fx.slamShockwave(e.x, e.y, 200);

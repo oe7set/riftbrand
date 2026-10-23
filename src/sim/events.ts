@@ -77,6 +77,14 @@ export const Ev = {
   ZonePulse: 41,
   /** A ward dissolved an enemy shot at (x, y). value = spell index. */
   ShotDissolved: 42,
+  /** A champion's parry stance caught a melee hit and riposted. dir = hit direction. */
+  Parry: 43,
+  /** A parry stance was broken (spell, shot or hit from behind); the champion is open. */
+  GuardBroken: 44,
+  /** A twin fell; its partner will revive it. eid = survivor, amount = seconds. */
+  TwinReviveStart: 45,
+  /** A twin rose again. value = enemy type. */
+  TwinRevived: 46,
 } as const;
 
 /** Player projectile kinds in event payloads (matches content projectile kinds). */

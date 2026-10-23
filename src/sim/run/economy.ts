@@ -74,6 +74,9 @@ export function nodeReward(seed: number, node: Pick<MapNode, 'id' | 'type'>): No
       if (roll < 0.88) return { kind: 'relic', rarityBonus: 0 };
       return { kind: 'shards', amount: RELIC_ECONOMY.shardsRewardAmount };
     }
+    case 'duel':
+      // ROADMAP M3.5: a duel always pays out in power for what the player already has.
+      return { kind: 'upgrade' };
     case 'elite':
       // GDD §6.2: elites guarantee a rarer relic.
       return { kind: 'relic', rarityBonus: 1 };
@@ -89,7 +92,7 @@ export function nodeReward(seed: number, node: Pick<MapNode, 'id' | 'type'>): No
 
 /** Shards granted for clearing a room, before the shard-gain bonus. */
 export function clearBonusShards(type: RoomType): number {
-  if (type === 'elite') return RELIC_ECONOMY.eliteClearShards;
+  if (type === 'elite' || type === 'duel') return RELIC_ECONOMY.eliteClearShards;
   if (type === 'horde') return RELIC_ECONOMY.hordeClearShards;
   if (type === 'combat') return RELIC_ECONOMY.combatClearShards;
   return 0;

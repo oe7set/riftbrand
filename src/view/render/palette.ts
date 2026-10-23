@@ -26,6 +26,8 @@ export const PALETTE = {
   chillLight: 0xd6f4ff,
   chillHeavy: 0xa6dcff,
   frost: 0x8fe3ff,
+  /** Parry stance of champions: cool, a defence, not an attack. */
+  guard: 0x6bb8ff,
   /** Body tint of poisoned enemies. */
   poisonTint: 0xc8ffb8,
   burnText: 0xffa64d,

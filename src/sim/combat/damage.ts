@@ -1,7 +1,12 @@
 import { BRAND_BURST } from '../../content/abilities';
 import { eliteOf } from '../../content/elites';
-import { ENEMIES } from '../../content/enemies';
-import { type HitSource, type HitstopLevel, hitSourceSchema } from '../../content/schema';
+import { attackOf, ENEMIES } from '../../content/enemies';
+import {
+  type EnemyDef,
+  type HitSource,
+  type HitstopLevel,
+  hitSourceSchema,
+} from '../../content/schema';
 import { Status } from '../../content/statuses';
 import { TUNING } from '../../content/tuning';
 import { AiState, C, rememberHit, stacksOf, Token, wasHitBy } from '../ecs/components';
@@ -11,6 +16,12 @@ import { Ev, EvFlag, pushEvent } from '../events';
 import { PlayerAction } from '../player-state';
 import { nextFloat } from '../rng/rng';
 import type { SimState } from '../sim';
+import {
+  activeGuard,
+  hitsGuardedFront,
+  linkedDamageFactor,
+  onLinkedDeath,
+} from '../systems/champions';
 import { onEnemyKilledWithSpells } from '../systems/spells';
 import { secondsToTicks } from '../time';
 import { DEALT_STATUS_INDEX } from './dealt';
@@ -71,6 +82,54 @@ export function staggerEnemy(state: SimState, eid: number): void {
   }
 }
 
+/**
+ * Parry stances (ROADMAP M3.5). A melee hit into the guarded front is countered: no damage, a
+ * riposte if the player is close. Anything else breaks the stance and opens the champion up.
+ * Returns true when the hit was parried (and must not deal damage).
+ */
+function resolveGuard(state: SimState, eid: number, def: EnemyDef, spec: PlayerHitSpec): boolean {
+  const c = state.c;
+  const guard = activeGuard(
+    state,
+    eid,
+    attackOf(def, c.aiPhase[eid] as number, c.aiPattern[eid] as number),
+  );
+  if (!guard) return false;
+  const ex = c.posX[eid] as number;
+  const ey = c.posY[eid] as number;
+  const melee = spec.source === 'attack' || spec.source === 'special';
+  releaseToken(state, eid);
+  c.aiTicks[eid] = 0;
+  c.velX[eid] = 0;
+  c.velY[eid] = 0;
+  if (melee && hitsGuardedFront(state, eid, spec.dirX, spec.dirY, guard.frontArcDeg)) {
+    const e = pushEvent(state.events, Ev.Parry, ex, ey);
+    if (e) {
+      e.eid = eid;
+      e.dirX = spec.dirX;
+      e.dirY = spec.dirY;
+    }
+    const p = state.playerEid;
+    const dx = (c.posX[p] as number) - ex;
+    const dy = (c.posY[p] as number) - ey;
+    const reach = guard.counterRangePx + (c.radius[p] as number);
+    if (dx * dx + dy * dy <= reach * reach) {
+      damagePlayer(state, guard.counterDamage, ex, ey, c.enemyType[eid] as number);
+    }
+    c.aiState[eid] = AiState.Recover;
+    return true;
+  }
+  // Broken: a stagger longer than a normal one (the stagger ends at def.staggerSec).
+  c.aiState[eid] = AiState.Stagger;
+  c.aiTicks[eid] = secondsToTicks(def.staggerSec) - secondsToTicks(guard.brokenStaggerSec);
+  const e = pushEvent(state.events, Ev.GuardBroken, ex, ey);
+  if (e) {
+    e.eid = eid;
+    e.value = c.enemyType[eid] as number;
+  }
+  return false;
+}
+
 export interface PlayerHitSpec {
   damage: number;
   knockback: number;
@@ -102,7 +161,7 @@ function damageMultiplier(state: SimState, eid: number, source: HitSource): numb
   if (stacksOf(c, eid, Status.Burn) > 0) mult += stats.damageVsBurning;
   if ((c.frozenTicks[eid] as number) > 0) mult += TUNING.frozenDamageBonus + stats.damageVsFrozen;
   mult += stacksOf(c, eid, Status.Chill) * stats.damageVsChilledPerStack;
-  return mult;
+  return mult * linkedDamageFactor(state, eid);
 }
 
 /**
@@ -125,6 +184,7 @@ export function damageEnemy(state: SimState, eid: number, spec: PlayerHitSpec): 
   rememberHit(c, eid, spec.swingId);
   const def = ENEMIES[c.enemyType[eid] as number];
   if (!def) return false;
+  if (resolveGuard(state, eid, def, spec)) return true;
 
   const blocked = shieldBlocks(state, eid, spec.dirX, spec.dirY);
   const damage =
@@ -233,8 +293,9 @@ export function killEnemy(
     e.value = type;
     e.flags = c.eliteMod[eid] as number;
   }
-  // Spell follow-ups read the status slots, so they run before the slot is cleared.
+  // Spell follow-ups and the twin bond read this entity's slots, so they run before it clears.
   if (triggerEffects) onEnemyKilledWithSpells(state, eid, x, y);
+  onLinkedDeath(state, eid, type);
   destroyEntity(state.world, eid);
   if (triggerEffects && elite && elite.deathBlastRadiusPx > 0) {
     spawnHazard(

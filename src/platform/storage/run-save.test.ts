@@ -106,6 +106,12 @@ describe('run save', () => {
     expect(migrated?.cast).toEqual({ level: 1, branches: [] });
   });
 
+  it('migrates v7 saves unchanged (duel nodes are new)', () => {
+    const run = createRun(16);
+    const migrated = migrateRunSave({ version: 7, run });
+    expect(migrated?.map.nodes.length).toBe(run.map.nodes.length);
+  });
+
   it('clears the save', () => {
     const store = memoryStore();
     saveRun(store, createRun(5));

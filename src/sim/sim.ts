@@ -37,6 +37,7 @@ import {
   resolveSpell,
   type UpgradeState,
 } from './run/upgrades';
+import { linkOnSpawn, reviveSystem } from './systems/champions';
 import { drifterAiSystem } from './systems/drifter-ai';
 import { enemyAiSystem } from './systems/enemy-ai';
 import { movementSystem } from './systems/movement';
@@ -258,6 +259,7 @@ export function spawnEnemy(
     nextRange(state.rng.ai, atk.cooldownMinSec, atk.cooldownMaxSec) * 0.5,
   );
   state.enemiesAlive++;
+  linkOnSpawn(state, eid, def);
   const e = pushEvent(state.events, Ev.Spawn, x, y);
   if (e) {
     e.eid = eid;
@@ -365,6 +367,7 @@ export function stepSim(state: SimState, input: InputFrame): void {
   playerActionSystem(state, input);
   spellSystem(state);
   enemyAiSystem(state);
+  reviveSystem(state);
   statusSystem(state);
   drifterAiSystem(state);
   movementSystem(state);

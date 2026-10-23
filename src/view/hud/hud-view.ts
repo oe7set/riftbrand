@@ -5,6 +5,7 @@ import { STATUS_COUNT, Status } from '../../content/statuses';
 import { type TranslationKey, t } from '../../shared/i18n';
 import { C, stacksOf } from '../../sim/ecs/components';
 import type { SimState } from '../../sim/sim';
+import { partnerOf } from '../../sim/systems/champions';
 import { TICK_RATE_HZ } from '../../sim/time';
 import { PALETTE } from '../render/palette';
 import { installStatusFont, STATUS_FONT, STATUS_LABELS } from '../vfx/status-overlay';
@@ -223,13 +224,16 @@ export class HudView {
   /** Big boss bar with name and phase marks (GDD §11); hidden without a boss. */
   private syncBoss(sim: SimState, dtSec: number): void {
     const { world, c } = sim;
+    // The boss, else a duel champion (ROADMAP M3.5); twins share one bar.
     let boss = -1;
     for (let eid = 0; eid < world.highWater; eid++) {
       if (((world.masks[eid] as number) & C.Enemy) === 0) continue;
-      if (ENEMIES[c.enemyType[eid] as number]?.role === 'boss') {
+      const role = ENEMIES[c.enemyType[eid] as number]?.role;
+      if (role === 'boss') {
         boss = eid;
         break;
       }
+      if (role === 'champion' && boss < 0) boss = eid;
     }
     const visible = boss >= 0;
     this.bossVisible = visible;
@@ -251,7 +255,10 @@ export class HudView {
     const narrow = this.width < HP_WIDTH_PX * 2 + 200;
     const x = (this.width - width) / 2;
     const y = narrow ? 118 : 64;
-    const ratio = Math.max(0, (c.hp[boss] as number) / (c.maxHp[boss] as number));
+    const partner = partnerOf(sim, boss);
+    const hp = (c.hp[boss] as number) + (partner >= 0 ? (c.hp[partner] as number) : 0);
+    const maxHp = (c.maxHp[boss] as number) + (partner >= 0 ? (c.maxHp[partner] as number) : 0);
+    const ratio = Math.max(0, hp / maxHp);
     this.bossLagRatio =
       this.bossLagRatio > ratio ? Math.max(ratio, this.bossLagRatio - dtSec * 0.4) : ratio;
     this.bossBack.position.set(x, y);
@@ -267,6 +274,8 @@ export class HudView {
     this.bossName.position.set(this.width / 2, y - 4);
     this.syncBossStatus(sim, boss, x, y + BOSS_BAR_HEIGHT_PX + BOSS_STATUS_ICON_PX * 0.75);
     for (let i = 1; i < phases.length && i - 1 < this.bossMarks.length; i++) {
+      // Twins enrage at 0 % (when one falls): no mark for that.
+      if ((phases[i]?.hpBelow ?? 0) <= 0) continue;
       const mark = this.bossMarks[i - 1] as Sprite;
       mark.visible = true;
       mark.position.set(x + width * (phases[i]?.hpBelow ?? 0) - 1, y - 3);
