@@ -32,7 +32,7 @@
   "node.combat.name": "Kampf",
   "node.combat.desc": "Gegner in mehreren Wellen.",
   "node.elite.name": "Elite",
-  "node.elite.desc": "Ein härterer Kampf mit einem Splitterkoloss.",
+  "node.elite.desc": "Ein härterer Kampf gegen Elite-Gegner: hastig, geschirmt oder flüchtig.",
   "node.horde.name": "Horde",
   "node.horde.desc": "Überlebe den Schwarm, bis sich der Riss schließt.",
   "node.rest.name": "Rast",
@@ -198,5 +198,8 @@
   "evolution.later": "Später",
   "rest.evolve": "Statt zu rasten: zur {name} erwecken",
   "pause.evolutions": "Evolutionen",
-  "hud.ult_ready": "Brandausbruch bereit"
+  "hud.ult_ready": "Brandausbruch bereit",
+  "boss.ember_warden.name": "DER GLUTWÄCHTER",
+  "hud.boss_phase": "Der Wächter brüllt!",
+  "hud.boss_enraged": "Der Wächter rast!"
 }

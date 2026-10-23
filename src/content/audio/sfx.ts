@@ -646,6 +646,73 @@ export const SFX = {
       delaySec: 0.3,
     },
   ],
+  /** Boss roar (spawn, phase change): low growl with grit and wobble. */
+  roar: [
+    {
+      wave: 'saw',
+      freq: 90,
+      freqEnd: 55,
+      attackSec: 0.08,
+      sustainSec: 0.5,
+      releaseSec: 0.5,
+      volume: 0.45,
+      lowpass: 900,
+      distortion: 0.6,
+      vibratoHz: 9,
+      vibratoDepth: 0.12,
+    },
+    {
+      wave: 'noise',
+      freq: 0,
+      attackSec: 0.05,
+      sustainSec: 0.4,
+      releaseSec: 0.5,
+      volume: 0.3,
+      lowpass: 700,
+    },
+  ],
+  /** Shield absorbs a hit: dull metallic clank. */
+  block: [
+    {
+      wave: 'square',
+      freq: 620,
+      freqEnd: 480,
+      attackSec: 0.001,
+      sustainSec: 0.02,
+      releaseSec: 0.12,
+      volume: 0.2,
+      lowpass: 2600,
+    },
+    {
+      wave: 'triangle',
+      freq: 1240,
+      attackSec: 0.001,
+      sustainSec: 0.01,
+      releaseSec: 0.15,
+      volume: 0.1,
+    },
+  ],
+  /** Mine lands: a soft thud plus a ticking start. */
+  mineLand: [
+    {
+      wave: 'sine',
+      freq: 180,
+      freqEnd: 90,
+      attackSec: 0.002,
+      sustainSec: 0.02,
+      releaseSec: 0.1,
+      volume: 0.3,
+    },
+    {
+      wave: 'square',
+      freq: 1800,
+      attackSec: 0.001,
+      sustainSec: 0.01,
+      releaseSec: 0.03,
+      volume: 0.06,
+      delaySec: 0.08,
+    },
+  ],
 } satisfies Record<string, SfxRecipe>;
 
 export type SfxId = keyof typeof SFX;

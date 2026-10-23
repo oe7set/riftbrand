@@ -4,8 +4,9 @@ import type { SimState } from './sim';
 import { forceClearRoom, scheduleSpawn, startWave, WavePhase } from './systems/waves';
 
 /** Debug-menu actions. They mutate the sim like inputs do, so they stay deterministic. */
-export function debugSpawnEnemy(state: SimState, type: number): void {
-  scheduleSpawn(state, type, 0.4);
+/** `code` is a packed enemy (type + elite modifier, see enemy-code). */
+export function debugSpawnEnemy(state: SimState, code: number): void {
+  scheduleSpawn(state, code, 0.4);
 }
 
 export function debugKillAllEnemies(state: SimState): void {

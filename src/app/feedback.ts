@@ -1,8 +1,10 @@
-import { ENEMIES, ENEMY_TYPE } from '../content/enemies';
+import { eliteOf } from '../content/elites';
+import { attackOf, ENEMIES, ENEMY_TYPE } from '../content/enemies';
 import { TUNING } from '../content/tuning';
 import { BRAND_BLADE } from '../content/weapons/brand-blade';
 import type { AudioEngine } from '../platform/audio/audio-engine';
 import type { Haptics } from '../platform/haptics';
+import { type TranslationKey, t } from '../shared/i18n';
 import { C, RenderKind } from '../sim/ecs/components';
 import {
   BurstCode,
@@ -174,14 +176,16 @@ export class FeedbackDirector {
       }
       case Ev.Kill: {
         const def = ENEMIES[e.value];
+        const elite = eliteOf(e.flags);
         fx.killBurst(
           e.x,
           e.y,
           e.dirX,
           e.dirY,
           def?.visual.color ?? PALETTE.ember,
-          def?.radiusPx ?? 14,
+          (def?.radiusPx ?? 14) * (elite ? 1.5 : 1),
         );
+        if (elite) fx.killBurst(e.x, e.y, -e.dirX, -e.dirY, elite.color, 16);
         shake.add(e.value === ENEMY_TYPE.brute ? TUNING.shakeHeavyTrauma : TUNING.shakeLightTrauma);
         this.audio.play('kill', {
           pan: this.pan(e.x),
@@ -203,7 +207,9 @@ export class FeedbackDirector {
         });
         break;
       case Ev.Telegraph: {
-        const heavy = ENEMIES[e.value]?.attack.kind === 'slam';
+        const def = ENEMIES[e.value];
+        const heavy =
+          def?.role === 'boss' || (def ? attackOf(def, e.flags, e.amount).kind === 'slam' : false);
         this.audio.play(heavy ? 'telegraphHeavy' : 'telegraph', {
           pan: this.pan(e.x),
           volume: 0.8,
@@ -211,16 +217,69 @@ export class FeedbackDirector {
         break;
       }
       case Ev.EnemyAttack: {
-        const atk = ENEMIES[e.value]?.attack;
+        const def = ENEMIES[e.value];
+        const atk = def ? attackOf(def, e.flags, e.amount) : undefined;
         if (atk?.kind === 'slam') {
           fx.slamShockwave(e.x, e.y, atk.slamRadiusPx);
-          shake.add(TUNING.shakeHeavyTrauma);
-          this.audio.play('slam', { pan: this.pan(e.x) });
+          shake.add(def?.role === 'boss' ? 0.6 : TUNING.shakeHeavyTrauma);
+          this.audio.play('slam', { pan: this.pan(e.x), pitch: def?.role === 'boss' ? 0.75 : 1 });
           this.haptics.pulse(20, 0.4);
-        } else if (atk?.kind === 'volley') {
+        } else if (atk?.kind === 'volley' || atk?.kind === 'mine') {
           fx.muzzle(e.x + e.dirX * 14, e.y + e.dirY * 14, PALETTE.enemyShot);
-          this.audio.play('enemyShoot', { pan: this.pan(e.x) });
+          this.audio.play('enemyShoot', {
+            pan: this.pan(e.x),
+            pitch: atk.kind === 'mine' ? 0.7 : 1,
+          });
+        } else if (atk?.kind === 'summon') {
+          fx.portal(e.x, e.y, 0.5, PALETTE.portal);
+          this.audio.play('spawn', { pan: this.pan(e.x), pitch: 0.8 });
         }
+        break;
+      }
+      case Ev.HazardPlaced:
+        fx.statusPuff(e.x, e.y, PALETTE.telegraph);
+        this.audio.play('mineLand', { pan: this.pan(e.x) });
+        break;
+      case Ev.HazardBlast:
+        fx.slamShockwave(e.x, e.y, e.amount);
+        fx.killBurst(e.x, e.y, 0, -1, PALETTE.enemyShot, e.amount * 0.3);
+        shake.add(TUNING.shakeLightTrauma * 1.5);
+        this.audio.play('slam', { pan: this.pan(e.x), pitch: 1.3, volume: 0.8 });
+        this.haptics.pulse(15, 0.3);
+        break;
+      case Ev.ShieldBlock:
+        fx.hitSparks(e.x - e.dirX * 20, e.y - e.dirY * 20, -e.dirX, -e.dirY, 0xffffff, 10);
+        this.audio.play('block', { pan: this.pan(e.x) });
+        break;
+      case Ev.EnemyMend:
+        fx.nova(e.x, e.y, e.amount, PALETTE.heal);
+        this.audio.play('heal', { pan: this.pan(e.x), pitch: 0.7 });
+        break;
+      case Ev.BossPhase: {
+        const last = e.value >= 2;
+        fx.waveCleared(e.x, e.y);
+        fx.ultimateCharge(e.x, e.y, last ? PALETTE.hpFill : PALETTE.ultimate);
+        shake.add(0.8);
+        this.view.addZoomPunch(TUNING.lastEnemyZoomPunch);
+        this.view.hud.onBossPhase(last);
+        this.audio.play('roar', { pitchVariation: 0, pitch: last ? 1.15 : 1 });
+        this.haptics.pulse(80, 0.8);
+        this.requestSlowMo({
+          scale: TUNING.lastEnemyTimeScale,
+          durationSec: TUNING.lastEnemySlowMoSec,
+        });
+        break;
+      }
+      case Ev.BossDefeated: {
+        const def = ENEMIES[e.value];
+        fx.killBurst(e.x, e.y, 0, -1, def?.visual.color ?? PALETTE.ember, 60);
+        fx.killBurst(e.x, e.y, 0, 1, PALETTE.ultimate, 50);
+        fx.ultimate(e.x, e.y, 360, PALETTE.ultimate);
+        shake.add(1);
+        this.view.addZoomPunch(TUNING.lastEnemyZoomPunch * 2);
+        this.audio.play('ultimate', { pitchVariation: 0, pitch: 0.7 });
+        this.haptics.pulse(150, 1);
+        this.requestSlowMo({ scale: 0.25, durationSec: 1.2 });
         break;
       }
       case Ev.PlayerHit:
@@ -239,9 +298,18 @@ export class FeedbackDirector {
         fx.portal(e.x, e.y, e.amount, PALETTE.portal);
         this.audio.play('spawn', { pan: this.pan(e.x), volume: 0.6 });
         break;
-      case Ev.Spawn:
-        fx.spawnFlash(e.x, e.y, ENEMIES[e.value]?.visual.color ?? PALETTE.portal);
+      case Ev.Spawn: {
+        const def = ENEMIES[e.value];
+        fx.spawnFlash(e.x, e.y, eliteOf(e.flags)?.color ?? def?.visual.color ?? PALETTE.portal);
+        if (def?.role === 'boss') {
+          this.view.hud.onBoss(t(`boss.${def.id}.name` as TranslationKey));
+          fx.slamShockwave(e.x, e.y, 200);
+          shake.add(0.7);
+          this.audio.play('roar', { pitchVariation: 0 });
+          this.haptics.pulse(60, 0.7);
+        }
         break;
+      }
       case Ev.ProjectileExpired:
         fx.shotPop(
           e.x,

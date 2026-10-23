@@ -27,6 +27,8 @@ export interface BakedTextures {
   spark: Texture;
   ring: Texture;
   disc: Texture;
+  /** Frontal shield arc pointing along +x (shielded elites). */
+  shieldArc: Texture;
   /** 1×1 white for bars and rectangles. */
   white: Texture;
   vignette: Texture;
@@ -153,6 +155,9 @@ export function bakeTextures(renderer: Renderer): BakedTextures {
   ring.circle(0, 0, r * 0.94).stroke({ color: 0xffffff, width: 2 });
   const disc = new Graphics();
   disc.circle(0, 0, r).fill({ color: 0xffffff });
+  const shieldArc = new Graphics();
+  shieldArc.arc(0, 0, r * 0.9, -1.2, 1.2).stroke({ color: 0xffffff, width: 4, cap: 'round' });
+  shieldArc.arc(0, 0, r * 0.9, -1.2, 1.2).stroke({ color: 0xffffff, width: 9, alpha: 0.25 });
 
   return {
     player: { normal: bake(renderer, player), flash: bake(renderer, playerFlash) },
@@ -167,6 +172,7 @@ export function bakeTextures(renderer: Renderer): BakedTextures {
     spark: bake(renderer, spark, r),
     ring: bake(renderer, ring, r),
     disc: bake(renderer, disc, r),
+    shieldArc: bake(renderer, shieldArc, r),
     white: Texture.WHITE,
     vignette: radialTexture(256, [
       [0, 'rgba(0,0,0,0)'],

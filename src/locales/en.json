@@ -32,7 +32,7 @@
   "node.combat.name": "Battle",
   "node.combat.desc": "Enemies in several waves.",
   "node.elite.name": "Elite",
-  "node.elite.desc": "A tougher fight with a Shard Colossus.",
+  "node.elite.desc": "A tougher fight against elites: hasty, shielded or volatile.",
   "node.horde.name": "Horde",
   "node.horde.desc": "Survive the swarm until the rift closes.",
   "node.rest.name": "Rest",
@@ -198,5 +198,8 @@
   "evolution.later": "Not now",
   "rest.evolve": "Instead of resting: evolve into {name}",
   "pause.evolutions": "Evolutions",
-  "hud.ult_ready": "Brand Burst ready"
+  "hud.ult_ready": "Brand Burst ready",
+  "boss.ember_warden.name": "THE EMBER WARDEN",
+  "hud.boss_phase": "The Warden roars!",
+  "hud.boss_enraged": "The Warden rages!"
 }

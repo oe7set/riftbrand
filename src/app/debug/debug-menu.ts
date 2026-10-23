@@ -13,7 +13,8 @@ export interface DebugHooks {
   restart(seed: number): void;
   spawnDrifters(count: number): void;
   clearDrifters(): void;
-  spawnEnemy(type: number): void;
+  /** Packed enemy code (type + elite modifier, see sim/enemy-code). */
+  spawnEnemy(code: number): void;
   killAllEnemies(): void;
   clearRoom(): void;
   warpToExit(): void;
@@ -82,6 +83,8 @@ export class DebugMenu {
     boonIds: readonly string[] = [],
     relicIds: readonly string[] = [],
     evolutionIds: readonly string[] = [],
+    /** Elite spawn buttons: label plus packed enemy code. */
+    eliteSpawns: ReadonlyArray<{ label: string; code: number }> = [],
   ) {
     this.fpsChip = el('div', { className: 'rb-fps' });
     this.fpsChip.hidden = true;
@@ -112,6 +115,13 @@ export class DebugMenu {
           { className: 'rb-debug-row' },
           enemyNames.map((name, type) =>
             this.button(`+ ${name}`, () => this.hooks.spawnEnemy(type)),
+          ),
+        ),
+        el(
+          'div',
+          { className: 'rb-debug-row' },
+          eliteSpawns.map(({ label, code }) =>
+            this.button(`+ ${label}`, () => this.hooks.spawnEnemy(code)),
           ),
         ),
         el('div', { className: 'rb-debug-row' }, [
