@@ -62,6 +62,8 @@ export const Ev = {
   BossPhase: 34,
   /** Boss died; remaining minions crumble. value = enemy type. */
   BossDefeated: 35,
+  /** Last Spark (Ember Tree) refused a lethal hit. amount = HP afterwards. */
+  LastSpark: 36,
 } as const;
 
 /** Player projectile kinds in event payloads (matches content projectile kinds). */

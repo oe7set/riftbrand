@@ -80,8 +80,12 @@ export function rollBoonOffer(
   being: BeingId,
   owned: readonly OwnedBoon[],
   rarityBonus: number,
+  /** Bumped by a reroll (Ember Tree), so the new offer differs but stays reproducible. */
+  salt = 0,
 ): BoonOffer {
-  const rng = createRng(hashString(`${seed}:offer:${nodeId}`));
+  const rng = createRng(
+    hashString(salt === 0 ? `${seed}:offer:${nodeId}` : `${seed}:offer:${nodeId}:${salt}`),
+  );
   const ownedIds = new Set(owned.map((b) => b.id));
   const pool: BoonDef[] = boonsOf(being).filter((b) => !ownedIds.has(b.id));
   const options: BoonOption[] = [];

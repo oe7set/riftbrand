@@ -75,6 +75,11 @@ describe('relics in combat', () => {
       shards: 0,
       evolutions: [],
       ultCharge: 0,
+      bonusAllDamage: 0,
+      bonusStaminaRegen: 0,
+      staminaBonus: 0,
+      lastSparks: 0,
+      lastSparkHeal: 0,
     });
     const input = createInputFrame();
     for (let i = 0; i < 120; i++) stepSim(s, input);

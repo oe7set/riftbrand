@@ -122,7 +122,14 @@ describe('run state', () => {
         completeNonCombat(run);
       } else {
         expect(roomSetupFor(run, next).template.types).toContain(next.type);
-        completeRoom(run, { hp: run.hp, kills: 3, timeSec: 30, shards: run.shards, ultCharge: 0 });
+        completeRoom(run, {
+          hp: run.hp,
+          kills: 3,
+          timeSec: 30,
+          shards: run.shards,
+          ultCharge: 0,
+          lastSparks: 0,
+        });
       }
     }
     expect(run.status).toBe('won');

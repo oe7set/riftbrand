@@ -13,6 +13,8 @@ export function spawnHazard(
   radiusPx: number,
   damage: number,
   fuseSec: number,
+  /** Enemy type that placed it, so a lethal blast can name its source. */
+  sourceType: number,
 ): number {
   const r = radiusPx;
   const cx = Math.min(Math.max(x, r * 0.5), state.arenaWidthPx - r * 0.5);
@@ -25,6 +27,7 @@ export function spawnHazard(
   c.renderKind[eid] = RenderKind.Hazard;
   c.team[eid] = Team.Enemy;
   c.projDamage[eid] = damage;
+  c.enemyType[eid] = sourceType;
   const fuse = Math.max(1, secondsToTicks(fuseSec));
   c.projLifeTicks[eid] = fuse;
   c.hazFuseTotal[eid] = fuse;
@@ -56,7 +59,8 @@ export function hazardSystem(state: SimState): void {
     const dx = px - x;
     const dy = py - y;
     const reach = r + pr;
-    if (dx * dx + dy * dy <= reach * reach) damagePlayer(state, c.projDamage[eid] as number, x, y);
+    if (dx * dx + dy * dy <= reach * reach)
+      damagePlayer(state, c.projDamage[eid] as number, x, y, c.enemyType[eid] as number);
     destroyEntity(world, eid);
   }
 }
