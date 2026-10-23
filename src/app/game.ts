@@ -46,7 +46,7 @@ import {
   type Settings,
   saveSettings,
 } from '../platform/storage/settings';
-import { resolveLocale, setLocale, type TranslationKey, t } from '../shared/i18n';
+import { getLocale, resolveLocale, setLocale, type TranslationKey, t } from '../shared/i18n';
 import { Button, createInputFrame } from '../shared/input-frame';
 import type { RoomReport } from '../sim/bot/autoplay';
 import {
@@ -1055,6 +1055,8 @@ export class Game {
 
   private applySettings(): void {
     const s = this.settings;
+    setLocale(s.language === 'auto' ? resolveLocale(preferredLanguages()) : s.language);
+    document.documentElement.lang = getLocale();
     this.audio.setVolumes(s.masterVolume, s.sfxVolume, s.musicVolume);
     this.view.shake.intensity = s.shake;
     this.view.hud.flashIntensity = s.flashes;

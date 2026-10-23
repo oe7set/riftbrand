@@ -463,5 +463,9 @@
   "dialogue.sel_filler_2": "Auras are patient spells. Let them work while you fight.",
   "dialogue.sel_filler_3": "Rune Shards out there? Each one is a sentence. Collect enough and the spell speaks louder.",
   "dialogue.sel_filler_4": "Light, poison, frost, flame. Every school asks for a different kind of patience.",
-  "settings.aura_ring": "Show aura ring around Vesper"
+  "settings.aura_ring": "Show aura ring around Vesper",
+  "settings.language": "Language",
+  "settings.language_auto": "Automatic (browser)",
+  "settings.language_en": "English",
+  "settings.language_de": "Deutsch"
 }
