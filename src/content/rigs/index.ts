@@ -6,6 +6,9 @@ import { CINDER_LAYER_RIG } from './cinder-layer';
 import { EMBER_DUELIST_RIG } from './ember-duelist';
 import { EMBER_MITE_RIG } from './ember-mite';
 import { EMBER_WARDEN_RIG } from './ember-warden';
+import { MAREN_RIG } from './maren';
+import { NIX_RIG } from './nix';
+import { SEL_RIG } from './sel';
 import { SLAG_RIG } from './slag';
 import { SPITTER_RIG } from './spitter';
 import { TWIN_ASH_RIG } from './twin-ash';
@@ -28,6 +31,9 @@ export const RIGS: readonly RigDef[] = [
   TWIN_SPARK_RIG,
   TWIN_ASH_RIG,
   EMBER_WARDEN_RIG,
+  MAREN_RIG,
+  NIX_RIG,
+  SEL_RIG,
 ];
 
 export const PLAYER_RIG_ID = 'vesper';

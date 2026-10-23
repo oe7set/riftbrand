@@ -207,6 +207,9 @@ export const WASTES_TRACK: MusicTrack = {
 /** Which layers of the wastes track play while exploring (map, hub) vs. fighting. */
 export const EXPLORE_LAYERS = ['pad', 'arp'];
 
+/** The walkable refuge (ROADMAP M5.1): only the calm pad, the quietest layer. */
+export const REFUGE_LAYERS = ['pad'];
+
 // ── Der Glutwächter: D minor, Dm – Bb – Gm – A, faster and heavier ──────
 
 const BOSS_BARS = 4;

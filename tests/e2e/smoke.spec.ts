@@ -1,5 +1,32 @@
 import { expect, type Page, test } from '@playwright/test';
 
+/** Steers the player with WASD until it is close to (x, y) in world pixels. */
+async function walkTo(page: Page, x: number, y: number): Promise<void> {
+  const held = new Set<string>();
+  const set = async (key: string, on: boolean) => {
+    if (on && !held.has(key)) {
+      held.add(key);
+      await page.keyboard.down(key);
+    } else if (!on && held.has(key)) {
+      held.delete(key);
+      await page.keyboard.up(key);
+    }
+  };
+  for (let i = 0; i < 300; i++) {
+    const p = await page.evaluate(() => window.__riftbrand?.playerPosition());
+    if (!p) break;
+    const dx = x - p.x;
+    const dy = y - p.y;
+    if (Math.hypot(dx, dy) < 24) break;
+    await set('KeyD', dx > 12);
+    await set('KeyA', dx < -12);
+    await set('KeyS', dy > 12);
+    await set('KeyW', dy < -12);
+    await page.waitForTimeout(40);
+  }
+  for (const key of [...held]) await set(key, false);
+}
+
 async function waitForGame(page: Page): Promise<void> {
   await page.waitForFunction(() => window.__riftbrand?.ready === true);
   // Let a few ticks run so the loop is demonstrably alive.
@@ -69,9 +96,24 @@ test('a run starts from the title via the refuge: map, then a room', async ({ pa
   await page.waitForFunction(() => window.__riftbrand?.ready === true);
   expect(await page.evaluate(() => window.__riftbrand?.mode())).toBe('title');
   await page.getByRole('button', { name: /to the refuge|zur zuflucht/i }).click();
-  await expect(page.locator('.rb-hub')).toBeVisible();
-  // First visit: Maren, Nix and Sel introduce themselves.
-  await expect(page.locator('.rb-speech')).toHaveCount(3);
+  // The refuge is walkable (ROADMAP M5.1): walk to Maren, talk, and her line and menu show.
+  await expect(page.locator('.rb-hub-walk')).toBeVisible();
+  await walkTo(page, 470, 600);
+  await expect(page.locator('.rb-hub-prompt')).toContainText(/maren/i);
+  await page.keyboard.press('KeyE');
+  await expect(page.locator('.rb-station .rb-speech')).toBeVisible();
+  await page.getByRole('button', { name: /ember tree|glutbaum/i }).click();
+  await expect(page.locator('.rb-tree')).toBeVisible();
+  await page
+    .getByRole('button', { name: /^back$|^zurück$/i })
+    .first()
+    .click();
+  // Back to walking: on to the portal hall and out into the world.
+  await expect(page.locator('.rb-hub-walk')).toBeVisible();
+  await walkTo(page, 700, 330);
+  await walkTo(page, 700, 230);
+  await expect(page.locator('.rb-hub-prompt')).toBeVisible();
+  await page.keyboard.press('KeyE');
   await page.getByRole('button', { name: /set out|aufbrechen/i }).click();
   await expect(page.locator('.rb-map')).toBeVisible();
   // The pre-selected start node enters with one click; others need two (mis-tap guard).

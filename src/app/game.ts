@@ -1,10 +1,13 @@
 import { RIFT_SHOT } from '../content/abilities';
 import { EMBER_WASTES } from '../content/biomes/ember-wastes';
 import { BOONS } from '../content/boons';
+import { DIALOGUE } from '../content/dialogue';
 import { ELITES } from '../content/elites';
 import { ENEMIES, ENEMY_TYPE } from '../content/enemies';
 import { EVOLUTIONS } from '../content/evolutions';
+import { REFUGE } from '../content/hub/layout';
 import { RELICS } from '../content/relics';
+import type { Speaker, StationId } from '../content/schema';
 import { statusIdSchema } from '../content/schema';
 import { SPELLS, spellById } from '../content/spells';
 import { AudioEngine } from '../platform/audio/audio-engine';
@@ -19,7 +22,7 @@ import {
 } from '../platform/display';
 import { Haptics } from '../platform/haptics';
 import { MenuAction } from '../platform/input/bindings';
-import { InputManager } from '../platform/input/input-manager';
+import { type InputDevice, InputManager } from '../platform/input/input-manager';
 import type { TouchButtonId } from '../platform/input/touch-layout';
 import {
   browserProfileStore,
@@ -63,6 +66,7 @@ import { dominantBeing } from '../sim/effects/build';
 import { packEnemy } from '../sim/enemy-code';
 import { Ev, type EventBuffer } from '../sim/events';
 import { hashSim } from '../sim/hash';
+import { COMBAT_BUTTONS, hubInteractPressed, hubRoomSetup, nearestStation } from '../sim/hub/hub';
 import { markSeen, pickLine } from '../sim/meta/dialogue';
 import {
   buyRank,
@@ -222,6 +226,16 @@ export class Game {
   private profileRaw: string | null;
   /** Hub dialogue for the current visit; cleared when a run ends so the next visit reacts. */
   private hubLines: { maren: string | null; nix: string | null; sel: string | null } | null = null;
+  /** Figures with an unheard line this visit (speech bubble in the refuge). */
+  private hubFresh: Record<Speaker, boolean> = { maren: false, nix: false, sel: false };
+  /** The refuge's room simulation, while it is loaded. */
+  private hubSim: SimState | null = null;
+  /** Station in reach (index into REFUGE.stations), -1 = none. */
+  private hubActive = -1;
+  /** A station's menu is open: walking pauses. */
+  private hubMenu = false;
+  /** Device the interact hint was written for (keyboard, gamepad and touch differ). */
+  private hubPromptDevice: InputDevice | null = null;
   /** Settlement of the run that just ended, shown on the result screen. */
   private lastRun: LastRun | null = null;
   /** Rooms and damage of the current run for the run log (TECH_DESIGN §13). */
@@ -341,7 +355,7 @@ export class Game {
           // Refresh whichever meta screen is open so the new balance shows.
           if (this.ui.kind === 'tree') this.showTree();
           else if (this.ui.kind === 'wares') this.showWares();
-          else if (this.ui.kind === 'hub') this.showHub();
+          else if (this.ui.kind === 'hubWalk') this.showHubWalk();
         },
         fillUltimate: () => {
           this.sim.player.ultCharge = 1;
@@ -463,9 +477,14 @@ export class Game {
   }
 
   private setMode(mode: Mode): void {
+    // Leaving the refuge for a menu: the quiet backdrop arena replaces it.
+    if (mode !== 'hub' && this.hubSim !== null && this.sim === this.hubSim) {
+      this.loadSim(this.backdropSim());
+    }
+    if (mode !== 'hub') this.hubSim = null;
     this.mode = mode;
     const playing = mode === 'room' || mode === 'arena';
-    this.input.setGameplayEnabled(playing);
+    this.input.setGameplayEnabled(playing || mode === 'hub');
     this.deathOverlay.hide();
     this.deathOverlaySec = -1;
     this.exitTransitionSec = -1;
@@ -479,6 +498,7 @@ export class Game {
   /** Exploring and menus get the calm layers; fights add drums and bass; the boss has its own. */
   private musicFor(mode: Mode): MusicMode {
     if (mode === 'arena') return 'combat';
+    if (mode === 'hub') return 'refuge';
     if (mode !== 'room') return 'explore';
     const node = this.run?.map.nodes[this.run.currentNodeId];
     return node?.type === 'boss' ? 'boss' : 'combat';
@@ -515,33 +535,114 @@ export class Game {
     });
   }
 
-  /** The refuge (GDD §2.3): dialogue, Ember Tree, Nix, and the way into the next run. */
+  /**
+   * The walkable refuge (GDD §2.3, ROADMAP M5.1): you arrive at the campfire; figures and
+   * stations open their menus. Called again from a station's menu, it returns to walking.
+   */
   private showHub(): void {
-    if (this.mode === 'room' || this.mode === 'arena') this.loadSim(this.backdropSim());
-    this.setMode('hub');
-    if (!this.hubLines) {
-      const maren = pickLine(this.profile, 'maren');
-      const nix = pickLine(this.profile, 'nix');
-      const sel = pickLine(this.profile, 'sel');
-      if (maren) markSeen(this.profile, maren);
-      if (nix) markSeen(this.profile, nix);
-      if (sel) markSeen(this.profile, sel);
-      this.hubLines = { maren: maren?.id ?? null, nix: nix?.id ?? null, sel: sel?.id ?? null };
-      this.persistProfile();
+    if (this.mode !== 'hub') {
+      const sim = createSim(randomSeed(), hubRoomSetup(REFUGE));
+      this.loadSim(sim);
+      this.hubSim = sim;
+      this.setMode('hub');
+      this.hubActive = -1;
+      this.pickHubLines();
     }
+    this.hubMenu = false;
+    this.input.releaseAll();
+    this.input.setGameplayEnabled(true);
+    this.stepper.reset();
+    this.showHubWalk();
+  }
+
+  /** One dialogue line per figure and visit; it counts as heard once you talk to them. */
+  private pickHubLines(): void {
+    if (this.hubLines) return;
+    const maren = pickLine(this.profile, 'maren');
+    const nix = pickLine(this.profile, 'nix');
+    const sel = pickLine(this.profile, 'sel');
+    this.hubLines = { maren: maren?.id ?? null, nix: nix?.id ?? null, sel: sel?.id ?? null };
+    this.hubFresh = { maren: maren !== null, nix: nix !== null, sel: sel !== null };
+  }
+
+  private hubPrompt(): string | null {
+    const station = REFUGE.stations[this.hubActive];
+    if (!station) return null;
+    const device = this.input.lastDevice;
+    const key =
+      device === 'touch'
+        ? t('hub.key_touch')
+        : device === 'gamepad'
+          ? t('hub.key_gamepad')
+          : t('hub.key_keyboard');
+    return t('hub.prompt', { key, action: t(`hub.action.${station.id}` as TranslationKey) });
+  }
+
+  private showHubWalk(): void {
+    this.ui.show({ kind: 'hubWalk', profile: this.profile, prompt: this.hubPrompt() });
+  }
+
+  /** Opens a station's menu; walking pauses until you step back. */
+  private openStation(id: StationId): void {
+    this.hubMenu = true;
+    this.input.releaseAll();
+    this.input.setGameplayEnabled(false);
+    const lines = this.hubLines ?? { maren: null, nix: null, sel: null };
+    const base = { kind: 'station' as const, profile: this.profile, onBack: () => this.showHub() };
+    if (id === 'maren' || id === 'nix' || id === 'sel') {
+      const line = lines[id];
+      if (line) {
+        const def = DIALOGUE.find((d) => d.id === line);
+        if (def && this.hubFresh[id]) markSeen(this.profile, def);
+        this.persistProfile();
+      }
+      this.hubFresh[id] = false;
+      const action =
+        id === 'maren'
+          ? { label: t('hub.tree'), onClick: () => this.showTree(), primary: true }
+          : id === 'nix'
+            ? { label: t('hub.wares'), onClick: () => this.showWares(), primary: true }
+            : { label: t('hub.spells'), onClick: () => this.showSpells(), primary: true };
+      this.ui.show({
+        ...base,
+        title: t(`speaker.${id}` as TranslationKey),
+        speaker: id,
+        line,
+        actions: [action],
+      });
+      return;
+    }
+    if (id === 'portal') {
+      const hasRun = loadRun(this.store) !== null;
+      this.ui.show({
+        ...base,
+        title: t('station.portal.title'),
+        speaker: null,
+        line: null,
+        actions: hasRun
+          ? [
+              { label: t('hub.continue'), onClick: () => this.continueRun(), primary: true },
+              {
+                label: t('hub.abandon'),
+                confirmLabel: t('hub.abandon_confirm'),
+                onClick: () => this.abandonRun(),
+              },
+            ]
+          : [{ label: t('hub.depart'), onClick: () => this.startRun(), primary: true }],
+      });
+      return;
+    }
+    const p = this.profile;
     this.ui.show({
-      kind: 'hub',
-      profile: this.profile,
-      lines: this.hubLines,
-      hasRun: loadRun(this.store) !== null,
-      onDepart: () => this.startRun(),
-      onContinue: () => this.continueRun(),
-      onAbandon: () => this.abandonRun(),
-      onTree: () => this.showTree(),
-      onWares: () => this.showWares(),
-      onSpells: () => this.showSpells(),
-      onProfile: () => this.showProfile(null),
-      onTitle: () => this.showTitle(),
+      ...base,
+      title: t('station.campfire.title'),
+      speaker: null,
+      line: null,
+      actions: [
+        { label: t('hub.profile'), onClick: () => this.showProfile(null) },
+        { label: t('hub.to_title'), onClick: () => this.showTitle() },
+      ],
+      footer: t('hub.stats', { runs: p.runs, wins: p.wins, rooms: p.bestRooms }),
     });
   }
 
@@ -1193,7 +1294,8 @@ export class Game {
   private setPaused(paused: boolean): void {
     if (paused === this.paused) return;
     // Pausing only makes sense while playing; menus are already "paused".
-    if (paused && this.mode !== 'room' && this.mode !== 'arena') return;
+    const walking = this.mode === 'hub' && !this.hubMenu;
+    if (paused && this.mode !== 'room' && this.mode !== 'arena' && !walking) return;
     if (!paused) this.closeLayoutEditor();
     this.paused = paused;
     // Releasing on both edges avoids "stuck" keys from presses made while the overlay was up.
@@ -1251,7 +1353,8 @@ export class Game {
       MAX_FRAME_DT_SEC,
     );
     this.lastFrameMs = timestamp;
-    const playing = this.mode === 'room' || this.mode === 'arena';
+    const walking = this.mode === 'hub' && !this.hubMenu;
+    const playing = this.mode === 'room' || this.mode === 'arena' || walking;
 
     this.input.poll();
     this.handleMenuInput();
@@ -1274,8 +1377,17 @@ export class Game {
       this.stepper.timeScale = timeScale;
       const ticks = this.stepper.advance(realDtSec);
       const simStart = nowMs();
+      let station: StationId | null = null;
       for (let i = 0; i < ticks; i++) {
         this.input.sampleFrame(this.frame);
+        if (walking) {
+          // The refuge has no fighting: attack talks, the other combat buttons do nothing.
+          if (hubInteractPressed(this.frame.pressed) && station === null) {
+            station = REFUGE.stations[this.hubActive]?.id ?? null;
+          }
+          this.frame.pressed &= ~(COMBAT_BUTTONS | Button.Interact);
+          this.frame.held &= ~(COMBAT_BUTTONS | Button.Interact);
+        }
         if (this.deathOverlay.visible && (this.frame.pressed & RESTART_BUTTONS) !== 0) {
           this.deathOverlay.tryRestart();
         }
@@ -1283,6 +1395,7 @@ export class Game {
       }
       simMs = nowMs() - simStart;
       drainEvents(this.sim, this.onEvents);
+      if (walking) this.updateHubReach(station);
       if (this.deathOverlaySec > 0) {
         this.deathOverlaySec -= realDtSec;
         if (this.deathOverlaySec <= 0) this.showDeath();
@@ -1304,10 +1417,29 @@ export class Game {
       this.input.touch,
       this.input.lastDevice,
       playing,
+      this.mode === 'hub'
+        ? { active: this.hubMenu ? -1 : this.hubActive, fresh: this.hubFresh, locale: getLocale() }
+        : null,
     );
     const renderMs = nowMs() - renderStart;
     this.updateStats(realDtSec, simMs, renderMs, nowMs() - frameStart);
   };
+
+  /** Finds the station in reach after the sim moved, refreshes the hint and opens a station. */
+  private updateHubReach(interact: StationId | null): void {
+    const eid = this.sim.playerEid;
+    const active = nearestStation(
+      REFUGE.stations,
+      this.sim.c.posX[eid] as number,
+      this.sim.c.posY[eid] as number,
+    );
+    if (active !== this.hubActive || this.input.lastDevice !== this.hubPromptDevice) {
+      this.hubActive = active;
+      this.hubPromptDevice = this.input.lastDevice;
+      this.showHubWalk();
+    }
+    if (interact) this.openStation(interact);
+  }
 
   private updateStats(frameDtSec: number, simMs: number, renderMs: number, workMs: number): void {
     const s = this.stats;

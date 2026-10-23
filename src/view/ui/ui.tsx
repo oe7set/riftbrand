@@ -37,8 +37,9 @@ export class Ui {
     }
   }
 
+  /** A menu has focus. The refuge's walking overlay only shows hints, so it does not count. */
   get active(): boolean {
-    return this.current.kind !== 'none';
+    return this.current.kind !== 'none' && this.current.kind !== 'hubWalk';
   }
 
   /** Which screen is showing, e.g. to drop a late async update for a screen already left. */
@@ -49,6 +50,8 @@ export class Ui {
   show(screen: Screen): void {
     this.current = screen;
     this.host.hidden = screen.kind === 'none';
+    // The walking overlay must let touches through to the joystick and buttons below.
+    this.host.classList.toggle('is-passive', screen.kind === 'hubWalk');
     render(<UiRoot screen={screen} />, this.host);
   }
 

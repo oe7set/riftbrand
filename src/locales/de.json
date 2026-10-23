@@ -468,5 +468,17 @@
   "settings.language_auto": "Automatisch (Browser)",
   "settings.language_en": "English",
   "settings.language_de": "Deutsch",
-  "settings.simple_graphics": "Einfache Grafik (klassische Formen, für schwache Geräte)"
+  "settings.simple_graphics": "Einfache Grafik (klassische Formen, für schwache Geräte)",
+  "common.back": "Zurück",
+  "hub.prompt": "{key} · {action}",
+  "hub.key_keyboard": "E",
+  "hub.key_gamepad": "X",
+  "hub.key_touch": "Sprechen-Knopf",
+  "hub.action.maren": "Mit Maren sprechen",
+  "hub.action.nix": "Mit Nix sprechen",
+  "hub.action.sel": "Mit Sel sprechen",
+  "hub.action.portal": "Portalhalle betreten",
+  "hub.action.campfire": "Am Lagerfeuer rasten",
+  "station.portal.title": "Portalhalle",
+  "station.campfire.title": "Lagerfeuer"
 }

@@ -468,5 +468,17 @@
   "settings.language_auto": "Automatic (browser)",
   "settings.language_en": "English",
   "settings.language_de": "Deutsch",
-  "settings.simple_graphics": "Simple graphics (classic shapes, for weak devices)"
+  "settings.simple_graphics": "Simple graphics (classic shapes, for weak devices)",
+  "common.back": "Back",
+  "hub.prompt": "{key} · {action}",
+  "hub.key_keyboard": "E",
+  "hub.key_gamepad": "X",
+  "hub.key_touch": "Talk button",
+  "hub.action.maren": "Talk to Maren",
+  "hub.action.nix": "Talk to Nix",
+  "hub.action.sel": "Talk to Sel",
+  "hub.action.portal": "Enter the portal hall",
+  "hub.action.campfire": "Rest at the campfire",
+  "station.portal.title": "Portal hall",
+  "station.campfire.title": "Campfire"
 }

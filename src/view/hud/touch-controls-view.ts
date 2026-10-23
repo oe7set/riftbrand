@@ -52,6 +52,17 @@ function drawIcon(g: Graphics, b: TouchButtonLayout): void {
   }
 }
 
+/** A speech bubble: the attack button's face in the refuge. */
+function drawTalkIcon(g: Graphics, radius: number): void {
+  const s = radius * 0.42;
+  const style = { color: PALETTE.touchBase, width: Math.max(2, radius * 0.08), alpha: 0.9 };
+  g.roundRect(-s, -s * 0.8, s * 2, s * 1.3, s * 0.4).stroke(style);
+  g.moveTo(-s * 0.4, s * 0.5)
+    .lineTo(-s * 0.7, s)
+    .lineTo(0, s * 0.5)
+    .stroke(style);
+}
+
 /** On-screen joystick and buttons. Shapes are built once per layout; frames only move/fade them. */
 export class TouchControlsView {
   readonly root = new Container();
@@ -65,6 +76,9 @@ export class TouchControlsView {
   private ultFill: Graphics | null = null;
   /** Grows back as the spell cools down (scaled per frame, never redrawn). */
   private spellFill: Graphics | null = null;
+  /** Attack button icons: the blade in a fight, a speech bubble in the refuge. */
+  private attackIcon: Graphics | null = null;
+  private talkIcon: Graphics | null = null;
   private castIndex = -1;
   private ultIndex = -1;
   private spellIndex = -1;
@@ -102,7 +116,18 @@ export class TouchControlsView {
       }
       g.circle(0, 0, b.radius).fill({ color: PALETTE.touchBase, alpha: 0.08 });
       g.circle(0, 0, b.radius).stroke({ color: PALETTE.touchBase, width: 2, alpha: 0.6 });
-      drawIcon(g, b);
+      if (b.id === 'attack') {
+        const icon = new Graphics();
+        drawIcon(icon, b);
+        const talk = new Graphics();
+        drawTalkIcon(talk, b.radius);
+        talk.visible = false;
+        g.addChild(icon, talk);
+        this.attackIcon = icon;
+        this.talkIcon = talk;
+      } else {
+        drawIcon(g, b);
+      }
       if (b.id === 'cast') {
         for (let i = 0; i < RIFT_SHOT.charges; i++) {
           const dot = new Graphics();
@@ -132,11 +157,18 @@ export class TouchControlsView {
       .stroke({ color: PALETTE.touchAccent, width: 2, alpha: 0.9 });
   }
 
-  sync(touch: TouchInput, visible: boolean, player: PlayerState, dtSec: number): void {
+  /**
+   * `hub`: the walkable refuge (ROADMAP M5.1) only needs moving, dashing and talking; the attack
+   * button becomes the talk button.
+   */
+  sync(touch: TouchInput, visible: boolean, player: PlayerState, dtSec: number, hub = false): void {
     this.root.visible = visible;
     if (!visible) return;
     this.time += dtSec;
     if (touch.layout !== this.layout) this.rebuild(touch.layout);
+    if (this.attackIcon) this.attackIcon.visible = !hub;
+    if (this.talkIcon) this.talkIcon.visible = hub;
+    const layoutButtons = this.layout?.buttons ?? [];
     if (TUNING.touchJoystickRadiusPx !== this.joystickRadius) {
       this.rebuildJoystick(TUNING.touchJoystickRadiusPx);
     }
@@ -144,6 +176,8 @@ export class TouchControlsView {
     for (let i = 0; i < children.length; i++) {
       const child = children[i];
       if (!child) continue;
+      const id = layoutButtons[i]?.id;
+      child.visible = !hub || id === 'attack' || id === 'dash' || id === 'pause';
       const pressed = (touch.pressedButtons & (1 << i)) !== 0;
       let idle = this.idleAlpha;
       const empty = EMPTY_ALPHA * (this.idleAlpha / IDLE_ALPHA);

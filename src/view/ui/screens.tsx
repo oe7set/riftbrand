@@ -19,11 +19,12 @@ import { boonIcon, relicIcon, spellIcon, upgradeIcon } from '../render/icons/spe
 import { CardTitle, Icon, NodeIcon } from './icons';
 import { LayoutEditor, type LayoutEditorScreen } from './layout-editor';
 import {
-  HubScreen,
+  HubWalkScreen,
   type MetaScreen,
   ProfileScreen,
   ResultScreen,
   SpellTowerScreen,
+  StationScreen,
   TreeScreen,
   WaresScreen,
 } from './meta-screens';
@@ -913,8 +914,10 @@ export function UiRoot({ screen }: { screen: Screen }) {
       return <EventScreen {...screen} />;
     case 'layout':
       return <LayoutEditor {...screen} />;
-    case 'hub':
-      return <HubScreen {...screen} />;
+    case 'hubWalk':
+      return <HubWalkScreen {...screen} />;
+    case 'station':
+      return <StationScreen {...screen} />;
     case 'tree':
       return <TreeScreen {...screen} />;
     case 'wares':
