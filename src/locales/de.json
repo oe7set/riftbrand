@@ -297,5 +297,6 @@
   "enemy.ember_mite.name": "Glutmilbe",
   "enemy.ash_priest.name": "Aschenpriester",
   "enemy.cinder_layer.name": "Glutleger",
-  "enemy.ember_warden.name": "Glutwächter"
+  "enemy.ember_warden.name": "Glutwächter",
+  "settings.music_volume": "Musik"
 }

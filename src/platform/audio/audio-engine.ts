@@ -1,4 +1,5 @@
 import { SFX, type SfxId } from '../../content/audio/sfx';
+import { type MusicMode, MusicPlayer } from './music-player';
 import { renderSfx } from './synth';
 
 const MAX_VOICES_TOTAL = 32;
@@ -28,6 +29,11 @@ export class AudioEngine {
   private totalVoices = 0;
   private masterVolume = 1;
   private sfxVolume = 1;
+  private musicVolume = 0.7;
+  private musicBus: GainNode | null = null;
+  private music: MusicPlayer | null = null;
+  /** Wanted before the context existed; applied once audio unlocks. */
+  private musicMode: MusicMode = 'silent';
 
   /** Installs one-shot listeners that unlock audio on the first interaction. */
   unlockOnGesture(target: EventTarget = window): void {
@@ -50,8 +56,12 @@ export class AudioEngine {
     this.master = ctx.createGain();
     this.sfxBus = ctx.createGain();
     this.sfxBus.connect(this.master);
+    this.musicBus = ctx.createGain();
+    this.musicBus.connect(this.master);
     this.master.connect(ctx.destination);
     this.applyVolumes();
+    this.music = new MusicPlayer(ctx, this.musicBus);
+    this.music.setMode(this.musicMode);
     for (const id of Object.keys(SFX) as SfxId[]) {
       const samples = renderSfx(SFX[id], ctx.sampleRate, id.length * 7919);
       const buffer = ctx.createBuffer(1, samples.length, ctx.sampleRate);
@@ -60,9 +70,10 @@ export class AudioEngine {
     }
   }
 
-  setVolumes(master: number, sfx: number): void {
+  setVolumes(master: number, sfx: number, music: number): void {
     this.masterVolume = master;
     this.sfxVolume = sfx;
+    this.musicVolume = music;
     this.applyVolumes();
   }
 
@@ -71,6 +82,18 @@ export class AudioEngine {
     const now = this.ctx.currentTime;
     this.master.gain.setTargetAtTime(this.masterVolume, now, 0.02);
     this.sfxBus.gain.setTargetAtTime(this.sfxVolume, now, 0.02);
+    this.musicBus?.gain.setTargetAtTime(this.musicVolume, now, 0.02);
+  }
+
+  /** Switches the music layers (explore, combat, boss) with a crossfade. */
+  setMusic(mode: MusicMode): void {
+    this.musicMode = mode;
+    this.music?.setMode(mode);
+  }
+
+  /** Lowers the music for a moment so an important sound is heard. */
+  duckMusic(amount = 0.6, holdSec = 0.25): void {
+    this.music?.duck(amount, holdSec);
   }
 
   /** Pauses all audio output, e.g. while the game is paused or hidden. */

@@ -297,5 +297,6 @@
   "enemy.ember_mite.name": "Ember Mite",
   "enemy.ash_priest.name": "Ash Priest",
   "enemy.cinder_layer.name": "Cinder Layer",
-  "enemy.ember_warden.name": "Ember Warden"
+  "enemy.ember_warden.name": "Ember Warden",
+  "settings.music_volume": "Music"
 }

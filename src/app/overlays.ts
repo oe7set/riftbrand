@@ -68,7 +68,7 @@ export class PauseOverlay {
     box.replaceChildren(div('rb-settings-title', t('settings.title')));
     const slider = (
       label: string,
-      key: 'masterVolume' | 'sfxVolume' | 'shake' | 'flashes' | 'vibration',
+      key: 'masterVolume' | 'sfxVolume' | 'musicVolume' | 'shake' | 'flashes' | 'vibration',
     ) => {
       const input = document.createElement('input');
       input.type = 'range';
@@ -87,6 +87,7 @@ export class PauseOverlay {
     };
     slider(t('settings.master_volume'), 'masterVolume');
     slider(t('settings.sfx_volume'), 'sfxVolume');
+    slider(t('settings.music_volume'), 'musicVolume');
     slider(t('settings.shake'), 'shake');
     slider(t('settings.flashes'), 'flashes');
     slider(t('settings.vibration'), 'vibration');

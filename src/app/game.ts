@@ -6,6 +6,7 @@ import { ENEMIES, ENEMY_TYPE } from '../content/enemies';
 import { EVOLUTIONS } from '../content/evolutions';
 import { RELICS } from '../content/relics';
 import { AudioEngine } from '../platform/audio/audio-engine';
+import type { MusicMode } from '../platform/audio/music-player';
 import {
   hasTouchScreen,
   nowMs,
@@ -220,7 +221,12 @@ export class Game {
     this.feedback.consume(events);
     for (let i = 0; i < events.count; i++) {
       const type = events.items[i]?.type;
-      if (type === Ev.PlayerDied) this.deathOverlaySec = DEATH_OVERLAY_DELAY_SEC;
+      if (type === Ev.PlayerDied) {
+        this.deathOverlaySec = DEATH_OVERLAY_DELAY_SEC;
+        this.audio.setMusic('silent');
+      }
+      // The fight is over: back to the calm layers while walking to the exit.
+      if (type === Ev.RoomCleared) this.audio.setMusic('explore');
       if (type === Ev.ExitReached) this.exitTransitionSec = EXIT_TRANSITION_SEC;
     }
   };
@@ -402,6 +408,15 @@ export class Game {
     this.slowMoScale = 1;
     this.stepper.reset();
     if (playing) this.ui.show({ kind: 'none' });
+    this.audio.setMusic(this.musicFor(mode));
+  }
+
+  /** Exploring and menus get the calm layers; fights add drums and bass; the boss has its own. */
+  private musicFor(mode: Mode): MusicMode {
+    if (mode === 'arena') return 'combat';
+    if (mode !== 'room') return 'explore';
+    const node = this.run?.map.nodes[this.run.currentNodeId];
+    return node?.type === 'boss' ? 'boss' : 'combat';
   }
 
   private loadSim(sim: SimState): void {
@@ -901,7 +916,7 @@ export class Game {
 
   private applySettings(): void {
     const s = this.settings;
-    this.audio.setVolumes(s.masterVolume, s.sfxVolume);
+    this.audio.setVolumes(s.masterVolume, s.sfxVolume, s.musicVolume);
     this.view.shake.intensity = s.shake;
     this.view.hud.flashIntensity = s.flashes;
     this.view.damageNumbers.enabled = s.damageNumbers;
