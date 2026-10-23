@@ -61,6 +61,8 @@ Ein kleines Fragment am Rand des Risses mit einer Handvoll Überlebender. Die Zu
 
 **Umgesetzt (M3.6):** **Sel, die Runenweberin** (ruhig, spricht in Mustern und Schrift) zieht in den Runenturm. Bei ihr schaltet man Zauber dauerhaft gegen Glut und Rissstaub frei und wählt die Ausrüstung (1 aktiver Zauber, 1 Aura) für die nächsten Runs. Zauber, die man im Run gefunden hat, gelten danach als „entdeckt“ und kosten bei ihr die Hälfte.
 
+**Umgesetzt (M5.1):** Die Zuflucht ist begehbar. Man kommt am Lagerfeuer an, läuft mit Bewegung und Dash wie im Kampf zu Maren (Glutbaum), Nix (Stand) und Sel (Runenturm) und spricht sie an (E, Angriff oder der Sprechen-Knopf am Handy). Durch die Portalhalle im Norden bricht man zum Run auf. Am Lagerfeuer findet man Profil, Titelbildschirm und Statistik.
+
 ### 2.4 Die fünf Riss-Wesen (Segen-Fraktionen)
 Die Wesen jenseits des Risses wollen, dass die Gebrandmarkte das Herz erreicht. Jedes hat dafür eigene Gründe. Sie sprechen in kurzen Zeilen, wenn sie Segen anbieten, und kommentieren Kombinationen mit anderen Wesen.
 

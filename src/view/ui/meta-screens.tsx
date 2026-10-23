@@ -19,19 +19,23 @@ import { CardTitle } from './icons';
 /** Screens of the meta layer (GDD §2.3, §8): hub, Ember Tree, Nix, save transfer, results. */
 export type MetaScreen =
   | {
-      kind: 'hub';
+      /** Walking in the refuge (ROADMAP M5.1): currencies and the interact hint, no input. */
+      kind: 'hubWalk';
       profile: Profile;
-      /** Dialogue line ids for this visit (null = silent). */
-      lines: { maren: string | null; nix: string | null; sel: string | null };
-      hasRun: boolean;
-      onDepart(): void;
-      onContinue(): void;
-      onAbandon(): void;
-      onTree(): void;
-      onWares(): void;
-      onSpells(): void;
-      onProfile(): void;
-      onTitle(): void;
+      /** e.g. "E · Talk to Maren"; null when nothing is in reach. */
+      prompt: string | null;
+    }
+  | {
+      /** A station in the refuge: the figure's line for this visit and what you can do here. */
+      kind: 'station';
+      profile: Profile;
+      title: string;
+      speaker: 'maren' | 'nix' | 'sel' | null;
+      line: string | null;
+      actions: StationAction[];
+      /** Text under the actions, e.g. run statistics at the campfire. */
+      footer?: string;
+      onBack(): void;
     }
   | { kind: 'tree'; profile: Profile; onBuy(id: string): void; onRespec(): void; onBack(): void }
   | { kind: 'wares'; profile: Profile; onUnlock(id: string): void; onBack(): void }
@@ -87,62 +91,59 @@ function Speech({ speaker, line }: { speaker: 'maren' | 'nix' | 'sel'; line: str
   );
 }
 
-export function HubScreen(s: Extract<MetaScreen, { kind: 'hub' }>) {
-  const [confirming, setConfirming] = useState(false);
+export interface StationAction {
+  label: string;
+  onClick(): void;
+  primary?: boolean;
+  /** Needs a second press to confirm (e.g. abandoning a run). */
+  confirmLabel?: string;
+}
+
+export function HubWalkScreen({ profile, prompt }: Extract<MetaScreen, { kind: 'hubWalk' }>) {
   return (
-    <div class="rb-screen rb-center rb-hub">
-      <div class="rb-overlay-title">{t('hub.title')}</div>
+    <div class="rb-hub-walk">
+      <Currencies profile={profile} />
+      {prompt && <div class="rb-hub-prompt">{prompt}</div>}
+    </div>
+  );
+}
+
+export function StationScreen(s: Extract<MetaScreen, { kind: 'station' }>) {
+  const [confirming, setConfirming] = useState<number | null>(null);
+  return (
+    <div class="rb-screen rb-center rb-station">
+      <div class="rb-overlay-title">{s.title}</div>
       <Currencies profile={s.profile} />
-      <div class="rb-speeches">
-        <Speech speaker="maren" line={s.lines.maren} />
-        <Speech speaker="nix" line={s.lines.nix} />
-        <Speech speaker="sel" line={s.lines.sel} />
-      </div>
+      {s.speaker && (
+        <div class="rb-speeches">
+          <Speech speaker={s.speaker} line={s.line} />
+        </div>
+      )}
       <Focus>
         <div class="rb-menu">
-          {s.hasRun ? (
-            <>
+          {s.actions.map((a, i) => {
+            const armed = confirming === i;
+            return (
               <button
                 type="button"
-                class="rb-button rb-primary"
-                data-autofocus
-                onClick={s.onContinue}
+                key={a.label}
+                class={`rb-button ${a.primary ? 'rb-primary' : ''} ${armed ? 'rb-danger' : ''}`}
+                data-autofocus={i === 0 ? true : undefined}
+                onClick={() => {
+                  if (a.confirmLabel && !armed) setConfirming(i);
+                  else a.onClick();
+                }}
               >
-                {t('hub.continue')}
+                {armed && a.confirmLabel ? a.confirmLabel : a.label}
               </button>
-              <button
-                type="button"
-                class={`rb-button ${confirming ? 'rb-danger' : ''}`}
-                onClick={() => (confirming ? s.onAbandon() : setConfirming(true))}
-              >
-                {confirming ? t('hub.abandon_confirm') : t('hub.abandon')}
-              </button>
-            </>
-          ) : (
-            <button type="button" class="rb-button rb-primary" data-autofocus onClick={s.onDepart}>
-              {t('hub.depart')}
-            </button>
-          )}
-          <button type="button" class="rb-button rb-maren" onClick={s.onTree}>
-            {t('hub.tree')}
-          </button>
-          <button type="button" class="rb-button rb-nix" onClick={s.onWares}>
-            {t('hub.wares')}
-          </button>
-          <button type="button" class="rb-button rb-sel" onClick={s.onSpells}>
-            {t('hub.spells')}
-          </button>
-          <button type="button" class="rb-button" onClick={s.onProfile}>
-            {t('hub.profile')}
-          </button>
-          <button type="button" class="rb-button" onClick={s.onTitle}>
-            {t('hub.to_title')}
+            );
+          })}
+          <button type="button" class="rb-button" onClick={s.onBack}>
+            {t('common.back')}
           </button>
         </div>
       </Focus>
-      <div class="rb-version">
-        {t('hub.stats', { runs: s.profile.runs, wins: s.profile.wins, rooms: s.profile.bestRooms })}
-      </div>
+      {s.footer && <div class="rb-version rb-station-footer">{s.footer}</div>}
     </div>
   );
 }

@@ -2,13 +2,16 @@ import type { Texture } from 'pixi.js';
 import { autoDetectRenderer, Container, type Renderer } from 'pixi.js';
 import { AdvancedBloomFilter } from 'pixi-filters';
 import { RIFT_SHOT } from '../content/abilities';
+import { REFUGE } from '../content/hub/layout';
 import { RIGS } from '../content/rigs';
+import type { Speaker } from '../content/schema';
 import { SPELLS, spellRadiusPx, spellReachPx } from '../content/spells';
 import { TUNING } from '../content/tuning';
 import type { InputDevice } from '../platform/input/input-manager';
 import type { TouchInput } from '../platform/input/touch';
 import type { Vec2 } from '../shared/math/vec2';
 import type { SimState } from '../sim/sim';
+import { HubView } from './hub/hub-view';
 import { HudView } from './hud/hud-view';
 import { TouchControlsView } from './hud/touch-controls-view';
 import { AimPreview } from './render/aim-preview';
@@ -42,6 +45,15 @@ const ZOOM_PUNCH_DECAY_PER_SEC = 6;
 
 export type GlowQuality = 'high' | 'low';
 
+/** What the refuge view needs each frame (ROADMAP M5.1); null outside the refuge. */
+export interface HubFrame {
+  /** Station index in reach, -1 = none. */
+  active: number;
+  /** Speakers with a new line this visit (speech bubble). */
+  fresh: Readonly<Partial<Record<Speaker, boolean>>>;
+  locale: string;
+}
+
 export interface ViewSize {
   width: number;
   height: number;
@@ -58,6 +70,7 @@ export class GameView {
   readonly damageNumbers = new DamageNumbers();
   readonly hud: HudView;
   readonly textures: BakedTextures;
+  readonly hub: HubView;
   private readonly stage = new Container();
   /** World plus effects; the bloom filter applies here, sized to the screen. */
   private readonly postFx = new Container();
@@ -87,11 +100,10 @@ export class GameView {
   ) {
     this.textures = bakeTextures(renderer, icons);
     this.effects = new Effects(this.fxParticles, this.groundParticles, this.textures);
-    this.entities = new EntityView(
-      this.textures,
-      RIGS.map((rig) => bakeRig(renderer, rig)),
-      this.effects,
-    );
+    const rigs = RIGS.map((rig) => bakeRig(renderer, rig));
+    this.entities = new EntityView(this.textures, rigs, this.effects);
+    this.hub = new HubView(REFUGE, rigs, this.textures);
+    this.hub.visible = false;
     this.roomView = new RoomView(this.textures);
     this.hud = new HudView(
       this.textures.white,
@@ -107,9 +119,12 @@ export class GameView {
       this.arena.root,
       this.roomView.root,
       this.groundParticles.root,
+      this.hub.ground,
       this.entities.groundLayer,
       this.aimPreview.root,
+      this.hub.bodies,
       this.entities.bodyLayer,
+      this.hub.labels,
       this.fxParticles.root,
       this.entities.overlayLayer,
       this.entities.statusIcons.root,
@@ -202,9 +217,13 @@ export class GameView {
     touch: TouchInput,
     device: InputDevice,
     hudVisible = true,
+    hub: HubFrame | null = null,
   ): void {
     const cam = this.camera;
     this.hudLayer.visible = hudVisible;
+    // The refuge has no fight HUD, only the touch controls.
+    this.hud.root.visible = hub === null;
+    this.hub.visible = hub !== null;
     this.zoomPunch = Math.max(
       0,
       this.zoomPunch - this.zoomPunch * ZOOM_PUNCH_DECAY_PER_SEC * realDtSec,
@@ -258,6 +277,7 @@ export class GameView {
     this.emberRain.update(simDtSec, cam.x, cam.y, cam.zoom, cam.viewWidth, cam.viewHeight);
     this.roomView.sync(sim.room, realDtSec);
     this.entities.sync(sim, alpha, realDtSec, simDtSec);
+    if (hub) this.hub.sync(realDtSec, px, py, hub.active, hub.fresh, hub.locale);
     this.fxParticles.update(realDtSec);
     this.groundParticles.update(realDtSec);
     this.damageNumbers.update(realDtSec);
@@ -281,7 +301,7 @@ export class GameView {
     );
     worldToScreen(cam, sim.room.exitX, sim.room.exitY, this.exitScreen);
     this.hud.sync(sim, realDtSec, this.exitScreen);
-    this.touchControls.sync(touch, device === 'touch', sim.player, realDtSec);
+    this.touchControls.sync(touch, device === 'touch', sim.player, realDtSec, hub !== null);
     this.renderer.render(this.stage);
   }
 }

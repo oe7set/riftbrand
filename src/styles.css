@@ -270,6 +270,32 @@ body {
   display: none;
 }
 
+.rb-ui.is-passive {
+  pointer-events: none;
+}
+
+/* Walking in the refuge (ROADMAP M5.1): currencies on top, the interact hint near the bottom. */
+.rb-hub-walk {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: max(14px, env(safe-area-inset-top)) 16px max(150px, env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+
+.rb-hub-prompt {
+  padding: 8px 16px;
+  border: 1px solid rgba(127, 246, 255, 0.5);
+  border-radius: 999px;
+  background: rgba(7, 6, 13, 0.75);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 16px rgba(127, 246, 255, 0.25);
+}
+
 .rb-screen {
   position: absolute;
   inset: 0;
@@ -968,7 +994,7 @@ body {
   line-height: 1.4;
 }
 
-.rb-hub .rb-version {
+.rb-station-footer {
   position: static;
   margin-top: 8px;
 }

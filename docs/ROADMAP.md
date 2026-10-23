@@ -763,7 +763,7 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
   - folgt der Simulationszeit, ist also in Zeitlupe langsamer
 - **Partikel-Budget:** Die neuen Effekte kosten höchstens rund 25 Partikel pro fallendem Meteor, rund 11 pro Giftwolke und rund 9 pro hastigem Elite-Gegner. Das passt in die Budgets von 2000 (Hoch) bzw. 1000 (Niedrig). Die automatischen Qualitätsstufen bleiben für M6.8.
 
-**Abnahme M4 (PO-Checkliste):**
+**Abnahme M4 (PO-Checkliste):** vom PO am 2026-10-23 abgenommen („Gut, weiter“).
 - [ ] Vesper und die Gegner wirken wie lebendige Kreaturen, der Stil ist stimmig.
 - [ ] Ich erkenne Angriffe so schnell wie vorher (die Lesbarkeit ist nicht schlechter geworden).
 - [ ] Ich erkenne Segen, Relikte und Zauber an ihren Icons, ohne den Text zu lesen.
@@ -794,20 +794,20 @@ Zuflucht (begehbar)
   4. Der Sieg über den Donnerkreis **und** eine Story-Quest öffnen den Riss.
 - **Später (M7):** „Durchmarsch“, alle Welten am Stück, als Endgame-Modus mit Brand-Stufen.
 
-### M5.1 Begehbare Zuflucht (Technik) ⬜
+### M5.1 Begehbare Zuflucht (Technik) ✅
 **Umfang:**
-- [ ] **Hub-Szene:** eine eigene, kleine Simulation ohne Kampf.
+- [x] **Hub-Szene:** eine eigene, kleine Simulation ohne Kampf.
   - Bewegung und Dash fühlen sich an wie im Kampf.
   - Kollision mit Gebäuden; die Kamera folgt.
-- [ ] **Hub-Layout als Daten** in `src/content/hub/layout.ts`: Bereiche, Wege, Bauplätze, Positionen der Figuren, Portalhalle.
-- [ ] **Interaktion:** In der Nähe einer Figur oder Station erscheint ein Hinweis.
+- [x] **Hub-Layout als Daten** in `src/content/hub/layout.ts`: Bereiche, Wege, Bauplätze, Positionen der Figuren, Portalhalle.
+- [x] **Interaktion:** In der Nähe einer Figur oder Station erscheint ein Hinweis.
   - Tastatur: **E**
   - Gamepad: **A**
   - Touch: Der Angriffs-Button wird in der Zuflucht zum „Sprechen“-Button.
-- [ ] Bestehende Menüs (Glutbaum, Relikt-Freischaltung, Zauberlehrer) öffnen sich als Overlay an der jeweiligen Station.
-- [ ] **Figuren** mit Rig-Animation (aus M4), Idle-Verhalten und Sprechblasen für kurze Kommentare.
-- [ ] **Übergang** zwischen Run und Zuflucht. Die Position in der Zuflucht wird nicht gespeichert, man startet am Lagerfeuer.
-- [ ] **Musik der Zuflucht:** eine eigene, ruhige Schicht.
+- [x] Bestehende Menüs (Glutbaum, Relikt-Freischaltung, Zauberlehrer) öffnen sich als Overlay an der jeweiligen Station.
+- [x] **Figuren** mit Rig-Animation (aus M4), Idle-Verhalten und Sprechblasen für kurze Kommentare.
+- [x] **Übergang** zwischen Run und Zuflucht. Die Position in der Zuflucht wird nicht gespeichert, man startet am Lagerfeuer.
+- [x] **Musik der Zuflucht:** eine eigene, ruhige Schicht.
 
 **Technik:**
 - ADR „Hub-Szene: eigene Simulation oder die Raum-Simulation wiederverwenden“.
@@ -818,6 +818,25 @@ Zuflucht (begehbar)
 - Eingabe mit allen drei Steuerungsarten (E2E-Smoke-Test: Zuflucht betreten, zu Maren laufen, Menü öffnen)
 
 **Abhängig von:** M4.2 (Rigs)
+
+**Umgesetzt (Abweichungen vom Plan):**
+- **ADR 0006:** Die Zuflucht nutzt die Raum-Simulation (keine Begegnung, Kampftasten gesperrt). Bewegung, Dash, Kollision und Kamera sind dadurch identisch mit dem Kampf.
+- **Stationen:**
+  - Lagerfeuer (Start; Profil, Titelbildschirm, Statistik)
+  - Maren am Glutbaum (Glutbaum)
+  - Nix am Stand (Relikte)
+  - Sel am Runenturm (Zauber)
+  - Portalhalle (Aufbrechen, Run fortsetzen oder aufgeben)
+- **Sprechen:**
+  - Tastatur: E, zusätzlich Angriff (Linksklick, J)
+  - Gamepad: **X** (Angriff) und LB statt A, weil A der Dash bleibt
+  - Touch: Der Angriffs-Button zeigt eine Sprechblase; Spezial, Wurf, Zauber und Ultimate sind ausgeblendet.
+- **Figuren:**
+  - Maren, Nix und Sel als Rigs, die sich zu Vesper drehen, mit Namensschild.
+  - „…“ über dem Kopf zeigt eine neue Zeile. Sie erscheint im Stationsmenü und gilt erst dann als gehört.
+  - Sprechblasen mit Text in der Welt gibt es noch nicht.
+- **Musik:** neuer Modus `refuge`, nur die ruhige Pad-Schicht.
+- **E2E-Smoke-Test:** Zuflucht betreten, zu Maren laufen, sprechen, Glutbaum öffnen, zurück, zum Portal laufen, aufbrechen.
 
 ### M5.2 Portalhalle und Weltkarte ⬜
 **Umfang:**

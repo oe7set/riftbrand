@@ -550,7 +550,22 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Content:** `iconSchema` (`{ glyph }`) ist Pflicht für Segen und Relikte; `glyphSchema` hat 29 Glyphen.
 - **Oberfläche:** `Icon` und `CardTitle` in `view/ui/icons.tsx`; Klasse `.rb-icon`.
 
-## 37. Risiken und Gegenmaßnahmen
+## 37. Stand nach M5.1 (begehbare Zuflucht)
+- **ADR 0006:** Die Zuflucht ist ein Raum der Raum-Simulation (`hubRoomSetup()` in `sim/hub/hub.ts`).
+- **Content:** `content/hub/layout.ts` (`REFUGE`, `defineHub`, Stationen mit Radius und optionaler Figur); Rigs `maren`, `nix` und `sel`.
+- **Logik:** `nearestStation()`, `hubInteractPressed()` und `COMBAT_BUTTONS`, mit Tests für Reichweite, Überlappung, Kollision und Tasten.
+- **App (`game.ts`):**
+  - Modus `hub` ist jetzt ein Lauf-Modus: Die Simulation tickt, solange kein Stationsmenü offen ist (`hubMenu`).
+  - `updateHubReach()` aktualisiert nach jedem Frame den Hinweis und öffnet die Station.
+  - Beim Verlassen der Zuflucht ersetzt die Kulissen-Arena die Hub-Simulation.
+- **Darstellung:**
+  - `view/hub/hub-view.ts` (Figuren, Schilder, „…“, Ringe, Lagerfeuer, Wahrzeichen)
+  - `GameView.render(…, hub)` blendet in der Zuflucht das Kampf-HUD aus
+  - `TouchControlsView.sync(…, hub)` zeigt nur Joystick, Dash, Sprechen und Pause
+- **Oberfläche:** Screens `hubWalk` (durchlässiges Overlay mit Währungen und Hinweis, zählt nicht als Menü) und `station`. Der alte Hub-Menübildschirm ist entfallen.
+- **Musik:** Modus `refuge` (`REFUGE_LAYERS`).
+
+## 38. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

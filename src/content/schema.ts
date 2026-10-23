@@ -1098,3 +1098,39 @@ export function defineRig(def: z.input<typeof rigSchema>): RigDef {
   }
   return rig;
 }
+
+// ── Walkable refuge (ROADMAP M5.1) ──────────────────────────────────────────
+
+export const stationIdSchema = z.enum(['maren', 'nix', 'sel', 'portal', 'campfire']);
+
+const stationSchema = z.object({
+  id: stationIdSchema,
+  x: px,
+  y: px,
+  /** How close the player must be to interact (centre to centre). */
+  radiusPx: z.number().positive().max(300),
+  /** A figure standing here, drawn with its rig; speaks dialogue lines. */
+  npc: z.object({ rig: id, speaker: speakerSchema }).optional(),
+});
+
+export const hubLayoutSchema = z.object({
+  widthPx: z.number().min(400),
+  heightPx: z.number().min(400),
+  /** You arrive at the campfire; the refuge position is never saved. */
+  playerStart: point,
+  /** The portal hall: the room exit doubles as the gateway into the world. */
+  portal: point,
+  obstacles: z.array(obstacleSchema),
+  stations: z.array(stationSchema).min(1),
+});
+
+export type StationId = z.infer<typeof stationIdSchema>;
+export type StationDef = z.infer<typeof stationSchema>;
+export type HubLayoutDef = z.infer<typeof hubLayoutSchema>;
+
+export function defineHub(def: HubLayoutDef): HubLayoutDef {
+  const hub = hubLayoutSchema.parse(def);
+  const ids = new Set(hub.stations.map((s) => s.id));
+  if (ids.size !== hub.stations.length) throw new Error('hub: duplicate station ids');
+  return hub;
+}

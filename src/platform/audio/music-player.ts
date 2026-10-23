@@ -1,13 +1,14 @@
 import {
   EXPLORE_LAYERS,
   type MusicTrack,
+  REFUGE_LAYERS,
   WARDEN_TRACK,
   WASTES_TRACK,
 } from '../../content/audio/music';
 import { MUSIC_SAMPLE_RATE, renderMusicLayer } from './music-render';
 
 /** What the music should be doing (GDD §12.2). */
-export type MusicMode = 'silent' | 'explore' | 'combat' | 'boss';
+export type MusicMode = 'silent' | 'refuge' | 'explore' | 'combat' | 'boss';
 
 const FADE_SEC = 0.6;
 const DUCK_RECOVER_SEC = 0.5;
@@ -125,9 +126,13 @@ export class MusicPlayer {
     const [wastes, warden] = this.tracks;
     if (!wastes || !warden) return;
     const mode = this.mode;
-    if (mode === 'explore' || mode === 'combat') {
+    if (mode === 'refuge' || mode === 'explore' || mode === 'combat') {
       this.start(wastes);
-      this.fade(wastes, (id) => mode === 'combat' || EXPLORE_LAYERS.includes(id));
+      this.fade(
+        wastes,
+        (id) =>
+          mode === 'combat' || (mode === 'refuge' ? REFUGE_LAYERS : EXPLORE_LAYERS).includes(id),
+      );
       this.fade(warden, () => false);
       this.stop(warden);
     } else if (mode === 'boss') {
