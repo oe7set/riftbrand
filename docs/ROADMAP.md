@@ -521,12 +521,29 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
 - **15 Dialogzeilen** für Sel (Einführung, Duell-Tode, Wesen, Run-Zahl, Füller).
 - **Profil v2** mit Migration v1 → v2 (bestehende Profile bekommen die Start-Zauber).
 
-### M3.7 Balancing und Abschluss 🔜
-- [ ] **Simulator-Bericht erweitern:** Schaden pro Spieler-Quelle, Zauber-Nutzung, Duell-Zeiten, Tode durch Mini-Bosse.
-- [ ] **Zielwerte:**
+### M3.7 Balancing und Abschluss ✅
+- [x] **Simulator-Bericht erweitern:** Schaden pro Spieler-Quelle, Zauber-Nutzung, Duell-Zeiten, Tode durch Mini-Bosse.
+- [x] **Zielwerte:**
   - Zauber und Auren machen 15–30 % des Schadens aus; die Waffe bleibt die Hauptsache.
   - Ein Duell dauert beim Menschen ca. 1–2 min.
-- [ ] **GDD aktualisieren:** §4 (Aktionen, Zauber-Slots), §5 (Status-Effekte, Mini-Bosse), §6 (Duell-Raum), §7 (Stufen, Runenfragmente, Glutsplitter), §10 (Zauber-Taste).
+- [x] **GDD aktualisieren:** §4 (Aktionen, Zauber-Slots), §5 (Status-Effekte, Mini-Bosse), §6 (Duell-Raum), §7 (Stufen, Runenfragmente, Glutsplitter), §10 (Zauber-Taste).
+
+**Umgesetzt:**
+- **Simulator:** neue Zeile „magic share“ (Zauber + Aura + Status, mit Zielwert), Zauber pro Minute und Anteil der Runs, die an einem Mini-Boss enden. Duell-Zeiten stehen in „room time“, Tode pro Gegner in „deaths“.
+- **Zauberschaden angehoben:** Frostnova 18 → 35, Lichtlanze 32 → 50, Meteor 45 → 65. Direkter Zauberschaden lag bei nur 3 %.
+- **Simulator** (200 Runs, `--fresh`), vorher → nachher:
+
+  | | balanced | aggressive |
+  |---|---|---|
+  | Siege | 90,5 % → 91,0 % | 17,0 % → 17,5 % |
+  | Magie-Anteil | 15,2 % → **17,7 %** | 12,0 % → 13,9 % |
+  | davon direkter Zauberschaden | 3,2 % → 6,1 % | 2,6 % → 4,8 % |
+  | Zauber pro Minute | 1,9 | 1,4 |
+  | Duell Ø | 38 s | 28 s |
+  | Runs, die an einem Mini-Boss enden | 1,5 % | 10,0 % |
+
+- Der aggressive Bot zaubert seltener und liegt knapp unter dem Ziel. Menschen zaubern erfahrungsgemäß öfter. Ob der Anteil am Handy stimmt, prüft die PO-Abnahme.
+- **Offen für die Abnahme:** Die Duell-Dauer beim Menschen (Ziel 1–2 min) misst der Bot nicht. Bots brauchen 28–38 s, weil sie keine Muster lernen müssen.
 
 **Abnahme M3 (PO-Checkliste):**
 - [ ] Ich sehe auf einen Blick, welche Effekte auf einem Gegner liegen und wie stark.
