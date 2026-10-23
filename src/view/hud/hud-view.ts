@@ -210,7 +210,10 @@ export class HudView {
       count.visible = on && stacks > 1;
       if (!on) continue;
       icon.position.set(left, y);
-      icon.scale.set((BOSS_STATUS_ICON_PX / (icon.texture.width || BOSS_STATUS_ICON_PX)) * 1.2);
+      // The status circle covers 25 of the icon's 36 units.
+      icon.scale.set(
+        (BOSS_STATUS_ICON_PX * (36 / 25)) / (icon.texture.width || BOSS_STATUS_ICON_PX),
+      );
       const label = Math.min(stacks, STATUS_LABELS.length - 1);
       if (this.bossStatusShown[s] !== label) {
         this.bossStatusShown[s] = label;

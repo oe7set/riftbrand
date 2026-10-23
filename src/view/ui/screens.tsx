@@ -14,7 +14,9 @@ import type { MapNode } from '../../sim/run/map';
 import type { BoonOffer, BoonOption } from '../../sim/run/rewards';
 import { availableNodes, type RunState, type SpellSlots } from '../../sim/run/run-state';
 import { branchTier, type UpgradeOption } from '../../sim/run/upgrades';
-import { NodeIcon } from './icons';
+import type { IconSpec } from '../render/icons/icon-svg';
+import { boonIcon, relicIcon, spellIcon, upgradeIcon } from '../render/icons/specs';
+import { CardTitle, Icon, NodeIcon } from './icons';
 import { LayoutEditor, type LayoutEditorScreen } from './layout-editor';
 import {
   HubScreen,
@@ -329,6 +331,7 @@ function BoonChips({ run }: { run: RunState }) {
             }}
             key={b.id}
           >
+            <Icon spec={boonIcon(b.id)} size={18} class="rb-chip-icon" />
             {t(`boon.${b.id}.name` as TranslationKey)}
           </span>
         );
@@ -416,7 +419,10 @@ function BoonScreen({ offer, onPick, rerolls, onReroll }: Extract<Screen, { kind
                     {partner ? t('reward.duo') : t(`rarity.${o.rarity}` as TranslationKey)}
                   </span>
                 </div>
-                <div class="rb-card-name">{t(`boon.${o.id}.name` as TranslationKey)}</div>
+                <CardTitle
+                  spec={boonIcon(o.id, o.rarity)}
+                  name={t(`boon.${o.id}.name` as TranslationKey)}
+                />
                 <div class="rb-card-desc">
                   {t(`boon.${o.id}.desc` as TranslationKey, boonDescParams(def, o.rarity))}
                 </div>
@@ -461,7 +467,7 @@ function RelicCard({
         <span class="rb-card-slot">{t('reward.relic_title')}</span>
         <span class="rb-card-rarity">{t(`relic_rarity.${def.rarity}` as TranslationKey)}</span>
       </div>
-      <div class="rb-card-name">{t(`relic.${id}.name` as TranslationKey)}</div>
+      <CardTitle spec={relicIcon(id)} name={t(`relic.${id}.name` as TranslationKey)} />
       <div class="rb-card-desc">
         {t(`relic.${id}.desc` as TranslationKey, relicDescParams(def, stacks + 1))}
       </div>
@@ -515,7 +521,7 @@ function SpellCard({
             : t(`spell.school.${def.school}` as TranslationKey)}
         </span>
       </div>
-      <div class="rb-card-name">{t(`spell.${def.id}.name` as TranslationKey)}</div>
+      <CardTitle spec={spellIcon(def.id)} name={t(`spell.${def.id}.name` as TranslationKey)} />
       <div class="rb-card-desc">{t(`spell.${def.id}.desc` as TranslationKey)}</div>
       <div class="rb-card-desc rb-spell-timing">{spellTiming(def)}</div>
       {replaces && (
@@ -590,6 +596,7 @@ function UpgradeCard({
   let kindLabel: string;
   let desc: string;
   let color = '#b8a6ff';
+  let spec = upgradeIcon('cast');
   if (option.kind === 'boon') {
     const owned = run.boons.find((b) => b.id === option.boonId);
     const def = boonById(option.boonId);
@@ -602,12 +609,14 @@ function UpgradeCard({
         )
       : '';
     if (def) color = BEINGS[def.being].css;
+    spec = { ...boonIcon(option.boonId, owned?.rarity), frame: 'upgrade' };
   } else {
     const slot = option.target === 'active' ? run.spells.active : run.spells.aura;
     const spell = option.target === 'cast' ? undefined : spellById(slot?.id ?? '');
     name = spell ? t(`spell.${spell.id}.name` as TranslationKey) : t('upgrade.cast_name');
     kindLabel = t(`upgrade.kind.${option.target}` as TranslationKey);
     if (spell) color = cssColor(spell.visual.color);
+    spec = upgradeIcon(option.target, spell?.id);
     const branch = optionBranch(run, option);
     desc = branch
       ? `${t(`upgrade.${branch.id}.name` as TranslationKey)}: ${t(`upgrade.${branch.id}.desc` as TranslationKey)}`
@@ -631,7 +640,7 @@ function UpgradeCard({
           {t('upgrade.level', { from: option.level - 1, to: option.level })}
         </span>
       </div>
-      <div class="rb-card-name">{name}</div>
+      <CardTitle spec={spec} name={name} />
       <div class="rb-card-desc">{desc}</div>
     </button>
   );
@@ -695,6 +704,9 @@ function NoticeScreen({ title, text, onContinue }: Extract<Screen, { kind: 'noti
   );
 }
 
+/** Healing in the shop: a consumable, so the square frame. */
+const HEAL_ICON: IconSpec = { frame: 'material', glyph: 'heart', color: '#6bff9a' };
+
 function ShopScreen({ run, stock, onBuy, onLeave }: Extract<Screen, { kind: 'shop' }>) {
   return (
     <div class="rb-screen rb-center rb-boon-screen" style={{ '--being': '#c46bff' }}>
@@ -723,7 +735,9 @@ function ShopScreen({ run, stock, onBuy, onLeave }: Extract<Screen, { kind: 'sho
             let name: string;
             let desc: string;
             let tag: string;
+            let spec: IconSpec;
             if (item.kind === 'relic') {
+              spec = relicIcon(item.id);
               const def = relicById(item.id);
               name = t(`relic.${item.id}.name` as TranslationKey);
               desc = def
@@ -734,6 +748,7 @@ function ShopScreen({ run, stock, onBuy, onLeave }: Extract<Screen, { kind: 'sho
                 : '';
               tag = def ? t(`relic_rarity.${def.rarity}` as TranslationKey) : '';
             } else if (item.kind === 'boon') {
+              spec = boonIcon(item.option.id, item.option.rarity);
               const def = boonById(item.option.id);
               name = t(`boon.${item.option.id}.name` as TranslationKey);
               desc = def
@@ -744,6 +759,7 @@ function ShopScreen({ run, stock, onBuy, onLeave }: Extract<Screen, { kind: 'sho
                 : '';
               tag = t('shop.boon_from', { being: t(`being.${item.being}.name` as TranslationKey) });
             } else {
+              spec = HEAL_ICON;
               name = t('shop.heal');
               desc = t('shop.heal_desc', { amount: Math.round(run.maxHp * item.fraction) });
               tag = '';
@@ -764,7 +780,7 @@ function ShopScreen({ run, stock, onBuy, onLeave }: Extract<Screen, { kind: 'sho
                     {sold ? t('shop.sold') : `◆ ${t('shop.buy', { price: item.price })}`}
                   </span>
                 </div>
-                <div class="rb-card-name">{name}</div>
+                <CardTitle spec={spec} name={name} />
                 <div class="rb-card-desc">{desc}</div>
               </button>
             );

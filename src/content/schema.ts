@@ -383,8 +383,45 @@ const boonValueSchema = z.object({
   percent: z.boolean().optional(),
 });
 
+/** Icon glyphs (ROADMAP M4.3), drawn in view/render/icons/glyphs.ts. */
+export const glyphSchema = z.enum([
+  'flame',
+  'snowflake',
+  'drop',
+  'eye',
+  'ray',
+  'nova',
+  'meteor',
+  'cloud',
+  'heart',
+  'blade',
+  'swirl',
+  'shot',
+  'trail',
+  'spark',
+  'fang',
+  'skull',
+  'wing',
+  'ring',
+  'shard',
+  'boot',
+  'hand',
+  'hourglass',
+  'shield',
+  'gem',
+  'stone',
+  'wind',
+  'bone',
+  'coin',
+  'crown',
+]);
+
+/** Icon of a boon, relic or other pickup: the glyph inside its kind's frame. */
+export const iconSchema = z.object({ glyph: glyphSchema });
+
 export const boonSchema = z.object({
   id,
+  icon: iconSchema,
   being: beingIdSchema,
   slot: boonSlotSchema,
   tags: z.array(z.string()),
@@ -535,6 +572,7 @@ const relicValueSchema = z.object({
 
 export const relicSchema = z.object({
   id,
+  icon: iconSchema,
   rarity: relicRaritySchema,
   tags: z.array(z.string()),
   /** Shop price in shards before the shop's rarity markup. */
@@ -616,17 +654,6 @@ export function defineEnemy(def: EnemyDef): EnemyDef {
 
 // ── Status effects (ROADMAP M3.1) ─────────────────────────────────────────
 
-/** Icon glyphs, shared by statuses and spells (icon set grows in M4.3). */
-export const glyphSchema = z.enum([
-  'flame',
-  'snowflake',
-  'drop',
-  'eye',
-  'ray',
-  'nova',
-  'meteor',
-  'cloud',
-]);
 export const statusGlyphSchema = glyphSchema;
 
 export const statusSchema = z.object({

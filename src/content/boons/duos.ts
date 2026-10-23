@@ -14,6 +14,7 @@ const FROST_SOURCES = [
 export const DUO_BOONS: readonly BoonDef[] = [
   defineBoon({
     id: 'steam_burst',
+    icon: { glyph: 'cloud' },
     being: 'ignara',
     partner: 'vaelis',
     requires: [BURN_SOURCES, FROST_SOURCES],

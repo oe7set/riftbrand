@@ -10,6 +10,11 @@ import { type TranslationKey, t } from '../shared/i18n';
 import type { OwnedBoon, OwnedRelic } from '../sim/effects/build';
 import type { SpellSlots } from '../sim/run/run-state';
 import { branchesUpTo, type UpgradeState } from '../sim/run/upgrades';
+import { type IconSpec, iconUrl } from '../view/render/icons/icon-svg';
+import { boonIcon, relicIcon, spellIcon, upgradeIcon } from '../view/render/icons/specs';
+
+/** Evolutions have no content icon of their own; a golden crown marks them. */
+const EVOLUTION_ICON: IconSpec = { frame: 'boon', glyph: 'crown', color: '#ffb347' };
 
 export interface BuildSummary {
   boons: readonly OwnedBoon[];
@@ -212,10 +217,17 @@ export class PauseOverlay {
       if (rows.length === 0) box.append(div('rb-build-empty', t('build.empty')));
       for (const row of rows) box.append(row);
     };
-    const row = (name: string, meta: string, desc: string, color: string) => {
+    const row = (name: string, meta: string, desc: string, color: string, icon: IconSpec) => {
       const el = div('rb-build-row');
       const head = div('rb-build-name', name);
       head.style.color = color;
+      const img = document.createElement('img');
+      img.className = 'rb-icon rb-build-icon';
+      img.src = iconUrl(icon);
+      img.width = 28;
+      img.height = 28;
+      img.alt = '';
+      head.prepend(img);
       el.append(head, div('rb-build-meta', meta), div('rb-build-desc', desc));
       return el;
     };
@@ -235,6 +247,7 @@ export class PauseOverlay {
           `${t(`spell.kind.${def.kind}` as TranslationKey)} · ${upgradeMeta(def.upgrades, slot)}`,
           t(`spell.${def.id}.desc` as TranslationKey),
           `#${def.visual.color.toString(16).padStart(6, '0')}`,
+          spellIcon(def.id),
         ),
       );
     }
@@ -244,6 +257,7 @@ export class PauseOverlay {
         upgradeMeta(RIFT_SHOT_UPGRADES, build.cast),
         t('build.cast_desc'),
         '#c7b8ff',
+        upgradeIcon('cast'),
       ),
     );
     section(t('build.spells'), spellRows);
@@ -256,6 +270,7 @@ export class PauseOverlay {
             t('evolution.title'),
             t(`evolution.${id}.desc` as TranslationKey),
             '#ffb347',
+            EVOLUTION_ICON,
           ),
         ),
       );
@@ -271,6 +286,7 @@ export class PauseOverlay {
             `${def.partner ? t('reward.duo') : t(`rarity.${b.rarity}` as TranslationKey)} · ${t(`slot.${def.slot}` as TranslationKey)}${(b.level ?? 1) > 1 ? ` · ${t('build.level', { n: b.level ?? 1 })}` : ''}`,
             t(`boon.${b.id}.desc` as TranslationKey, boonDescParams(def, b.rarity, b.level ?? 1)),
             BEINGS[def.being].css,
+            boonIcon(b.id, b.rarity),
           ),
         ];
       }),
@@ -286,6 +302,7 @@ export class PauseOverlay {
             t(`relic_rarity.${def.rarity}` as TranslationKey),
             t(`relic.${r.id}.desc` as TranslationKey, relicDescParams(def, r.stacks)),
             def.rarity === 'curse' ? '#ff6b81' : '#ffe6b0',
+            relicIcon(r.id),
           ),
         ];
       }),

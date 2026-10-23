@@ -13,6 +13,8 @@ import {
   spellUnlockCost,
   treeRank,
 } from '../../sim/meta/profile';
+import { relicIcon, spellIcon } from '../render/icons/specs';
+import { CardTitle } from './icons';
 
 /** Screens of the meta layer (GDD §2.3, §8): hub, Ember Tree, Nix, save transfer, results. */
 export type MetaScreen =
@@ -247,7 +249,10 @@ export function WaresScreen({ profile, onUnlock, onBack }: Extract<MetaScreen, {
                       : `✧ ${t('wares.unlock', { cost: r.unlockCost ?? 0 })}`}
                   </span>
                 </div>
-                <div class="rb-card-name">{t(`relic.${r.id}.name` as TranslationKey)}</div>
+                <CardTitle
+                  spec={relicIcon(r.id)}
+                  name={t(`relic.${r.id}.name` as TranslationKey)}
+                />
                 <div class="rb-card-desc">
                   {t(`relic.${r.id}.desc` as TranslationKey, relicDescParams(r, 1))}
                 </div>
@@ -312,7 +317,10 @@ export function SpellTowerScreen({
                   <span class="rb-card-slot">{t(`spell.kind.${def.kind}` as TranslationKey)}</span>
                   <span class="rb-card-rarity">{status}</span>
                 </div>
-                <div class="rb-card-name">{t(`spell.${def.id}.name` as TranslationKey)}</div>
+                <CardTitle
+                  spec={spellIcon(def.id)}
+                  name={t(`spell.${def.id}.name` as TranslationKey)}
+                />
                 <div class="rb-card-desc">{t(`spell.${def.id}.desc` as TranslationKey)}</div>
               </button>
             );

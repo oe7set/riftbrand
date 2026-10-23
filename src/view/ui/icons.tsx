@@ -1,4 +1,38 @@
 import type { RoomType } from '../../content/schema';
+import { type IconSpec, iconUrl } from '../render/icons/icon-svg';
+
+/** Neon icon (ROADMAP M4.3) as an image; the same SVG the game rasterises for the HUD. */
+export function Icon({
+  spec,
+  size = 44,
+  class: cls,
+}: {
+  spec: IconSpec;
+  size?: number;
+  class?: string;
+}) {
+  return (
+    <img
+      class={`rb-icon ${cls ?? ''}`}
+      src={iconUrl(spec)}
+      width={size}
+      height={size}
+      alt=""
+      aria-hidden="true"
+      draggable={false}
+    />
+  );
+}
+
+/** Card title row: icon left of the name, so cards stay short on phones. */
+export function CardTitle({ spec, name }: { spec: IconSpec; name: string }) {
+  return (
+    <div class="rb-card-title">
+      <Icon spec={spec} />
+      <div class="rb-card-name">{name}</div>
+    </div>
+  );
+}
 
 const STROKE = {
   fill: 'none',

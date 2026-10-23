@@ -1,3 +1,4 @@
+import type { Texture } from 'pixi.js';
 import { autoDetectRenderer, Container, type Renderer } from 'pixi.js';
 import { AdvancedBloomFilter } from 'pixi-filters';
 import { RIFT_SHOT } from '../content/abilities';
@@ -22,6 +23,8 @@ import {
 } from './render/camera';
 import { DebugDraw } from './render/debug-draw';
 import { EntityView } from './render/entity-view';
+import { rasterizeIcons } from './render/icons/rasterize';
+import { gameIconSpecs } from './render/icons/specs';
 import { PALETTE } from './render/palette';
 import { bakeRig } from './render/rig/bake-rig';
 import { RoomView } from './render/room-view';
@@ -76,8 +79,11 @@ export class GameView {
   private zoomPunch = 0;
   private hasSnapped = false;
 
-  private constructor(readonly renderer: Renderer) {
-    this.textures = bakeTextures(renderer);
+  private constructor(
+    readonly renderer: Renderer,
+    icons: { spells: Texture[]; statuses: Texture[] },
+  ) {
+    this.textures = bakeTextures(renderer, icons);
     this.effects = new Effects(this.fxParticles, this.groundParticles, this.textures);
     this.entities = new EntityView(
       this.textures,
@@ -125,7 +131,12 @@ export class GameView {
       backgroundColor: PALETTE.background,
       powerPreference: 'high-performance',
     });
-    const view = new GameView(renderer);
+    const specs = gameIconSpecs();
+    const [spells, statuses] = await Promise.all([
+      rasterizeIcons(specs.spells),
+      rasterizeIcons(specs.statuses),
+    ]);
+    const view = new GameView(renderer, { spells, statuses });
     view.resize(size);
     return view;
   }

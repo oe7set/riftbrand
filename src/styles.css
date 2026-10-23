@@ -562,6 +562,25 @@ body {
   background: rgba(255, 255, 255, 0.05);
 }
 
+/* Neon icons (ROADMAP M4.3): baked SVG images, never stretched. */
+.rb-icon {
+  flex: none;
+  display: inline-block;
+  vertical-align: middle;
+  pointer-events: none;
+  user-select: none;
+}
+
+.rb-chip-icon {
+  margin: -3px 4px -3px -4px;
+}
+
+.rb-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .rb-boon-screen {
   --being: #ffffff;
   overflow-y: auto;
@@ -812,6 +831,9 @@ body {
 }
 
 .rb-build-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 700;
 }
 
