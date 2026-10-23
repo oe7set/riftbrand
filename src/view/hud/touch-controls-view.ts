@@ -62,6 +62,8 @@ export class TouchControlsView {
   private castIndex = -1;
   private ultIndex = -1;
   private time = 0;
+  /** Player setting from the layout editor; empty buttons fade proportionally. */
+  idleAlpha = IDLE_ALPHA;
 
   constructor() {
     this.root.addChild(this.buttons, this.joystickBase, this.joystickKnob);
@@ -128,8 +130,9 @@ export class TouchControlsView {
       const child = children[i];
       if (!child) continue;
       const pressed = (touch.pressedButtons & (1 << i)) !== 0;
-      let idle = IDLE_ALPHA;
-      if (i === this.castIndex && player.castCharges < 1) idle = EMPTY_ALPHA;
+      let idle = this.idleAlpha;
+      const empty = EMPTY_ALPHA * (this.idleAlpha / IDLE_ALPHA);
+      if (i === this.castIndex && player.castCharges < 1) idle = empty;
       if (i === this.ultIndex) {
         // A full meter pulses to invite the press.
         idle = player.ultCharge >= 1 ? 0.6 + 0.3 * Math.sin(this.time * 6) : EMPTY_ALPHA + 0.15;

@@ -7,6 +7,7 @@ import {
   hitTestButton,
   type TouchButtonLayout,
   type TouchLayout,
+  type TouchLayoutOverrides,
 } from './touch-layout';
 
 interface ButtonPointer {
@@ -53,8 +54,20 @@ export class TouchInput {
     this.cleanup.push(() => target.removeEventListener(type, handler));
   }
 
+  private width = 1;
+  private height = 1;
+  private overrides: TouchLayoutOverrides | undefined;
+
   resize(width: number, height: number): void {
-    this.layout = computeTouchLayout(width, height);
+    this.width = width;
+    this.height = height;
+    this.layout = computeTouchLayout(width, height, this.overrides);
+  }
+
+  /** Applies the player's layout from the editor (GDD §10.1). */
+  setOverrides(overrides: TouchLayoutOverrides): void {
+    this.overrides = overrides;
+    this.layout = computeTouchLayout(this.width, this.height, overrides);
   }
 
   private local(e: PointerEvent, out: Vec2): Vec2 {

@@ -298,5 +298,18 @@
   "enemy.ash_priest.name": "Ash Priest",
   "enemy.cinder_layer.name": "Cinder Layer",
   "enemy.ember_warden.name": "Ember Warden",
-  "settings.music_volume": "Music"
+  "settings.music_volume": "Music",
+  "layout.title": "Touch layout",
+  "layout.next": "Next button",
+  "layout.size": "Size {n}%",
+  "layout.opacity": "Opacity {n}%",
+  "layout.reset": "Reset",
+  "layout.done": "Done",
+  "layout.button.attack": "Attack",
+  "layout.button.dash": "Dash",
+  "layout.button.special": "Special",
+  "layout.button.cast": "Cast",
+  "layout.button.ultimate": "Ultimate",
+  "layout.button.pause": "Pause",
+  "settings.touch_layout": "Edit touch layout"
 }

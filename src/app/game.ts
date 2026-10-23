@@ -18,6 +18,7 @@ import {
 import { Haptics } from '../platform/haptics';
 import { MenuAction } from '../platform/input/bindings';
 import { InputManager } from '../platform/input/input-manager';
+import type { TouchButtonId } from '../platform/input/touch-layout';
 import {
   browserProfileStore,
   copyToClipboard,
@@ -341,6 +342,7 @@ export class Game {
           this.showTitle();
         },
         toggleDebug: () => this.debugMenu.toggle(),
+        editLayout: () => this.openLayoutEditor(),
       },
       this.settings,
       (s) => {
@@ -922,6 +924,69 @@ export class Game {
     this.view.damageNumbers.enabled = s.damageNumbers;
     this.view.setGlowQuality(s.quality);
     this.haptics.intensity = s.vibration;
+    this.view.setTouchOpacity(s.touchOpacity);
+    this.input.touch.setOverrides(s.touchLayout);
+  }
+
+  // ── Touch layout editor (GDD §10.1) ─────────────────────────────────────
+
+  private editingLayout = false;
+
+  private openLayoutEditor(): void {
+    if (!this.paused) return;
+    this.editingLayout = true;
+    this.pauseOverlay.setVisible(false);
+    this.showLayoutEditor();
+  }
+
+  private showLayoutEditor(): void {
+    const s = this.settings;
+    const layout = this.input.touch.layout;
+    const profile = s.touchLayout[layout.orientation];
+    const scales: Partial<Record<TouchButtonId, number>> = {};
+    for (const [id, o] of Object.entries(profile)) if (o) scales[id as TouchButtonId] = o.scale;
+    const save = () => {
+      this.applySettings();
+      saveSettings(this.store, s);
+      this.showLayoutEditor();
+    };
+    const width = this.view.camera.viewWidth;
+    const height = this.view.camera.viewHeight;
+    this.ui.show({
+      kind: 'layout',
+      buttons: layout.buttons,
+      scales,
+      opacity: s.touchOpacity,
+      onMove: (id, x, y) => {
+        profile[id] = { x: x / width, y: y / height, scale: profile[id]?.scale ?? 1 };
+        save();
+      },
+      onScale: (id, scale) => {
+        const b = layout.buttons.find((btn) => btn.id === id);
+        profile[id] = {
+          x: profile[id]?.x ?? (b ? b.x / width : 0.5),
+          y: profile[id]?.y ?? (b ? b.y / height : 0.5),
+          scale,
+        };
+        save();
+      },
+      onOpacity: (opacity) => {
+        s.touchOpacity = opacity;
+        save();
+      },
+      onReset: () => {
+        s.touchLayout[layout.orientation] = {};
+        save();
+      },
+      onDone: () => this.closeLayoutEditor(),
+    });
+  }
+
+  private closeLayoutEditor(): void {
+    if (!this.editingLayout) return;
+    this.editingLayout = false;
+    this.ui.show({ kind: 'none' });
+    if (this.paused) this.pauseOverlay.setVisible(true);
   }
 
   private exposeDebugHandle(): void {
@@ -961,6 +1026,7 @@ export class Game {
     if (paused === this.paused) return;
     // Pausing only makes sense while playing; menus are already "paused".
     if (paused && this.mode !== 'room' && this.mode !== 'arena') return;
+    if (!paused) this.closeLayoutEditor();
     this.paused = paused;
     // Releasing on both edges avoids "stuck" keys from presses made while the overlay was up.
     this.input.releaseAll();
@@ -987,7 +1053,7 @@ export class Game {
     const menuOpen = this.ui.active || this.paused;
     if (!menuOpen) return;
     const nav = (dir: NavDirection) => {
-      if (this.paused) this.navigatePause(dir);
+      if (this.paused && !this.editingLayout) this.navigatePause(dir);
       else this.ui.navigate(dir);
     };
     if (actions & MenuAction.Up) nav('up');
@@ -999,7 +1065,8 @@ export class Game {
       if (el instanceof HTMLElement && el !== document.body) el.click();
       else if (!this.paused) this.ui.confirm();
     }
-    if (actions & MenuAction.Back && this.paused) this.setPaused(false);
+    if (actions & MenuAction.Back && this.editingLayout) this.closeLayoutEditor();
+    else if (actions & MenuAction.Back && this.paused) this.setPaused(false);
   }
 
   private navigatePause(dir: NavDirection): void {
@@ -1020,7 +1087,9 @@ export class Game {
     this.handleMenuInput();
     if (this.input.consumeAppAction('debug')) this.debugMenu.toggle();
     if (this.input.consumeAppAction('pause') && playing && !this.deathOverlay.visible) {
-      this.setPaused(!this.paused);
+      // Esc in the layout editor goes back to the pause menu, not straight into the fight.
+      if (this.editingLayout) this.closeLayoutEditor();
+      else this.setPaused(!this.paused);
     }
 
     if (this.slowMoSec > 0) {

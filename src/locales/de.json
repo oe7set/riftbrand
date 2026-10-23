@@ -298,5 +298,18 @@
   "enemy.ash_priest.name": "Aschenpriester",
   "enemy.cinder_layer.name": "Glutleger",
   "enemy.ember_warden.name": "Glutwächter",
-  "settings.music_volume": "Musik"
+  "settings.music_volume": "Musik",
+  "layout.title": "Touch-Layout",
+  "layout.next": "Nächster Button",
+  "layout.size": "Größe {n} %",
+  "layout.opacity": "Deckkraft {n} %",
+  "layout.reset": "Zurücksetzen",
+  "layout.done": "Fertig",
+  "layout.button.attack": "Angriff",
+  "layout.button.dash": "Dash",
+  "layout.button.special": "Spezial",
+  "layout.button.cast": "Wurf",
+  "layout.button.ultimate": "Ultimate",
+  "layout.button.pause": "Pause",
+  "settings.touch_layout": "Touch-Layout anpassen"
 }

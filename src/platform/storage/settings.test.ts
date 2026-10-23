@@ -34,6 +34,22 @@ describe('settings', () => {
     expect(s.damageNumbers).toBe(false);
   });
 
+  it('migrates v1 settings: keeps values, adds the default touch layout', () => {
+    const s = migrateSettings({ version: 1, masterVolume: 0.4, quality: 'low' });
+    expect(s.version).toBe(2);
+    expect(s.masterVolume).toBe(0.4);
+    expect(s.quality).toBe('low');
+    expect(s.touchLayout).toEqual({ portrait: {}, landscape: {} });
+    expect(s.touchOpacity).toBe(0.35);
+  });
+
+  it('keeps a valid touch layout and drops a broken one', () => {
+    const layout = { portrait: { attack: { x: 0.8, y: 0.9, scale: 1.2 } }, landscape: {} };
+    expect(migrateSettings({ touchLayout: layout }).touchLayout).toEqual(layout);
+    const broken = migrateSettings({ touchLayout: { portrait: { attack: { x: 5 } } } });
+    expect(broken.touchLayout).toEqual({ portrait: {}, landscape: {} });
+  });
+
   it('round-trips through storage', () => {
     const store = memoryStore();
     const s = { ...DEFAULT_SETTINGS, masterVolume: 0.3 };

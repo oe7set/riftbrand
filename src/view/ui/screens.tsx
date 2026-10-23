@@ -11,6 +11,7 @@ import type { MapNode } from '../../sim/run/map';
 import type { BoonOffer, BoonOption } from '../../sim/run/rewards';
 import { availableNodes, type RunState } from '../../sim/run/run-state';
 import { NodeIcon } from './icons';
+import { LayoutEditor, type LayoutEditorScreen } from './layout-editor';
 import {
   HubScreen,
   type MetaScreen,
@@ -25,6 +26,7 @@ const MAP_PAD_PX = 56;
 
 export type Screen =
   | MetaScreen
+  | LayoutEditorScreen
   | { kind: 'none' }
   | {
       kind: 'title';
@@ -665,6 +667,8 @@ export function UiRoot({ screen }: { screen: Screen }) {
       return <ShopScreen {...screen} />;
     case 'event':
       return <EventScreen {...screen} />;
+    case 'layout':
+      return <LayoutEditor {...screen} />;
     case 'hub':
       return <HubScreen {...screen} />;
     case 'tree':
