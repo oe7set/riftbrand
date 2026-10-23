@@ -23,6 +23,7 @@ import { PlayerAction } from '../sim/player-state';
 import type { SimState } from '../sim/sim';
 import type { GameView } from '../view/game-view';
 import { PALETTE } from '../view/render/palette';
+import { METEOR_TRAVEL_X, METEOR_TRAVEL_Y, meteorHeadOffset } from '../view/render/spell-visuals';
 import { BAKE_RADIUS_PX } from '../view/render/textures';
 
 /** Combo hits climb in pitch so a full combo "sings" (GDD §4.7). */
@@ -40,6 +41,9 @@ const FIREBIRD_TRAIL_PER_SEC = 70;
 /** Spark trail of hasty elites (ROADMAP M4.2), only while they actually move. */
 const HASTE_TRAIL_PER_SEC = 30;
 const HASTE_TRAIL_MIN_SPEED_PX_PER_SEC = 40;
+/** Spell zone visuals (ROADMAP M4.4): meteor fire trail and drifting cloud swaths. */
+const METEOR_TRAIL_PER_SEC = 70;
+const CLOUD_SWATHS_PER_SEC = 7;
 
 /** Colour of a status from its event code (content/statuses visual colour). */
 function statusColor(code: number): number {
@@ -165,6 +169,10 @@ export class FeedbackDirector {
     if (dtSec <= 0) return;
     const { world, c } = sim;
     for (let eid = 0; eid < world.highWater; eid++) {
+      if (((world.masks[eid] as number) & C.Zone) !== 0) {
+        this.emitZoneVisuals(sim, eid, dtSec);
+        continue;
+      }
       if (((world.masks[eid] as number) & C.Projectile) === 0) continue;
       const kind = c.renderKind[eid];
       if (kind !== RenderKind.RiftShot && kind !== RenderKind.Firebird) continue;
@@ -184,6 +192,36 @@ export class FeedbackDirector {
         }
         expected -= 1;
       }
+    }
+  }
+
+  private emitZoneVisuals(sim: SimState, eid: number, dtSec: number): void {
+    const c = sim.c;
+    const color = SPELLS[c.zoneSpell[eid] as number]?.visual.color ?? PALETTE.playerSlash;
+    const total = Math.max(1, c.hazFuseTotal[eid] as number);
+    const x = c.posX[eid] as number;
+    const y = c.posY[eid] as number;
+    // A zone whose first pulse waits for the whole fuse is a delayed blast (meteor).
+    if ((c.zonePulseTicks[eid] as number) >= total) {
+      const progress = 1 - (c.projLifeTicks[eid] as number) / total;
+      meteorHeadOffset(progress, this.bodyPoint);
+      let expected = METEOR_TRAIL_PER_SEC * dtSec;
+      while (expected > 0) {
+        if (expected >= 1 || Math.random() < expected) {
+          this.view.effects.meteorTrail(
+            x + this.bodyPoint.x,
+            y + this.bodyPoint.y,
+            METEOR_TRAVEL_X,
+            METEOR_TRAVEL_Y,
+            color,
+          );
+        }
+        expected -= 1;
+      }
+      return;
+    }
+    if (Math.random() < CLOUD_SWATHS_PER_SEC * dtSec) {
+      this.view.effects.cloudSwath(x, y, c.radius[eid] as number, color);
     }
   }
 
@@ -470,6 +508,7 @@ export class FeedbackDirector {
         if (kind?.type === 'beam') {
           // Beams start at the player, which is where the event sits.
           fx.beam(e.x, e.y, e.dirX, e.dirY, e.amount, kind.widthPx, color);
+          fx.beamShine(e.x, e.y, e.dirX, e.dirY, e.amount, color);
           if (e.flags === 1) break;
           shake.add(TUNING.shakeLightTrauma);
           this.audio.play('spellBeam', { pan: this.pan(e.x) });

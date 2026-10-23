@@ -31,6 +31,7 @@ import { RoomView } from './render/room-view';
 import { type BakedTextures, bakeTextures } from './render/textures';
 import { DamageNumbers } from './vfx/damage-numbers';
 import { Effects } from './vfx/effects';
+import { EmberRain } from './vfx/ember-rain';
 import { ParticleSystem } from './vfx/particles';
 import { ScreenShake } from './vfx/shake';
 
@@ -68,6 +69,7 @@ export class GameView {
   private readonly fxParticles = new ParticleSystem(PARTICLE_CAPACITY);
   private readonly groundParticles = new ParticleSystem(PARTICLE_CAPACITY / 2);
   private readonly touchControls = new TouchControlsView();
+  private readonly emberRain: EmberRain;
   private readonly aimPreview: AimPreview;
   private readonly bloom = new AdvancedBloomFilter({
     threshold: 0.35,
@@ -114,7 +116,9 @@ export class GameView {
       this.damageNumbers.root,
       this.debugDraw.graphics,
     );
-    this.postFx.addChild(this.worldLayer);
+    this.emberRain = new EmberRain(this.textures.dot);
+    // Above the world, under the HUD; inside postFx so the bloom catches it.
+    this.postFx.addChild(this.worldLayer, this.emberRain.root);
     this.hudLayer.addChild(this.hud.root, this.touchControls.root);
     this.stage.addChild(this.postFx, this.hudLayer);
     this.setGlowQuality('high');
@@ -152,6 +156,7 @@ export class GameView {
   /** "high" adds a real bloom pass; "low" relies on the baked glow halos only. */
   setGlowQuality(quality: GlowQuality): void {
     this.postFx.filters = quality === 'high' ? [this.bloom] : [];
+    this.emberRain.density = quality === 'high' ? 1 : 0.5;
     const budget = quality === 'high' ? PARTICLE_CAPACITY : PARTICLE_CAPACITY / 2;
     this.fxParticles.budget = budget;
     this.groundParticles.budget = budget / 2;
@@ -250,6 +255,7 @@ export class GameView {
     );
 
     this.arena.sync(sim.arenaWidthPx, sim.arenaHeightPx);
+    this.emberRain.update(simDtSec, cam.x, cam.y, cam.zoom, cam.viewWidth, cam.viewHeight);
     this.roomView.sync(sim.room, realDtSec);
     this.entities.sync(sim, alpha, realDtSec, simDtSec);
     this.fxParticles.update(realDtSec);

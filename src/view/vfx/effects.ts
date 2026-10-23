@@ -668,6 +668,86 @@ export class Effects {
     }
   }
 
+  /** Glints and a fading afterglow along a beam (light lance shine, ROADMAP M4.4). */
+  beamShine(x: number, y: number, dirX: number, dirY: number, length: number, color: number): void {
+    const rotation = Math.atan2(dirY, dirX);
+    for (let i = 0; i < 4; i++) {
+      const t = (i + rand(0.2, 0.8)) / 4;
+      const gx = x + dirX * length * t;
+      const gy = y + dirY * length * t;
+      const size = rand(0.45, 0.8);
+      // A four-pointed glint: two crossed sparks.
+      for (const turn of [0, Math.PI / 2]) {
+        this.fx.emit({
+          texture: this.tex.spark,
+          x: gx,
+          y: gy,
+          lifeSec: rand(0.25, 0.4),
+          color: 0xffffff,
+          rotation: rotation + turn + Math.PI / 4,
+          scaleStart: size,
+          scaleEnd: size * 0.1,
+        });
+      }
+    }
+    this.ground.emit({
+      texture: this.tex.spark,
+      x: x + dirX * length * 0.5,
+      y: y + dirY * length * 0.5,
+      lifeSec: 0.7,
+      color,
+      alpha: 0.3,
+      rotation,
+      scaleStart: 1.4,
+      scaleEnd: 0.6,
+      stretch: length / 32 / 1.4,
+    });
+    this.fx.emit({
+      texture: this.tex.ring,
+      x,
+      y,
+      lifeSec: 0.2,
+      color: 0xffffff,
+      scaleStart: 0.6,
+      scaleEnd: 2,
+    });
+  }
+
+  /** Fire and embers streaming off a falling meteor; `dirX`/`dirY` is its travel direction. */
+  meteorTrail(x: number, y: number, dirX: number, dirY: number, color: number): void {
+    this.fx.emit({
+      texture: this.tex.dot,
+      x: x + rand(-4, 4),
+      y: y + rand(-4, 4),
+      vx: -dirX * rand(40, 90) + rand(-20, 20),
+      vy: -dirY * rand(40, 90) + rand(-20, 20),
+      lifeSec: rand(0.25, 0.45),
+      color: rand(0, 1) < 0.35 ? 0xffe0a0 : color,
+      scaleStart: rand(0.5, 0.9),
+      scaleEnd: 0.1,
+      dragPerSec: 0.2,
+    });
+  }
+
+  /** A low, slowly drifting swath of a lingering cloud (poison cloud, ROADMAP M4.4). */
+  cloudSwath(x: number, y: number, radius: number, color: number): void {
+    const a = rand(0, Math.PI * 2);
+    const d = rand(0, radius * 0.75);
+    this.ground.emit({
+      texture: this.tex.dot,
+      x: x + Math.cos(a) * d,
+      y: y + Math.sin(a) * d * 0.8,
+      vx: rand(-14, 14),
+      vy: rand(-8, 4),
+      lifeSec: rand(1.2, 1.9),
+      color,
+      alpha: 0.22,
+      scaleStart: rand(1.2, 1.8),
+      scaleEnd: rand(2.4, 3.2),
+      dragPerSec: 0.5,
+    });
+  }
+
   /** A slow drifting puff inside a lingering cloud. */
   cloudPuff(x: number, y: number, radius: number, color: number): void {
     for (let i = 0; i < 3; i++) {
