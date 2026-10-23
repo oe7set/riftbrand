@@ -200,6 +200,45 @@ describe('steam burst (duo)', () => {
   });
 });
 
+describe('one attack, one hit', () => {
+  it('an attack cannot hit again after other attacks landed in between', () => {
+    const s = sim();
+    const e = enemyAt(s, 400);
+    s.c.hp[e] = 10_000;
+    hit.damage = 10;
+    for (const id of [101, 102, 103]) {
+      hit.swingId = id;
+      expect(damageEnemy(s, e, hit)).toBe(true);
+    }
+    // The first attack (e.g. a piercing firebird still overlapping) must not count again.
+    hit.swingId = 101;
+    expect(damageEnemy(s, e, hit)).toBe(false);
+    expect(s.c.hp[e]).toBe(10_000 - 30);
+  });
+
+  it('a piercing firebird hits the boss once while the blade keeps hitting it', () => {
+    const s = sim([], ['phoenix_blade']);
+    const boss = enemyAt(s, 60, 0, ENEMY_TYPE.ember_warden);
+    s.c.hp[boss] = 100_000;
+    s.c.aiCooldownTicks[boss] = 1_000_000;
+    const input = createInputFrame();
+    input.hasAim = true;
+    input.aimX = 1;
+    input.held = Button.Attack;
+    let hits = 0;
+    for (let i = 0; i < 45; i++) {
+      s.events.count = 0;
+      stepSim(s, input);
+      for (let k = 0; k < s.events.count; k++) {
+        const ev = s.events.items[k];
+        if (ev?.type === Ev.Hit && ev.eid === boss && (ev.flags & 8) === 0) hits++;
+      }
+    }
+    // One full combo (3 blade hits) plus exactly one firebird hit.
+    expect(hits).toBe(4);
+  });
+});
+
 describe('phoenix blade (evolution)', () => {
   it('the combo finisher releases a piercing firebird that burns', () => {
     const s = sim([], ['phoenix_blade']);
