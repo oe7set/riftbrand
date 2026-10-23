@@ -70,6 +70,26 @@ describe('run save', () => {
     expect(migrated?.ultCharge).toBe(0);
   });
 
+  it('migrates v4 saves (no meta progression yet)', () => {
+    const {
+      meta: _m,
+      lockedRelics: _l,
+      lastSparks: _ls,
+      rerolls: _r,
+      rerollSalt: _rs,
+      clearedCombat: _cc,
+      clearedElite: _ce,
+      clearedBoss: _cb,
+      reachedBoss: _rb,
+      ...v4Run
+    } = createRun(12);
+    const migrated = migrateRunSave({ version: 4, run: { ...v4Run, roomsCleared: 3 } });
+    expect(migrated?.meta.maxHp).toBe(0);
+    expect(migrated?.lockedRelics).toEqual([]);
+    expect(migrated?.clearedCombat).toBe(3);
+    expect(migrated?.reachedBoss).toBe(false);
+  });
+
   it('clears the save', () => {
     const store = memoryStore();
     saveRun(store, createRun(5));

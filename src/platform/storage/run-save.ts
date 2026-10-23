@@ -3,7 +3,7 @@ import type { RunState } from '../../sim/run/run-state';
 import type { KeyValueStore } from './settings';
 
 const STORAGE_KEY = 'riftbrand.run';
-export const RUN_SAVE_VERSION = 4;
+export const RUN_SAVE_VERSION = 5;
 
 const mapNodeSchema = z.object({
   id: z.number().int().min(0),
@@ -30,6 +30,25 @@ const runSchema = z.object({
   ),
   evolutions: z.array(z.string()),
   ultCharge: z.number().min(0).max(1),
+  meta: z.object({
+    maxHp: z.number(),
+    allDamage: z.number(),
+    staminaRegen: z.number(),
+    roomHeal: z.number(),
+    startShards: z.number(),
+    lastSparks: z.number().int().min(0),
+    lastSparkHeal: z.number().min(0).max(1),
+    rerolls: z.number().int().min(0),
+    staminaBonus: z.number().int().min(0),
+  }),
+  lockedRelics: z.array(z.string()),
+  lastSparks: z.number().int().min(0),
+  rerolls: z.number().int().min(0),
+  rerollSalt: z.number().int().min(0),
+  clearedCombat: z.number().int().min(0),
+  clearedElite: z.number().int().min(0),
+  clearedBoss: z.number().int().min(0),
+  reachedBoss: z.boolean(),
   relics: z.array(z.object({ id: z.string(), stacks: z.number().int().min(1) })),
   shards: z.number().int().min(0),
   shopBought: z.array(z.number().int().min(0)),
@@ -64,12 +83,48 @@ function migrate3to4(raw: { version: number; run?: Record<string, unknown> }): u
   return { ...raw, version: 4, run: { ...raw.run, evolutions: [], ultCharge: 0 } };
 }
 
+/**
+ * v4 → v5: meta progression (M2.6). Old runs started without Ember Tree bonuses and with every
+ * relic in the pool; room kinds weren't tracked, so all cleared rooms count as normal fights.
+ */
+function migrate4to5(raw: { version: number; run?: Record<string, unknown> }): unknown {
+  const run = raw.run ?? {};
+  const cleared = typeof run.roomsCleared === 'number' ? run.roomsCleared : 0;
+  return {
+    ...raw,
+    version: 5,
+    run: {
+      ...run,
+      meta: {
+        maxHp: 0,
+        allDamage: 0,
+        staminaRegen: 0,
+        roomHeal: 0,
+        startShards: 0,
+        lastSparks: 0,
+        lastSparkHeal: 0,
+        rerolls: 0,
+        staminaBonus: 0,
+      },
+      lockedRelics: [],
+      lastSparks: 0,
+      rerolls: 0,
+      rerollSalt: 0,
+      clearedCombat: cleared,
+      clearedElite: 0,
+      clearedBoss: 0,
+      reachedBoss: false,
+    },
+  };
+}
+
 export function migrateRunSave(raw: unknown): RunState | null {
   if (typeof raw !== 'object' || raw === null) return null;
   let data = raw as { version?: unknown; run?: Record<string, unknown> };
   if (data.version === 1) data = migrate1to2(data as { version: number }) as typeof data;
   if (data.version === 2) data = migrate2to3(data as { version: number }) as typeof data;
   if (data.version === 3) data = migrate3to4(data as { version: number }) as typeof data;
+  if (data.version === 4) data = migrate4to5(data as { version: number }) as typeof data;
   if (data.version !== RUN_SAVE_VERSION) return null;
   raw = data;
   const parsed = saveSchema.safeParse(raw);
