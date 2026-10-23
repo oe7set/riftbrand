@@ -4,6 +4,9 @@ export const PALETTE = {
   floorGrid: 0x1c1830,
   floorGridMajor: 0x2a2346,
   arenaEdge: 0xff7a2f,
+  /** Ashfields floor details (ROADMAP M4.4): dark cracks and faint ember veins. */
+  ashCrack: 0x1a1222,
+  ashVein: 0xff6a2a,
   player: 0x7ff6ff,
   playerCore: 0xffffff,
   /** Player attacks: bright, cool and elongated (GDD §12.1 rule 2). */

@@ -741,13 +741,27 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
   - Die Map-Symbole bleiben die eigenen SVG-Symbole aus M2.6; sie sind schon formverschieden.
   - Der Ergebnis-Bildschirm zeigt bisher keinen Build, dort gibt es noch keine Icons.
 
-### M4.4 Effekte und Umgebung ⬜
-- [ ] Zauber- und Aura-Effekte überarbeiten: Meteor-Schweif, Schwaden der Giftwolke, Glanz der Lichtlanze.
-- [ ] **Aschefelder:**
+### M4.4 Effekte und Umgebung ✅
+- [x] Zauber- und Aura-Effekte überarbeiten: Meteor-Schweif, Schwaden der Giftwolke, Glanz der Lichtlanze.
+- [x] **Aschefelder:**
   - Boden-Details (Risse, Glutadern)
   - Requisiten an den Hindernissen
   - Glutregen in mehreren Schichten
-- [ ] **Leistungs-Durchgang:** Partikel-Budget prüfen und automatische Qualitätsstufen vorbereiten (fertig in M6.8).
+- [x] **Leistungs-Durchgang:** Partikel-Budget prüfen und automatische Qualitätsstufen vorbereiten (fertig in M6.8).
+
+**Umgesetzt:**
+- **Meteor:** Der Meteor fällt sichtbar von schräg oben auf die Markierung, mit Feuerschweif (`meteorHeadOffset` in `view/render/spell-visuals.ts`).
+- **Giftwolke:** Langsam treibende Schwaden am Boden (`cloudSwath`).
+- **Lichtlanze:** Vierzackige Glanzpunkte entlang des Strahls, Nachglühen am Boden und ein Lichtblitz am Ursprung (`beamShine`).
+- **Aschefelder:**
+  - dunkle Bodenrisse, ein Teil davon mit Glutadern
+  - an den Blöcken eine glimmende Naht und Geröll an der Unterkante
+  - beides einmal pro Raum gezeichnet und per Position geseedet, ohne den Sim-Zufall zu nutzen
+- **Glutregen** (`view/vfx/ember-rain.ts`):
+  - 48 vorab angelegte Sprites in drei Parallax-Schichten
+  - die Qualitätsstufe „Niedrig“ halbiert die Menge
+  - folgt der Simulationszeit, ist also in Zeitlupe langsamer
+- **Partikel-Budget:** Die neuen Effekte kosten höchstens rund 25 Partikel pro fallendem Meteor, rund 11 pro Giftwolke und rund 9 pro hastigem Elite-Gegner. Das passt in die Budgets von 2000 (Hoch) bzw. 1000 (Niedrig). Die automatischen Qualitätsstufen bleiben für M6.8.
 
 **Abnahme M4 (PO-Checkliste):**
 - [ ] Vesper und die Gegner wirken wie lebendige Kreaturen, der Stil ist stimmig.

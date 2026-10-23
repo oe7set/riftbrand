@@ -17,6 +17,7 @@ import { PALETTE } from './palette';
 import { createRigInput, type RigInput, resetRigInput } from './rig/animate';
 import type { BakedRig } from './rig/bake-rig';
 import { RigInstance } from './rig/rig-instance';
+import { meteorHeadOffset } from './spell-visuals';
 import { BAKE_RADIUS_PX, type BakedTextures, type BodyTextures } from './textures';
 
 const SPAWN_POP_SEC = 0.25;
@@ -372,6 +373,24 @@ export class EntityView {
       s.teleBack.alpha = 0.9;
       s.teleFill.scale.set(scale * progress);
       s.teleFill.alpha = 0.2 + 0.35 * progress;
+      // The meteor itself falls in from above (ROADMAP M4.4); its trail comes from feedback.
+      meteorHeadOffset(progress, this.worldScratch);
+      const hx = x + this.worldScratch.x;
+      const hy = y + this.worldScratch.y;
+      s.body.visible = true;
+      s.body.texture = this.textures.dot;
+      s.body.position.set(hx, hy);
+      s.body.rotation = 0;
+      s.body.tint = color;
+      s.body.alpha = 1;
+      s.body.scale.set(1.8 + 0.6 * progress);
+      s.halo.visible = true;
+      s.halo.texture = this.textures.disc;
+      s.halo.position.set(hx, hy);
+      s.halo.rotation = 0;
+      s.halo.tint = 0xffffff;
+      s.halo.alpha = 0.9;
+      s.halo.scale.set(0.5 + 0.2 * progress);
     } else {
       // Fades out over its last half second.
       const fade = Math.min(1, left / 30);
@@ -472,6 +491,9 @@ export class EntityView {
     const halo = s.halo;
     halo.visible = blind > 0;
     if (halo.visible) {
+      // Slots are shared between entity kinds; the meteor head borrows this sprite as a disc.
+      halo.texture = this.textures.ring;
+      halo.alpha = 1;
       halo.tint = statusDef(Status.Blind).visual.color;
       halo.position.set(x, topY);
       halo.rotation = 0;
