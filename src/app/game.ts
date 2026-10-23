@@ -29,6 +29,12 @@ import {
   type ProfileStore,
   saveProfile,
 } from '../platform/storage/profile-save';
+import {
+  appendRunLog,
+  downloadText,
+  loadRunLog,
+  type RunLogEntry,
+} from '../platform/storage/run-log';
 import { clearRun, loadRun, saveRun } from '../platform/storage/run-save';
 import {
   browserStore,
@@ -38,6 +44,7 @@ import {
 } from '../platform/storage/settings';
 import { resolveLocale, setLocale, type TranslationKey, t } from '../shared/i18n';
 import { Button, createInputFrame } from '../shared/input-frame';
+import type { RoomReport } from '../sim/bot/autoplay';
 import {
   debugClearRoom,
   debugKillAllEnemies,
@@ -46,6 +53,7 @@ import {
   debugWarpToExit,
 } from '../sim/debug';
 import { C } from '../sim/ecs/components';
+import { dominantBeing } from '../sim/effects/build';
 import { packEnemy } from '../sim/enemy-code';
 import { Ev, type EventBuffer } from '../sim/events';
 import { hashSim } from '../sim/hash';
@@ -184,6 +192,9 @@ export class Game {
   private hubLines: { maren: string | null; nix: string | null } | null = null;
   /** Settlement of the run that just ended, shown on the result screen. */
   private lastRun: LastRun | null = null;
+  /** Rooms and damage of the current run for the run log (TECH_DESIGN §13). */
+  private logRooms: RoomReport[] = [];
+  private logDamage: Record<string, number> = {};
   private readonly store = browserStore();
   private readonly input: InputManager;
   private readonly audio = new AudioEngine();
@@ -278,6 +289,9 @@ export class Game {
         giveShards: (n) => {
           this.sim.shards += n;
           if (this.run) this.run.shards += n;
+        },
+        exportRunLog: () => {
+          downloadText('riftbrand-runlog.json', JSON.stringify(loadRunLog(this.store), null, 2));
         },
         giveMeta: (ember, dust) => {
           this.profile.ember += ember;
@@ -513,7 +527,30 @@ export class Game {
     });
   }
 
-  /** Books the ended run into the profile and shows what it earned. */
+  /** Notes the room that just ended (cleared or not) for the run log. */
+  private logRoom(cleared: boolean): void {
+    const run = this.run;
+    const node = run?.map.nodes[run.currentNodeId];
+    if (!node) return;
+    let damage = 0;
+    const tally = this.sim.damageBySource;
+    for (let i = 0; i < tally.length; i++) {
+      const amount = tally[i] as number;
+      if (amount <= 0) continue;
+      damage += amount;
+      const id = ENEMIES[i]?.id ?? 'unknown';
+      this.logDamage[id] = (this.logDamage[id] ?? 0) + amount;
+    }
+    this.logRooms.push({
+      type: node.type,
+      layer: node.layer,
+      timeSec: this.sim.room.elapsedTicks / TICK_RATE_HZ,
+      damageTaken: damage,
+      cleared,
+    });
+  }
+
+  /** Books the ended run into the profile and the run log, and shows what it earned. */
   private endRun(result: 'won' | 'lost', killedBy: string | null): void {
     const run = this.run;
     if (!run) return;
@@ -521,6 +558,26 @@ export class Game {
     this.lastRun = settleRun(this.profile, run, result, killedBy);
     this.hubLines = null;
     this.persistProfile();
+    const entry: RunLogEntry = {
+      date: new Date().toISOString(),
+      version: this.version,
+      seed: run.seed,
+      result,
+      roomsCleared: run.roomsCleared,
+      kills: run.kills,
+      timeSec: Math.round(run.playTimeSec),
+      killedBy: this.lastRun.killedBy,
+      dominant: dominantBeing(run.boons),
+      boons: run.boons.map((b) => b.id),
+      relics: run.relics.map((r) => r.id),
+      evolutions: [...run.evolutions],
+      tree: { ...this.profile.tree },
+      rooms: this.logRooms,
+      damageBySource: this.logDamage,
+    };
+    appendRunLog(this.store, entry);
+    this.logRooms = [];
+    this.logDamage = {};
   }
 
   private showResult(): void {
@@ -545,6 +602,8 @@ export class Game {
   }
 
   private startRun(): void {
+    this.logRooms = [];
+    this.logDamage = {};
     this.run = createRun(randomSeed(), runMetaFor(this.profile), lockedRelics(this.profile));
     saveRun(this.store, this.run);
     this.showMap();
@@ -703,6 +762,7 @@ export class Game {
   private finishRoom(): void {
     const run = this.run;
     if (!run) return;
+    this.logRoom(true);
     completeRoom(run, this.roomResult());
     if (run.status === 'won') {
       this.endRun('won', null);
@@ -822,6 +882,7 @@ export class Game {
     const run = this.run;
     let stats: string;
     if (this.mode === 'room' && run) {
+      this.logRoom(false);
       failRun(run, this.roomResult());
       this.endRun('lost', ENEMIES[this.sim.killedBy]?.id ?? null);
       stats = t('death.run_stats', { rooms: run.roomsCleared + 1, kills: run.kills });
