@@ -398,12 +398,52 @@ export class FeedbackDirector {
       case Ev.SpellCast: {
         const def = SPELLS[e.value];
         const color = def?.visual.color ?? PALETTE.playerSlash;
-        fx.nova(e.x, e.y, e.amount, color);
-        fx.nova(e.x, e.y, e.amount * 0.6, 0xffffff);
-        if (def?.effect.freeze) fx.freezeBurst(e.x, e.y, e.amount * 0.3);
-        shake.add(TUNING.shakeHeavyTrauma);
-        this.audio.play('spellCast', { pan: this.pan(e.x) });
-        this.haptics.pulse(30, 0.6);
+        const kind = def?.effect;
+        if (kind?.type === 'beam') {
+          // Beams start at the player, which is where the event sits.
+          fx.beam(e.x, e.y, e.dirX, e.dirY, e.amount, kind.widthPx, color);
+          shake.add(TUNING.shakeLightTrauma);
+          this.audio.play('spellBeam', { pan: this.pan(e.x) });
+          this.haptics.pulse(20, 0.5);
+        } else if (kind?.type === 'burst' && kind.delaySec > 0) {
+          // The marker on the ground carries the telegraph; the impact gets the big feedback.
+          fx.statusPuff(e.x, e.y, color);
+          this.audio.play('spellWhoosh', { pan: this.pan(e.x) });
+        } else if (kind?.type === 'zone') {
+          fx.nova(e.x, e.y, e.amount, color);
+          fx.cloudPuff(e.x, e.y, e.amount, color);
+          this.audio.play('poisonApply', { pan: this.pan(e.x) });
+          this.haptics.pulse(15, 0.4);
+        } else {
+          fx.nova(e.x, e.y, e.amount, color);
+          fx.nova(e.x, e.y, e.amount * 0.6, 0xffffff);
+          if (kind?.type === 'burst' && kind.freeze) fx.freezeBurst(e.x, e.y, e.amount * 0.3);
+          shake.add(TUNING.shakeHeavyTrauma);
+          this.audio.play('spellCast', { pan: this.pan(e.x) });
+          this.haptics.pulse(30, 0.6);
+        }
+        break;
+      }
+      case Ev.ZonePulse: {
+        const def = SPELLS[e.value];
+        const color = def?.visual.color ?? PALETTE.playerSlash;
+        if (def?.effect.type === 'burst') {
+          // Delayed blast (meteor): the impact.
+          fx.nova(e.x, e.y, e.amount, color);
+          fx.nova(e.x, e.y, e.amount * 0.5, 0xffffff);
+          fx.killBurst(e.x, e.y, 0, -1, color, 24);
+          shake.add(TUNING.shakeHeavyTrauma);
+          this.audio.play('meteorImpact', { pan: this.pan(e.x) });
+          this.haptics.pulse(35, 0.7);
+        } else {
+          fx.cloudPuff(e.x, e.y, e.amount, color);
+        }
+        break;
+      }
+      case Ev.ShotDissolved: {
+        const color = SPELLS[e.value]?.visual.color ?? PALETTE.playerSlash;
+        fx.statusPuff(e.x, e.y, color);
+        this.audio.play('shotDissolved', { pan: this.pan(e.x), volume: 0.7 });
         break;
       }
       case Ev.AuraPulse: {

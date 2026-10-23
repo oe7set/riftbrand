@@ -636,24 +636,70 @@ export const spellSchoolSchema = z.enum([
   'light',
 ]);
 
+/** Where an area spell lands: around the player, or at the aimed point `rangePx` away. */
+const spellPlacement = {
+  at: z.enum(['self', 'target']),
+  /** Distance of the target point for `at: 'target'` (aim direction, aim-assisted). */
+  rangePx: px,
+};
+
+/** What a hit does to each enemy caught. */
+const spellHit = {
+  damage: z.number().nonnegative(),
+  status: statusIdSchema.optional(),
+  stacks: z.number().int().nonnegative(),
+  knockback: z.number().nonnegative(),
+};
+
 /**
- * What a spell (or one aura pulse) does. Bursts hit everything in a circle around the player
- * or around the aimed point; more effect types follow with the spell schools (M3.3).
+ * What a spell (or one aura pulse) does (ROADMAP M3.2/M3.3):
+ * - burst: everything in a circle, now or after `delaySec` (meteor; the spot is marked);
+ * - zone: a lingering area that pulses its hit every `pulseSec` (poison cloud);
+ * - beam: a straight line from the player that hits everything on it (light lance);
+ * - ward: dissolves the nearest enemy shots in a radius (halo).
  */
 export const spellEffectSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('burst'),
-    at: z.enum(['self', 'target']),
-    /** Distance of the target point for `at: 'target'` (aim direction, aim-assisted). */
-    rangePx: px,
+    ...spellPlacement,
     radiusPx: px,
-    damage: z.number().nonnegative(),
-    status: statusIdSchema.optional(),
-    stacks: z.number().int().nonnegative(),
+    ...spellHit,
     freeze: z.boolean(),
-    knockback: z.number().nonnegative(),
+    delaySec: sec,
+  }),
+  z.object({
+    type: z.literal('zone'),
+    ...spellPlacement,
+    radiusPx: px,
+    ...spellHit,
+    durationSec: z.number().positive(),
+    pulseSec: z.number().positive(),
+  }),
+  z.object({
+    type: z.literal('beam'),
+    lengthPx: px,
+    widthPx: px,
+    ...spellHit,
+  }),
+  z.object({
+    type: z.literal('ward'),
+    radiusPx: px,
+    /** Enemy shots dissolved per pulse, nearest first. */
+    count: z.number().int().min(1),
   }),
 ]);
+
+/**
+ * Optional follow-up when an enemy dies while the spell is equipped: enemies carrying
+ * `requiresStatus` leave a lingering zone (plague breath).
+ */
+export const spellOnKillSchema = z.object({
+  requiresStatus: statusIdSchema,
+  radiusPx: px,
+  durationSec: z.number().positive(),
+  pulseSec: z.number().positive(),
+  ...spellHit,
+});
 
 export const spellSchema = z.object({
   id,
@@ -669,6 +715,7 @@ export const spellSchema = z.object({
   /** Movement speed factor while casting. */
   moveFactor: z.number().min(0).max(1),
   effect: spellEffectSchema,
+  onKill: spellOnKillSchema.optional(),
   visual: z.object({ color: z.number().int().nonnegative(), glyph: glyphSchema }),
 });
 

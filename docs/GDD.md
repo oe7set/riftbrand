@@ -129,6 +129,19 @@ Meta (Tage)        Glut/Rissstaub ausgeben → Freischaltungen → Story-Dialog 
 - **Frostnova** (aktiv): 0,12 s Wirken, dann ein Kältering mit 150 px Radius, 18 Schaden, friert alle Gegner darin ein. Abklingzeit 15 s.
 - **Glutmantel** (Aura): jede Sekunde 1 Brand an allen Gegnern im Umkreis von 90 px.
 
+**Umgesetzt (M3.3), erste Zauber-Schulen:**
+
+| Schule | Aktiver Zauber | Aura |
+|---|---|---|
+| Flamme | **Meteor** (14 s): markiert die Zielstelle 240 px voraus, nach 0,5 s Einschlag mit 120 px Radius, 45 Schaden, 3 Brand, starker Rückstoß | **Glutmantel**: jede Sekunde 1 Brand im Umkreis von 90 px |
+| Frost | **Frostnova** (15 s): Kältering, 150 px, 18 Schaden, friert ein | **Frosthauch**: alle 1,5 s 1 Kälte im Umkreis von 110 px |
+| Gift | **Giftwolke** (12 s): Wolke 200 px voraus, 110 px Radius, 5 s lang alle 0,5 s 1 Gift | **Pestatem**: jede Sekunde 1 Gift im Umkreis von 100 px; vergiftete Gegner zerplatzen beim Tod zu einer kleinen Giftwolke (70 px, 2 s) |
+| Licht | **Lichtlanze** (10 s): Strahl 420 px lang, 40 px breit, 32 Schaden, blendet, durchdringt alles | **Heiligenschein**: alle 2 s löst ein Lichtpuls das nächste gegnerische Geschoss im Umkreis von 140 px auf |
+
+- **Quellen:** Kampfräume belohnen jetzt manchmal mit einer **Zauber-Auswahl** (3 Zauber, die man nicht ausgerüstet hat; violette Raute auf der Karte). Nix verkauft einen Zauber für 90 Scherben. Ein neuer Zauber ersetzt den im Slot seiner Art; dessen Stufe bleibt erhalten. Die Auswahl darf man überspringen.
+- **Neue Segen:** Ignara „Glutkreis“ (+25 % Aura-Radius, +10 % Zauberschaden, mit Seltenheit mehr), Vaelis „Kalte Konzentration“ (Zauber laden 15 % schneller, mit Seltenheit mehr).
+- Am Handy zeigt das Zielen mit dem Zauber-Button Reichweite und Landefläche in der Farbe des Zaubers.
+
 Die Abklingzeit beginnt mit dem Wirken (Abbrechen erstattet nichts) und ist mit Abklingzeit-Verkürzung höchstens um 50 % kürzbar. Die Werte stehen im Debug-Menü unter „spell: …“. Zauber- und Aura-Schaden zählen getrennt für Segen (`spellDamage`) und für den Simulator-Bericht.
 
 ### 4.2 Bewegung und Dash (Startwerte)

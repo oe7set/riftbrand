@@ -28,6 +28,8 @@ export class TouchInput {
   readonly castAim = vec2();
   castAiming = false;
   castAimed = false;
+  /** The aiming drag started on the spell button (not the cast), for the preview's reach. */
+  castAimingSpell = false;
   /** Set on release of an aimed cast; the next sampled frame consumes it. */
   releaseAimPending = false;
   heldMask = 0;
@@ -93,6 +95,7 @@ export class TouchInput {
       else if (button.fireOnRelease) {
         this.castAiming = true;
         this.castAimed = false;
+        this.castAimingSpell = button.id === 'spell';
       } else this.sink.pressed(button.bit as Exclude<typeof button.bit, 0>);
       this.recomputeButtons();
       return;

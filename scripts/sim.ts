@@ -72,6 +72,7 @@ console.log(
 );
 console.log(`boons:\n${top(summary.boons)}`);
 console.log(`relics:\n${top(summary.relics)}`);
+console.log(`spells (end of run):\n${top(summary.spells)}`);
 
 mkdirSync('sim-results', { recursive: true });
 const base = `sim-results/sim-${bot}-${seedStart}-${runs}`;

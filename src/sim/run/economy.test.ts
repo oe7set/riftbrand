@@ -7,10 +7,12 @@ import { createRng } from '../rng/rng';
 import {
   addRelic,
   applyOutcomes,
+  equipRunSpell,
   eventFor,
   heal,
   nodeReward,
   rollRelicOffer,
+  rollSpellOffer,
   shopStock,
 } from './economy';
 import { generateMap } from './map';
@@ -144,5 +146,32 @@ describe('map with shops and events', () => {
   it('every relic has a price and valid rarity', () => {
     expect(RELICS.length).toBe(12);
     expect(RELICS.filter((r) => r.rarity === 'curse')).toHaveLength(2);
+  });
+});
+
+describe('spells as rewards (M3.3)', () => {
+  it('offers three spells that are not equipped, reproducibly', () => {
+    const run = createRun(31);
+    const offer = rollSpellOffer(run, 5);
+    expect(offer).toHaveLength(3);
+    expect(offer).not.toContain(run.spells.active?.id);
+    expect(offer).not.toContain(run.spells.aura?.id);
+    expect(rollSpellOffer(run, 5)).toEqual(offer);
+  });
+
+  it('replaces the spell of the same kind and keeps its level', () => {
+    const run = createRun(32);
+    run.spells.active = { id: 'frost_nova', level: 3 };
+    equipRunSpell(run, 'meteor');
+    expect(run.spells.active).toEqual({ id: 'meteor', level: 3 });
+    expect(run.spells.aura?.id).toBe('ember_mantle');
+    equipRunSpell(run, 'halo');
+    expect(run.spells.aura).toEqual({ id: 'halo', level: 1 });
+  });
+
+  it('stocks one spell in the shop', () => {
+    const run = createRun(33);
+    const stock = shopStock(run, { id: 4 });
+    expect(stock.filter((i) => i.kind === 'spell')).toHaveLength(1);
   });
 });

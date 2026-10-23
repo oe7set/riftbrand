@@ -76,11 +76,13 @@ import {
 import {
   addRelic,
   applyOutcomes,
+  equipRunSpell,
   eventFor,
   heal,
   nodeReward,
   type ResolvedOutcome,
   rollRelicOffer,
+  rollSpellOffer,
   runStats,
   shopStock,
 } from '../sim/run/economy';
@@ -816,6 +818,9 @@ export class Game {
         this.showBoonChoice(offer, node);
         return;
       }
+    } else if (node && reward?.kind === 'spell') {
+      this.showSpellChoice(rollSpellOffer(run, node.id));
+      return;
     } else if (node && reward?.kind === 'relic') {
       this.showRelicChoice(rollRelicOffer(run.seed, node.id, reward.rarityBonus, run.lockedRelics));
       return;
@@ -854,6 +859,28 @@ export class Game {
     });
   }
 
+  private showSpellChoice(options: string[]): void {
+    const run = this.run;
+    if (!run) return;
+    if (this.mode === 'room') this.loadSim(this.backdropSim());
+    this.setMode('reward');
+    this.ui.show({
+      kind: 'spell',
+      options,
+      current: run.spells,
+      onPick: (id) => {
+        equipRunSpell(run, id);
+        saveRun(this.store, run);
+        this.audio.play('boonPick', { pitch: 1.1, pitchVariation: 0 });
+        this.showMap();
+      },
+      onSkip: () => {
+        saveRun(this.store, run);
+        this.showMap();
+      },
+    });
+  }
+
   private showShop(): void {
     const run = this.run;
     const node = run?.map.nodes[run.currentNodeId];
@@ -872,6 +899,7 @@ export class Game {
           run.shopBought.push(index);
           if (item.kind === 'relic') addRelic(run, item.id);
           else if (item.kind === 'boon') pickBoon(run, item.option);
+          else if (item.kind === 'spell') equipRunSpell(run, item.id);
           else heal(run, run.maxHp * item.fraction);
           saveRun(this.store, run);
           this.audio.play('shard', { pitch: 0.8, pitchVariation: 0 });

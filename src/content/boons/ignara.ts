@@ -137,4 +137,19 @@ export const IGNARA_BOONS: readonly BoonDef[] = [
       },
     ],
   }),
+  defineBoon({
+    // M3.3: Ignara's fire spreads further around the player.
+    id: 'ember_circle',
+    being: 'ignara',
+    slot: 'passive',
+    tags: ['fire', 'spell'],
+    values: {
+      radius: { base: 0.25, step: 0.12, percent: true },
+      damage: { base: 0.1, step: 0.05, percent: true },
+    },
+    effects: [
+      { kind: 'stat', stat: 'auraRadius', add: 'radius' },
+      { kind: 'stat', stat: 'spellDamage', add: 'damage' },
+    ],
+  }),
 ];

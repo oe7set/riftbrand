@@ -19,6 +19,7 @@ export interface SimSummary {
   /** How often each boon/relic ended up in a build, and how often that build won. */
   boons: Record<string, PickStats>;
   relics: Record<string, PickStats>;
+  spells: Record<string, PickStats>;
   damageBySource: Record<string, number>;
   /** Share of all damage dealt per player source (0..1). */
   dealtShare: Record<string, number>;
@@ -37,6 +38,7 @@ export function summarize(reports: readonly RunReport[]): SimSummary {
   const roomTotals: Record<string, { sec: number; count: number }> = {};
   const boons: Record<string, PickStats> = {};
   const relics: Record<string, PickStats> = {};
+  const spells: Record<string, PickStats> = {};
   const damageBySource: Record<string, number> = {};
   const dealt: Record<string, number> = {};
   const boss: number[] = [];
@@ -63,6 +65,7 @@ export function summarize(reports: readonly RunReport[]): SimSummary {
     }
     for (const id of r.boons) bump(boons, id, won);
     for (const id of r.relics) bump(relics, id, won);
+    for (const id of r.spells ?? []) bump(spells, id, won);
     for (const [id, amount] of Object.entries(r.damageBySource)) {
       damageBySource[id] = (damageBySource[id] ?? 0) + amount;
     }
@@ -93,6 +96,7 @@ export function summarize(reports: readonly RunReport[]): SimSummary {
         : null,
     boons,
     relics,
+    spells,
     damageBySource,
     dealtShare,
   };

@@ -1,0 +1,15 @@
+import { defineSpell } from '../schema';
+
+/** Heiligenschein (light school): every 2 s a pulse of light dissolves the nearest enemy shot. */
+export const HALO = defineSpell({
+  id: 'halo',
+  school: 'light',
+  kind: 'aura',
+  cooldownSec: 0,
+  pulseSec: 2,
+  windupSec: 0,
+  recoverySec: 0,
+  moveFactor: 1,
+  effect: { type: 'ward', radiusPx: 140, count: 1 },
+  visual: { color: 0xfff6c8, glyph: 'eye' },
+});

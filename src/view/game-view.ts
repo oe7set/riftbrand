@@ -1,5 +1,7 @@
 import { autoDetectRenderer, Container, type Renderer } from 'pixi.js';
 import { AdvancedBloomFilter } from 'pixi-filters';
+import { RIFT_SHOT } from '../content/abilities';
+import { SPELLS, spellRadiusPx, spellReachPx } from '../content/spells';
 import { TUNING } from '../content/tuning';
 import type { InputDevice } from '../platform/input/input-manager';
 import type { TouchInput } from '../platform/input/touch';
@@ -237,12 +239,21 @@ export class GameView {
     this.groundParticles.update(realDtSec);
     this.damageNumbers.update(realDtSec);
     this.debugDraw.sync(sim, alpha);
+    // Spells that land on the player need no aim; the preview shows reach and landing area.
+    const spell = touch.castAimingSpell ? SPELLS[sim.player.activeSpell] : undefined;
+    const spellReach = spell ? spellReachPx(spell) : 0;
+    const ready = touch.castAimingSpell
+      ? spellReach > 0 && sim.player.spellCooldownTicks === 0
+      : sim.player.castCharges > 0;
     this.aimPreview.sync(
-      device === 'touch' && touch.castAiming && touch.castAimed && sim.player.castCharges > 0,
+      device === 'touch' && touch.castAiming && touch.castAimed && ready,
       px,
       py,
       touch.castAim.x,
       touch.castAim.y,
+      spell ? spellReach : RIFT_SHOT.rangePx,
+      spell && spell.effect.type !== 'beam' ? spellRadiusPx(spell) : RIFT_SHOT.radiusPx * 2.2,
+      spell?.visual.color ?? PALETTE.riftShot,
       realDtSec,
     );
     worldToScreen(cam, sim.room.exitX, sim.room.exitY, this.exitScreen);

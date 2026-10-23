@@ -11,6 +11,7 @@ import { Ev, EvFlag, pushEvent } from '../events';
 import { PlayerAction } from '../player-state';
 import { nextFloat } from '../rng/rng';
 import type { SimState } from '../sim';
+import { onEnemyKilledWithSpells } from '../systems/spells';
 import { secondsToTicks } from '../time';
 import { DEALT_STATUS_INDEX } from './dealt';
 import { spawnHazard } from './hazards';
@@ -232,6 +233,8 @@ export function killEnemy(
     e.value = type;
     e.flags = c.eliteMod[eid] as number;
   }
+  // Spell follow-ups read the status slots, so they run before the slot is cleared.
+  if (triggerEffects) onEnemyKilledWithSpells(state, eid, x, y);
   destroyEntity(state.world, eid);
   if (triggerEffects && elite && elite.deathBlastRadiusPx > 0) {
     spawnHazard(
