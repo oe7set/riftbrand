@@ -1,0 +1,36 @@
+import { defineEnemy } from '../schema';
+
+/** Glutleger: trapper that lobs cinder mines around the player, denying space (GDD §5.1). */
+export const CINDER_LAYER = defineEnemy({
+  id: 'cinder_layer',
+  role: 'trapper',
+  maxHp: 40,
+  radiusPx: 16,
+  speedPxPerSec: 70,
+  poise: 15,
+  poiseRegenDelaySec: 1.5,
+  staggerSec: 0.5,
+  weight: 0.4,
+  keepDistanceMinPx: 200,
+  keepDistanceMaxPx: 300,
+  token: 'ranged',
+  waveCost: 2,
+  shardValue: 4,
+  minWave: 2,
+  attack: {
+    kind: 'mine',
+    triggerRangePx: 380,
+    windupSec: 0.7,
+    activeSec: 0.1,
+    recoverySec: 0.7,
+    cooldownMinSec: 3.0,
+    cooldownMaxSec: 4.2,
+    damage: 14,
+    trackFraction: 0.8,
+    count: 2,
+    spreadPx: 70,
+    blastRadiusPx: 55,
+    fuseSec: 1.2,
+  },
+  visual: { color: 0xff5ad1, sides: 8, rotationDeg: 22.5 },
+});

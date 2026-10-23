@@ -1,8 +1,10 @@
 import { ENEMIES } from '../../content/enemies';
 import { TUNING } from '../../content/tuning';
 import { killEnemy } from '../combat/damage';
+import { clearHazards } from '../combat/hazards';
 import { C } from '../ecs/components';
 import { fireOnRoomClear } from '../effects/runtime';
+import { eliteFromCode, enemyTypeFromCode } from '../enemy-code';
 import { Ev, pushEvent } from '../events';
 import { nextFloat, nextInt, nextRange } from '../rng/rng';
 import { overlapsObstacle } from '../room';
@@ -25,7 +27,8 @@ export interface WaveState {
   wave: number;
   phase: (typeof WavePhase)[keyof typeof WavePhase];
   timerTicks: number;
-  readonly pendingType: Uint8Array;
+  /** Packed enemy codes (type + elite modifier, see enemy-code). */
+  readonly pendingType: Uint16Array;
   readonly pendingX: Float64Array;
   readonly pendingY: Float64Array;
   readonly pendingTicks: Int32Array;
@@ -37,7 +40,7 @@ export function createWaveState(): WaveState {
     wave: 0,
     phase: WavePhase.Intermission,
     timerTicks: 0,
-    pendingType: new Uint8Array(MAX_PENDING),
+    pendingType: new Uint16Array(MAX_PENDING),
     pendingX: new Float64Array(MAX_PENDING),
     pendingY: new Float64Array(MAX_PENDING),
     pendingTicks: new Int32Array(MAX_PENDING),
@@ -86,22 +89,34 @@ function pickSpawnSpot(state: SimState, radius: number): void {
   }
 }
 
-/** Opens a spawn portal; the enemy appears after the warning time. */
-export function scheduleSpawn(state: SimState, type: number, delaySec: number): boolean {
+/** Opens a spawn portal at a fixed spot (boss summons); the enemy appears after the delay. */
+export function scheduleSpawnAt(
+  state: SimState,
+  code: number,
+  x: number,
+  y: number,
+  delaySec: number,
+): boolean {
   const w = state.waves;
   if (w.pendingCount >= MAX_PENDING) return false;
-  pickSpawnSpot(state, ENEMIES[type]?.radiusPx ?? 20);
   const i = w.pendingCount++;
-  w.pendingType[i] = type;
-  w.pendingX[i] = spot.x;
-  w.pendingY[i] = spot.y;
+  w.pendingType[i] = code;
+  w.pendingX[i] = x;
+  w.pendingY[i] = y;
   w.pendingTicks[i] = Math.max(1, secondsToTicks(delaySec));
-  const e = pushEvent(state.events, Ev.SpawnWarn, spot.x, spot.y);
+  const e = pushEvent(state.events, Ev.SpawnWarn, x, y);
   if (e) {
-    e.value = type;
+    e.value = enemyTypeFromCode(code);
     e.amount = delaySec;
   }
   return true;
+}
+
+/** Opens a spawn portal away from the player; `code` is a packed enemy (type + elite). */
+export function scheduleSpawn(state: SimState, code: number, delaySec: number): boolean {
+  if (state.waves.pendingCount >= MAX_PENDING) return false;
+  pickSpawnSpot(state, ENEMIES[enemyTypeFromCode(code)]?.radiusPx ?? 20);
+  return scheduleSpawnAt(state, code, spot.x, spot.y, delaySec);
 }
 
 function spawnList(state: SimState, types: readonly number[]): void {
@@ -158,6 +173,7 @@ function clearRoom(state: SimState): void {
   if (room.cleared) return;
   room.cleared = true;
   room.exitOpen = true;
+  clearHazards(state);
   const e = pushEvent(state.events, Ev.RoomCleared, room.exitX, room.exitY);
   if (e) e.value = state.waves.wave;
   fireOnRoomClear(state);
@@ -172,7 +188,14 @@ function processPending(state: SimState): void {
       i++;
       continue;
     }
-    spawnEnemy(state, w.pendingType[i] as number, w.pendingX[i] as number, w.pendingY[i] as number);
+    const code = w.pendingType[i] as number;
+    spawnEnemy(
+      state,
+      enemyTypeFromCode(code),
+      w.pendingX[i] as number,
+      w.pendingY[i] as number,
+      eliteFromCode(code),
+    );
     // Swap-remove keeps the arrays dense; order stays deterministic.
     const last = --w.pendingCount;
     w.pendingType[i] = w.pendingType[last] as number;

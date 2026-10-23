@@ -407,7 +407,16 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **HUD:** Wurf-Ladungen rechts neben der Ausdauer (die nächste Ladung füllt sich sichtbar), die Ultimate-Leiste darunter. Auf Touch zeigen die Buttons Ladungs-Punkte bzw. eine wachsende Füllscheibe; ein voller Brandausbruch pulsiert.
 - **Speicherstand v4:** `evolutions` und `ultCharge`, Migration v3 → v4.
 
-## 24. Risiken und Gegenmaßnahmen
+## 24. Stand nach M2.5 (Gegner und Boss)
+- **Neue Angriffsarten** im Gegner-Schema: `mine` (Minen um die Spielfigur), `summon` (beschwört Gegner per ID, mit Obergrenze) und `mend` (heilt Verbündete). `summon` und `mend` haben keinen Schaden; das Schema trennt dafür `attackTiming` von `attackBase`.
+- **Gefahrenzonen** (`sim/combat/hazards.ts`): Entität mit `C.Hazard`, Zündzeit in `projLifeTicks`, Radius in `radius`, Schaden in `projDamage`. `hazardSystem` zündet und trifft die Spielfigur (Dash weicht aus wie bei jedem Angriff). Nach dem Raum-Clear werden alle Zonen entfernt.
+- **Elite-Modifikatoren** (`content/elites.ts`): Faktoren für Leben, Größe, Tempo und Abklingzeit, Frontschild (Kegel und Schadensfaktor) und Todesexplosion. In der Sim steht die ID in `eliteMod`. In Encountern wird ein Gegner als Zahl gepackt: Typ im unteren Byte, Elite im nächsten (`sim/enemy-code.ts`). Die Spawn-Warteschlange ist dafür `Uint16Array`.
+- **Bosse:** `EnemyDef.boss.phases` mit `hpBelow`, Angriffsliste, `cooldownScale` und `speedScale`. Pro Gegner speichern `aiPhase` und `aiPattern` Phase und gewähltes Muster; `attackOf(def, phase, pattern)` liefert den aktiven Angriff für KI, Telegraph-Darstellung und Feedback. Die Muster-Wahl nimmt nur Muster in Reichweite und nie dasselbe zweimal. Ein Phasenwechsel bricht den Angriff ab und setzt den Boss in Stagger (Strafbarkeitsfenster). Das Token-System gilt nicht für Bosse (`token: 'none'`).
+- **Boss-Tod:** `killEnemy` löst `BossDefeated` aus, entfernt wartende Spawns und lässt übrige Gegner ohne Effekte zerfallen.
+- **Biom:** `boss` (Gegnertyp am Boss-Knoten), `elitesPerRoom`; `bossBudget` ist jetzt eine optionale Zusatz-Welle (0 = Boss allein). Hordes enthalten keine Brecher, Stützer und Bosse.
+- **Neue Events:** `HazardPlaced`, `HazardBlast`, `ShieldBlock`, `EnemyMend`, `BossPhase`, `BossDefeated`. `Telegraph`/`EnemyAttack` tragen Muster (`amount`) und Phase (`flags`).
+
+## 25. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

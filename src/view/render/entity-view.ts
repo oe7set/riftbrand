@@ -1,5 +1,6 @@
 import { Container, Sprite, type Texture } from 'pixi.js';
-import { ENEMIES } from '../../content/enemies';
+import { eliteOf } from '../../content/elites';
+import { attackOf, ENEMIES } from '../../content/enemies';
 import { TUNING } from '../../content/tuning';
 import { AiState, C, RenderKind } from '../../sim/ecs/components';
 import { PlayerAction } from '../../sim/player-state';
@@ -23,6 +24,9 @@ interface Slot {
   hpFill: Sprite;
   /** Status aura: ember glow (burn) or ice shell (frozen). */
   aura: Sprite;
+  /** Elite marker: coloured halo, plus the frontal shield arc for shielded elites. */
+  eliteRing: Sprite;
+  shield: Sprite;
   generation: number;
 }
 
@@ -86,6 +90,8 @@ export class EntityView {
       hpBack: make(this.textures.white, this.overlayLayer),
       hpFill: make(this.textures.white, this.overlayLayer),
       aura: make(this.textures.disc, this.overlayLayer),
+      eliteRing: make(this.textures.ring, this.groundLayer),
+      shield: make(this.textures.shieldArc, this.overlayLayer),
       generation: -1,
     };
     slot.hpBack.tint = PALETTE.hpBack;
@@ -102,6 +108,8 @@ export class EntityView {
     slot.hpBack.visible = false;
     slot.hpFill.visible = false;
     slot.aura.visible = false;
+    slot.eliteRing.visible = false;
+    slot.shield.visible = false;
   }
 
   /** `alpha` interpolates between the previous and the current tick (0..1). */
@@ -114,6 +122,10 @@ export class EntityView {
       const slot = this.slots[eid];
       const mask = masks[eid] as number;
       const tex = this.bodyTextures(sim, eid);
+      if ((mask & renderMask) === renderMask && c.renderKind[eid] === RenderKind.Hazard) {
+        this.syncHazard(sim, eid, this.slotFor(eid, this.textures.disc));
+        continue;
+      }
       if (
         (mask & renderMask) !== renderMask ||
         (!tex && c.renderKind[eid] !== RenderKind.EnemyProjectile)
@@ -177,6 +189,8 @@ export class EntityView {
       else {
         s.body.tint = 0xffffff;
         s.aura.visible = false;
+        s.eliteRing.visible = false;
+        s.shield.visible = false;
         s.teleBack.visible = false;
         s.teleFill.visible = false;
         s.hpBack.visible = false;
@@ -187,6 +201,61 @@ export class EntityView {
       const slot = this.slots[i];
       if (slot) this.hideSlot(slot);
     }
+  }
+
+  /** Mines and death blasts: a ring at the blast radius with a disc filling up to detonation. */
+  private syncHazard(sim: SimState, eid: number, s: Slot): void {
+    const c = sim.c;
+    this.hideSlot(s);
+    const x = c.posX[eid] as number;
+    const y = c.posY[eid] as number;
+    const scale = (c.radius[eid] as number) / BAKE_RADIUS_PX;
+    const total = Math.max(1, c.hazFuseTotal[eid] as number);
+    const progress = 1 - (c.projLifeTicks[eid] as number) / total;
+    s.teleBack.visible = true;
+    s.teleBack.texture = this.textures.ring;
+    s.teleBack.anchor.set(0.5);
+    s.teleBack.position.set(x, y);
+    s.teleBack.rotation = 0;
+    s.teleBack.scale.set(scale);
+    s.teleBack.tint = PALETTE.telegraph;
+    // Blinks faster as the fuse runs out, so the last moment is unmistakable.
+    s.teleBack.alpha = 0.6 + 0.4 * Math.sin(this.time * (10 + progress * 30));
+    s.teleFill.visible = true;
+    s.teleFill.texture = this.textures.disc;
+    s.teleFill.anchor.set(0.5);
+    s.teleFill.position.set(x, y);
+    s.teleFill.rotation = 0;
+    s.teleFill.scale.set(scale * progress);
+    s.teleFill.tint = PALETTE.telegraphFill;
+    s.teleFill.alpha = 0.15 + 0.3 * progress;
+    s.body.visible = true;
+    s.body.texture = this.textures.dot;
+    s.body.position.set(x, y);
+    s.body.rotation = 0;
+    s.body.alpha = 1;
+    s.body.tint = PALETTE.telegraph;
+    s.body.scale.set(0.5);
+  }
+
+  /** Elites: a coloured halo; shielded ones carry a bright arc on their facing side. */
+  private syncElite(sim: SimState, eid: number, s: Slot, x: number, y: number, r: number): void {
+    const elite = eliteOf(sim.c.eliteMod[eid] as number);
+    s.eliteRing.visible = elite !== undefined;
+    s.shield.visible = elite !== undefined && elite.shieldArcDeg > 0;
+    if (!elite) return;
+    s.eliteRing.tint = elite.color;
+    s.eliteRing.position.set(x, y);
+    s.eliteRing.rotation = 0;
+    s.eliteRing.scale.set(((r * 1.45) / BAKE_RADIUS_PX) * (1 + 0.05 * Math.sin(this.time * 6)));
+    s.eliteRing.alpha = 0.85;
+    if (!s.shield.visible) return;
+    const angle = Math.atan2(sim.c.facingY[eid] as number, sim.c.facingX[eid] as number);
+    s.shield.tint = elite.color;
+    s.shield.position.set(x, y);
+    s.shield.rotation = angle;
+    s.shield.scale.set((r * 1.35) / BAKE_RADIUS_PX);
+    s.shield.alpha = (sim.c.frozenTicks[eid] as number) > 0 ? 0.25 : 0.95;
   }
 
   /** Frozen: icy tint plus a translucent shell. Chilled: cooler tint. Burning: flickering glow. */
@@ -228,6 +297,7 @@ export class EntityView {
     if (!def) return;
     const r = c.radius[eid] as number;
     this.syncStatus(sim, eid, s, x, y, r);
+    this.syncElite(sim, eid, s, x, y, r);
 
     const hp = c.hp[eid] as number;
     const maxHp = c.maxHp[eid] as number;
@@ -243,7 +313,7 @@ export class EntityView {
     }
 
     const state = c.aiState[eid];
-    const atk = def.attack;
+    const atk = attackOf(def, c.aiPhase[eid] as number, c.aiPattern[eid] as number);
     const windupTicks = Math.max(1, secondsToTicks(atk.windupSec));
     const telegraphing = state === AiState.Windup;
     const slamActive = state === AiState.Active && atk.kind === 'slam';
@@ -296,8 +366,36 @@ export class EntityView {
         s.body.scale.x * (1 - 0.18 * progress),
         s.body.scale.y * (1 + 0.1 * progress),
       );
+    } else if (
+      atk.kind === 'mend' ||
+      atk.kind === 'summon' ||
+      (atk.kind === 'volley' && atk.spreadDeg >= 180)
+    ) {
+      // Area casts: a ring around the caster that closes in as the windup completes.
+      const radius = atk.kind === 'mend' ? atk.radiusPx : atk.kind === 'summon' ? r + 70 : r * 2.6;
+      const tint =
+        atk.kind === 'mend'
+          ? PALETTE.heal
+          : atk.kind === 'summon'
+            ? PALETTE.portal
+            : PALETTE.telegraph;
+      s.teleBack.texture = this.textures.ring;
+      s.teleBack.anchor.set(0.5);
+      s.teleBack.position.set(x, y);
+      s.teleBack.rotation = 0;
+      s.teleBack.scale.set((radius / BAKE_RADIUS_PX) * (1.4 - 0.4 * progress));
+      s.teleBack.tint = tint;
+      s.teleBack.alpha = 0.5 + 0.4 * progress;
+      s.teleFill.texture = this.textures.dot;
+      s.teleFill.anchor.set(0.5);
+      s.teleFill.position.set(x, y);
+      s.teleFill.rotation = 0;
+      s.teleFill.scale.set((r / BAKE_RADIUS_PX) * (1.5 + progress));
+      s.teleFill.tint = tint;
+      s.teleFill.alpha = 0.3 + 0.4 * Math.sin(this.time * 20) * progress;
     } else {
-      // Ranged: a pulsing muzzle glow in the aim direction plus swelling body.
+      // Ranged (aimed volley, mine lob): a pulsing muzzle glow in the aim direction plus
+      // swelling body.
       s.teleBack.texture = this.textures.dot;
       s.teleBack.anchor.set(0.5);
       s.teleBack.position.set(x + dirX * r * 1.4, y + dirY * r * 1.4);
@@ -315,7 +413,7 @@ export class EntityView {
         s.body.scale.y * (1 + 0.25 * progress),
       );
     }
-    if (atk.kind !== 'lunge' && atk.kind !== 'volley') {
+    if (atk.kind === 'slam') {
       s.teleBack.anchor.set(0.5);
       s.teleFill.anchor.set(0.5);
     }

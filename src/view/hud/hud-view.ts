@@ -1,7 +1,9 @@
 import { Container, Sprite, Text, type Texture } from 'pixi.js';
 import { RIFT_SHOT } from '../../content/abilities';
+import { ENEMIES } from '../../content/enemies';
 import { TUNING } from '../../content/tuning';
-import { t } from '../../shared/i18n';
+import { type TranslationKey, t } from '../../shared/i18n';
+import { C } from '../../sim/ecs/components';
 import type { SimState } from '../../sim/sim';
 import { TICK_RATE_HZ } from '../../sim/time';
 import { PALETTE } from '../render/palette';
@@ -18,6 +20,8 @@ const DAMAGE_FLASH_SEC = 0.35;
 const CAST_PIP_WIDTH_PX = 14;
 const ULT_HEIGHT_PX = 5;
 const DENIED_PULSE_SEC = 0.35;
+const BOSS_BAR_MAX_WIDTH_PX = 520;
+const BOSS_BAR_HEIGHT_PX = 12;
 
 function bar(texture: Texture, tint: number, anchorX = 0): Sprite {
   const s = new Sprite(texture);
@@ -50,6 +54,14 @@ export class HudView {
   private castDeniedSec = 0;
   private ultDeniedSec = 0;
   private ultReadySec = 0;
+  private readonly bossBack: Sprite;
+  private readonly bossLag: Sprite;
+  private readonly bossFill: Sprite;
+  private readonly bossMarks: Sprite[] = [];
+  private readonly bossName: Text;
+  private bossType = -1;
+  private bossLagRatio = 1;
+  private bossVisible = false;
   private shownShards = -1;
   private shardPulseSec = 0;
   private shownLabel = '';
@@ -113,7 +125,87 @@ export class HudView {
       style: { ...style, fontSize: 15, fill: PALETTE.shard },
     });
     this.shardLabel.anchor.set(0, 0);
+    this.bossBack = bar(white, PALETTE.hpBack);
+    this.bossLag = bar(white, 0xffffff);
+    this.bossFill = bar(white, PALETTE.ultimate);
+    for (let i = 0; i < 4; i++) {
+      const mark = bar(white, 0xffffff);
+      mark.alpha = 0.8;
+      this.bossMarks.push(mark);
+    }
+    this.bossName = new Text({
+      text: '',
+      style: { ...style, fontSize: 15, fill: PALETTE.ultimate, letterSpacing: 4 },
+    });
+    this.bossName.anchor.set(0.5, 1);
     this.root.addChild(this.waveLabel, this.banner, this.exitArrow, this.shardLabel);
+    this.root.addChild(
+      this.bossBack,
+      this.bossLag,
+      this.bossFill,
+      ...this.bossMarks,
+      this.bossName,
+    );
+  }
+
+  /** Big boss bar with name and phase marks (GDD §11); hidden without a boss. */
+  private syncBoss(sim: SimState, dtSec: number): void {
+    const { world, c } = sim;
+    let boss = -1;
+    for (let eid = 0; eid < world.highWater; eid++) {
+      if (((world.masks[eid] as number) & C.Enemy) === 0) continue;
+      if (ENEMIES[c.enemyType[eid] as number]?.role === 'boss') {
+        boss = eid;
+        break;
+      }
+    }
+    const visible = boss >= 0;
+    this.bossVisible = visible;
+    this.bossBack.visible = this.bossLag.visible = this.bossFill.visible = visible;
+    this.bossName.visible = visible;
+    for (const m of this.bossMarks) m.visible = false;
+    if (!visible) return;
+    const type = c.enemyType[boss] as number;
+    const def = ENEMIES[type];
+    if (type !== this.bossType) {
+      this.bossType = type;
+      this.bossLagRatio = 1;
+      this.bossName.text = t(`boss.${def?.id ?? ''}.name` as TranslationKey);
+    }
+    const width = Math.min(BOSS_BAR_MAX_WIDTH_PX, this.width - 2 * MARGIN_PX - 40);
+    const narrow = this.width < HP_WIDTH_PX * 2 + 200;
+    const x = (this.width - width) / 2;
+    const y = narrow ? 118 : 64;
+    const ratio = Math.max(0, (c.hp[boss] as number) / (c.maxHp[boss] as number));
+    this.bossLagRatio =
+      this.bossLagRatio > ratio ? Math.max(ratio, this.bossLagRatio - dtSec * 0.4) : ratio;
+    this.bossBack.position.set(x, y);
+    this.bossBack.scale.set(width, BOSS_BAR_HEIGHT_PX);
+    this.bossLag.position.set(x, y);
+    this.bossLag.scale.set(width * this.bossLagRatio, BOSS_BAR_HEIGHT_PX);
+    this.bossFill.position.set(x, y);
+    this.bossFill.scale.set(width * ratio, BOSS_BAR_HEIGHT_PX);
+    // Enraged (last phase) glows hotter.
+    const phases = def?.boss?.phases ?? [];
+    const last = (c.aiPhase[boss] as number) >= phases.length - 1 && phases.length > 1;
+    this.bossFill.tint = last ? PALETTE.hpFill : PALETTE.ultimate;
+    this.bossName.position.set(this.width / 2, y - 4);
+    for (let i = 1; i < phases.length && i - 1 < this.bossMarks.length; i++) {
+      const mark = this.bossMarks[i - 1] as Sprite;
+      mark.visible = true;
+      mark.position.set(x + width * (phases[i]?.hpBelow ?? 0) - 1, y - 3);
+      mark.scale.set(2, BOSS_BAR_HEIGHT_PX + 6);
+    }
+  }
+
+  onBoss(name: string): void {
+    this.banner.text = name;
+    this.bannerSec = BANNER_SEC * 1.5;
+  }
+
+  onBossPhase(enraged: boolean): void {
+    this.banner.text = enraged ? t('hud.boss_enraged') : t('hud.boss_phase');
+    this.bannerSec = BANNER_SEC;
   }
 
   resize(width: number, height: number): void {
@@ -170,6 +262,8 @@ export class HudView {
   /** Label: arena wave, room wave x/y, or the horde countdown. */
   private label(sim: SimState): string {
     const room = sim.room;
+    // The boss bar says everything; a "wave 1/1" label would only add noise.
+    if (this.bossVisible) return '';
     if (room.mode === 'horde' && !room.cleared && sim.waves.wave > 0) {
       const sec = Math.ceil(Math.max(0, room.hordeTicksLeft) / TICK_RATE_HZ);
       return t('hud.horde', {
@@ -295,6 +389,7 @@ export class HudView {
       this.waveLabel.text = label;
     }
     this.syncExitArrow(sim, exitScreen);
+    this.syncBoss(sim, dtSec);
     if (this.bannerSec > 0) {
       this.bannerSec -= dtSec;
       const k = this.bannerSec / BANNER_SEC;

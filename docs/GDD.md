@@ -238,10 +238,27 @@ Ab Biom 3 können **Orbitale** erscheinen: automatisch auslösende Begleit-Effek
 | **Funkenspucker** | Schütze | 22 | hält 250–350 px Abstand, weicht zurück, feuert 3 langsame Geschosse im Fächer | 0,6 s Aufblähen, Mündungsglühen |
 | **Splitterkoloss** | Brecher | 120, Poise 40 | langsam, Bodenschlag mit Radius 130 px, danach 1,2 s verwundbar | 0,9 s roter Kreis am Boden, der sich füllt |
 
+**Umgesetzt (M2.5):**
+
+| Gegner | Rolle | Leben | Verhalten | Telegraph |
+|---|---|---|---|---|
+| **Glutmilbe** | Schwarm | 9 | sehr schnell, kurzer Sprung (70 px), billig (Wellenkosten 0,5) | 0,4 s Zusammenziehen, Linie am Boden |
+| **Aschenpriester** | Stützer | 34 | hält 280–380 px Abstand, heilt alle Verbündeten im Umkreis von 220 px um 35 % ihres Lebens | 0,9 s grüner Ring, der sich zusammenzieht |
+| **Glutleger** | Fallensteller | 40 | wirft 2 Minen: eine genau auf die Spielfigur, eine daneben. Sie explodieren nach 1,2 s (Radius 55 px). | Mündungsglühen, dann blinkende Bodenmarkierung, die sich füllt |
+
+Elite-Modifikatoren (M2.5): *Hastig* (+40 % Tempo, kürzere Pausen), *Geschirmt* (Frontschild im 140°-Kegel: nur 20 % Schaden, kein Rückstoß, kein Stagger; Rückseite und gefrorene Gegner sind ungeschützt), *Flüchtig* (hinterlässt beim Tod eine Explosion nach 0,9 s, Radius 110 px). Elites haben 60 % mehr Leben, sind etwas größer und tragen einen farbigen Ring. Elite-Räume enthalten 2 Elites: den Splitterkoloss der ersten Welle und einen zufälligen Gegner der zweiten.
+
 Jeder Gegner hat die Phasen **Vorbereitung → aktiv → Erholung**. Die Erholung ist das Strafbarkeitsfenster: Hier soll der Spieler zuschlagen.
 
 ### 5.3 Bosse
 Jeder Boss hat 2–3 Phasen, 4–6 Muster pro Phase, eine zornige Phase unter 30 % Leben und mindestens ein Muster, das einen perfekten Dash belohnt. Mit Brand-Stufen kommen zusätzliche Muster bzw. Phasen hinzu.
+
+**Umgesetzt (M2.5): Der Glutwächter** (1100 Leben, Poise 160)
+- **Phase 1:** Bodenschlag (Radius 170 px), Sturmangriff (360 px, belohnt den perfekten Dash), gezielter Fächer aus 7 Geschossen, 3 Minen um die Spielfigur.
+- **Phase 2 ab 55 %:** Der Wächter brüllt und ist dabei 1,4 s verwundbar. Dann: größerer Bodenschlag (210 px), schnellerer und längerer Sturmangriff, Geschossring aus 16 Geschossen, Fächer aus 9 Geschossen, 5 Minen, Beschwörung von 3 Glutmilben (höchstens 6 Gegner gleichzeitig). 20 % kürzere Pausen, 20 % schneller.
+- **Zorn ab 30 %:** gleiche Muster, 40 % kürzere Pausen, 35 % schneller, rote Lebensleiste.
+- Kein Muster wird zweimal hintereinander gewählt. Stirbt der Wächter, zerfallen seine Milben.
+- Die Boss-Leiste zeigt Namen und Phasengrenzen.
 
 ---
 

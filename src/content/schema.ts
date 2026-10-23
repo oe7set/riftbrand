@@ -44,17 +44,17 @@ export const weaponSchema = z.object({
   }),
 });
 
-const attackBase = {
+const attackTiming = {
   triggerRangePx: px,
   windupSec: z.number().min(0.4, 'GDD §4.6: telegraphs last at least 0.4 s'),
   activeSec: z.number().positive(),
   recoverySec: sec,
   cooldownMinSec: sec,
   cooldownMaxSec: sec,
-  damage: z.number().positive(),
   /** Fraction of the windup during which the attack still tracks the player. */
   trackFraction: z.number().min(0).max(1),
 };
+const attackBase = { ...attackTiming, damage: z.number().positive() };
 
 export const enemyAttackSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('lunge'), ...attackBase, lungePx: px }),
@@ -62,17 +62,53 @@ export const enemyAttackSchema = z.discriminatedUnion('kind', [
     kind: z.literal('volley'),
     ...attackBase,
     projectileCount: z.number().int().min(1),
-    spreadDeg: z.number().min(0),
+    /** Half the fan angle; 180 spreads the shots evenly all around. */
+    spreadDeg: z.number().min(0).max(180),
     projectileSpeedPxPerSec: z.number().positive().max(260, 'GDD §4.6: enemy shots ≤ 260 px/s'),
     projectileRadiusPx: z.number().positive(),
     projectileLifeSec: z.number().positive(),
   }),
   z.object({ kind: z.literal('slam'), ...attackBase, slamRadiusPx: px }),
+  z.object({
+    kind: z.literal('mine'),
+    ...attackBase,
+    /** Mines land around the player's position at the end of the windup. */
+    count: z.number().int().min(1),
+    spreadPx: px,
+    blastRadiusPx: z.number().positive(),
+    /** Time from landing to detonation; the ground marker fills up meanwhile. */
+    fuseSec: z.number().min(0.6, 'mines must be readable before they blow'),
+  }),
+  z.object({
+    kind: z.literal('summon'),
+    ...attackTiming,
+    /** Enemy id to summon (resolved to a type index at runtime). */
+    enemy: id,
+    count: z.number().int().min(1),
+    /** No summoning while this many enemies are already alive. */
+    maxAlive: z.number().int().min(1),
+  }),
+  z.object({
+    kind: z.literal('mend'),
+    ...attackTiming,
+    radiusPx: z.number().positive(),
+    /** Healing per ally as a fraction of its max HP. */
+    healFraction: z.number().positive().max(1),
+  }),
 ]);
+
+/** Boss phases (GDD §5.3): attack lists switch as HP drops; later phases may be faster. */
+const bossPhaseSchema = z.object({
+  /** The phase starts once HP falls to this fraction of max HP (first phase: 1). */
+  hpBelow: z.number().min(0).max(1),
+  attacks: z.array(enemyAttackSchema).min(1),
+  cooldownScale: z.number().positive(),
+  speedScale: z.number().positive(),
+});
 
 export const enemySchema = z.object({
   id,
-  role: z.enum(['chaser', 'shooter', 'bruiser', 'swarm', 'support', 'trapper']),
+  role: z.enum(['chaser', 'shooter', 'bruiser', 'swarm', 'support', 'trapper', 'boss']),
   maxHp: z.number().positive(),
   radiusPx: z.number().positive(),
   speedPxPerSec: z.number().nonnegative(),
@@ -84,12 +120,15 @@ export const enemySchema = z.object({
   weight: z.number().min(0).max(1),
   keepDistanceMinPx: px,
   keepDistanceMaxPx: px,
-  token: z.enum(['melee', 'ranged']),
+  /** Attack token pool (GDD §4.6); bosses need none. */
+  token: z.enum(['melee', 'ranged', 'none']),
   waveCost: z.number().positive(),
   /** Shards dropped on death (run currency, GDD §7.3). */
   shardValue: z.number().int().min(0),
   minWave: z.number().int().min(1),
   attack: enemyAttackSchema,
+  /** Bosses only: phases replace `attack` with a pattern picked per attack. */
+  boss: z.object({ phases: z.array(bossPhaseSchema).min(1) }).optional(),
   visual: z.object({
     color: z.number().int().nonnegative(),
     /** Polygon side count; 0 = circle. */
@@ -161,10 +200,15 @@ export const biomeSchema = z.object({
   eventMinLayer: z.number().int().min(0),
   /** Enemy types (indices into ENEMIES) that may appear here. */
   enemyPool: z.array(z.number().int().min(0)),
+  /** Enemy type (index into ENEMIES) fought at the boss node. */
+  boss: z.number().int().min(0),
+  /** Elites per elite room: the first is always the room's anchor (a bruiser). */
+  elitesPerRoom: z.number().int().min(1),
   combatBudgetBase: z.number().positive(),
   combatBudgetPerLayer: z.number().nonnegative(),
   eliteBudgetFactor: z.number().min(1),
-  bossBudget: z.number().positive(),
+  /** Extra enemies alongside the boss, as a wave budget (0 = boss alone). */
+  bossBudget: z.number().nonnegative(),
   hordeDurationSec: z.number().positive(),
   hordeSpawnIntervalSec: z.number().positive(),
   restHealFraction: z.number().min(0).max(1),
@@ -497,7 +541,40 @@ export function defineWeapon(def: WeaponDef): WeaponDef {
 }
 
 export function defineEnemy(def: EnemyDef): EnemyDef {
-  return enemySchema.parse(def);
+  const enemy = enemySchema.parse(def);
+  const phases = enemy.boss?.phases ?? [];
+  for (let i = 1; i < phases.length; i++) {
+    if (
+      (phases[i] as { hpBelow: number }).hpBelow >= (phases[i - 1] as { hpBelow: number }).hpBelow
+    )
+      throw new Error(`enemy ${enemy.id}: boss phases must have falling hpBelow`);
+  }
+  return enemy;
+}
+
+// ── Elite modifiers (GDD §5.1) ────────────────────────────────────────────
+
+export const eliteSchema = z.object({
+  id,
+  hpMultiplier: z.number().min(1),
+  /** Elites are a bit bigger so they read at a glance. */
+  radiusMultiplier: z.number().min(1),
+  speedMultiplier: z.number().positive(),
+  cooldownMultiplier: z.number().positive(),
+  /** Frontal shield: hits from within this cone (total angle) take reduced damage. */
+  shieldArcDeg: z.number().min(0).max(360),
+  shieldDamageFactor: z.number().min(0).max(1),
+  /** Volatile: on death a delayed blast is left behind (0 radius = none). */
+  deathBlastRadiusPx: px,
+  deathBlastDamage: z.number().nonnegative(),
+  deathBlastFuseSec: sec,
+  color: z.number().int().nonnegative(),
+});
+
+export type EliteDef = z.infer<typeof eliteSchema>;
+
+export function defineElite(def: EliteDef): EliteDef {
+  return eliteSchema.parse(def);
 }
 
 export function defineRoom(def: RoomTemplateDef): RoomTemplateDef {

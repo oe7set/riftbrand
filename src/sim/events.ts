@@ -50,6 +50,18 @@ export const Ev = {
   UltimateReady: 28,
   /** Cast or ultimate pressed without charge. value = 1 cast, 2 ultimate. */
   Denied: 29,
+  /** A mine or death blast was placed. amount = radius. */
+  HazardPlaced: 30,
+  /** A hazard detonated. amount = radius. */
+  HazardBlast: 31,
+  /** A frontal elite shield absorbed most of a hit. dir = hit direction. */
+  ShieldBlock: 32,
+  /** A support enemy healed its allies. amount = radius. */
+  EnemyMend: 33,
+  /** Boss entered a new phase. value = phase index (1 = second phase). */
+  BossPhase: 34,
+  /** Boss died; remaining minions crumble. value = enemy type. */
+  BossDefeated: 35,
 } as const;
 
 /** Player projectile kinds in event payloads (matches content projectile kinds). */

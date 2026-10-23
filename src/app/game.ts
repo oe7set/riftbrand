@@ -1,7 +1,8 @@
 import { RIFT_SHOT } from '../content/abilities';
 import { EMBER_WASTES } from '../content/biomes/ember-wastes';
 import { BOONS } from '../content/boons';
-import { ENEMIES } from '../content/enemies';
+import { ELITES } from '../content/elites';
+import { ENEMIES, ENEMY_TYPE } from '../content/enemies';
 import { EVOLUTIONS } from '../content/evolutions';
 import { RELICS } from '../content/relics';
 import { AudioEngine } from '../platform/audio/audio-engine';
@@ -33,6 +34,7 @@ import {
   debugWarpToExit,
 } from '../sim/debug';
 import { C } from '../sim/ecs/components';
+import { packEnemy } from '../sim/enemy-code';
 import { Ev, type EventBuffer } from '../sim/events';
 import { hashSim } from '../sim/hash';
 import {
@@ -203,7 +205,7 @@ export class Game {
         restart: (s) => this.startArena(s),
         spawnDrifters: (n) => spawnDrifters(this.sim, n),
         clearDrifters: () => clearDrifters(this.sim),
-        spawnEnemy: (type) => debugSpawnEnemy(this.sim, type),
+        spawnEnemy: (code) => debugSpawnEnemy(this.sim, code),
         killAllEnemies: () => debugKillAllEnemies(this.sim),
         clearRoom: () => debugClearRoom(this.sim),
         warpToExit: () => debugWarpToExit(this.sim),
@@ -260,6 +262,10 @@ export class Game {
       BOONS.map((b) => b.id),
       RELICS.map((r) => r.id),
       EVOLUTIONS.map((e) => e.id),
+      ELITES.map((e, i) => ({
+        label: `${e.id} slag`,
+        code: packEnemy(ENEMY_TYPE.slag, i + 1),
+      })),
     );
     this.pauseOverlay = new PauseOverlay(
       root,

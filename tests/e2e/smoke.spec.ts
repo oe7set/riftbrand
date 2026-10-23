@@ -18,8 +18,10 @@ test('boots without console errors and the player moves with the keyboard', asyn
   await expect(page.locator('#app canvas')).toBeVisible();
 
   const start = await page.evaluate(() => window.__riftbrand?.playerPosition());
+  const startTick = await page.evaluate(() => window.__riftbrand?.tick() ?? 0);
   await page.keyboard.down('KeyD');
-  await page.waitForTimeout(500);
+  // Wait for sim time, not wall time: slow CI runners render fewer ticks per second.
+  await page.waitForFunction((t) => (window.__riftbrand?.tick() ?? 0) >= t + 30, startTick);
   await page.keyboard.up('KeyD');
   const end = await page.evaluate(() => window.__riftbrand?.playerPosition());
 
