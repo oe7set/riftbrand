@@ -250,12 +250,14 @@ Ab Biom 3 können **Orbitale** erscheinen: automatisch auslösende Begleit-Effek
 
 Elite-Modifikatoren (M2.5): *Hastig* (+40 % Tempo, kürzere Pausen), *Geschirmt* (Frontschild im 140°-Kegel: nur 20 % Schaden, kein Rückstoß, kein Stagger; Rückseite und gefrorene Gegner sind ungeschützt), *Flüchtig* (hinterlässt beim Tod eine Explosion nach 0,9 s, Radius 110 px). Elites haben 60 % mehr Leben, sind etwas größer und tragen einen farbigen Ring. Elite-Räume enthalten 2 Elites: den Splitterkoloss der ersten Welle und einen zufälligen Gegner der zweiten.
 
+**Balancing (M2.8, per Simulator):** Kampfräume haben 3 Wellen (ab Ebene 2: 4) mit einem Budget von 7 + 1,8 pro Ebene, Horden dauern 60 s. Der Funkenspucker schießt seltener (alle 2,2–3,0 s) und schwächer (8 Schaden).
+
 Jeder Gegner hat die Phasen **Vorbereitung → aktiv → Erholung**. Die Erholung ist das Strafbarkeitsfenster: Hier soll der Spieler zuschlagen.
 
 ### 5.3 Bosse
 Jeder Boss hat 2–3 Phasen, 4–6 Muster pro Phase, eine zornige Phase unter 30 % Leben und mindestens ein Muster, das einen perfekten Dash belohnt. Mit Brand-Stufen kommen zusätzliche Muster bzw. Phasen hinzu.
 
-**Umgesetzt (M2.5): Der Glutwächter** (1100 Leben, Poise 160)
+**Umgesetzt (M2.5, Werte aus M2.8): Der Glutwächter** (3000 Leben, Poise 160, 50 % Status-Resistenz: Brand macht halben Schaden, Einfrieren hält halb so lang)
 - **Phase 1:** Bodenschlag (Radius 170 px), Sturmangriff (360 px, belohnt den perfekten Dash), gezielter Fächer aus 7 Geschossen, 3 Minen um die Spielfigur.
 - **Phase 2 ab 55 %:** Der Wächter brüllt und ist dabei 1,4 s verwundbar. Dann: größerer Bodenschlag (210 px), schnellerer und längerer Sturmangriff, Geschossring aus 16 Geschossen, Fächer aus 9 Geschossen, 5 Minen, Beschwörung von 3 Glutmilben (höchstens 6 Gegner gleichzeitig). 20 % kürzere Pausen, 20 % schneller.
 - **Zorn ab 30 %:** gleiche Muster, 40 % kürzere Pausen, 35 % schneller, rote Lebensleiste.
