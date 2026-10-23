@@ -929,6 +929,10 @@ body {
   --speaker: #c46bff;
 }
 
+.rb-speech.speaker-sel {
+  --speaker: #b8a6ff;
+}
+
 .rb-speech-name {
   font-size: 12px;
   letter-spacing: 0.08em;
@@ -953,6 +957,15 @@ body {
 
 .rb-button.rb-nix {
   border-color: #c46bff;
+}
+
+.rb-button.rb-sel {
+  border-color: #b8a6ff;
+}
+
+.rb-card.rb-spell.is-equipped {
+  box-shadow: 0 0 16px var(--being);
+  opacity: 1;
 }
 
 .rb-button.rb-danger {

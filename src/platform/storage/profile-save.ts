@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { createProfile, type Profile } from '../../sim/meta/profile';
 
-export const PROFILE_VERSION = 1;
+export const PROFILE_VERSION = 2;
 const KEY = 'profile';
 const BACKUP_KEY = 'profile.backup';
 
@@ -28,17 +28,37 @@ const profileSchema = z.object({
   seenDialogue: z.array(z.string()),
   flags: z.array(z.string()),
   lastRun: lastRunSchema.nullable(),
+  spellsUnlocked: z.array(z.string()),
+  spellsDiscovered: z.array(z.string()),
+  loadout: z.object({ active: z.string(), aura: z.string() }),
 });
 
 const saveSchema = z.object({ version: z.literal(PROFILE_VERSION), profile: profileSchema });
 
+/** v1 → v2 (M3.6): spells at Sel's rune tower; old profiles own the start spells. */
+function migrate1to2(raw: { version: number; profile?: Record<string, unknown> }): unknown {
+  const fresh = createProfile();
+  return {
+    ...raw,
+    version: 2,
+    profile: {
+      ...raw.profile,
+      spellsUnlocked: fresh.spellsUnlocked,
+      spellsDiscovered: [],
+      loadout: fresh.loadout,
+    },
+  };
+}
+
 /**
- * Upgrades older profile saves step by step (vN → vN+1; none yet). Broken data yields null so
- * the caller can fall back to the backup slot: losing progress is the worst bug there is.
+ * Upgrades older profile saves step by step (vN → vN+1). Broken data yields null so the caller
+ * can fall back to the backup slot: losing progress is the worst bug there is.
  */
 export function migrateProfile(raw: unknown): Profile | null {
   if (typeof raw !== 'object' || raw === null) return null;
-  const parsed = saveSchema.safeParse(raw);
+  let data = raw as { version?: unknown; profile?: Record<string, unknown> };
+  if (data.version === 1) data = migrate1to2(data as { version: number }) as typeof data;
+  const parsed = saveSchema.safeParse(data);
   return parsed.success ? parsed.data.profile : null;
 }
 

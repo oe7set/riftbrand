@@ -38,6 +38,18 @@ describe('profile save', () => {
     expect(migrateProfile({ version: 99, profile: createProfile() })).toBeNull();
     expect(migrateProfile('x')).toBeNull();
   });
+
+  it('migrates a v1 profile: keeps progress, adds the start spells (M3.6)', () => {
+    const { spellsUnlocked, spellsDiscovered, loadout, ...v1 } = createProfile();
+    v1.ember = 123;
+    v1.runs = 4;
+    const p = migrateProfile({ version: 1, profile: v1 });
+    expect(p?.ember).toBe(123);
+    expect(p?.runs).toBe(4);
+    expect(p?.spellsUnlocked).toEqual(spellsUnlocked);
+    expect(p?.spellsDiscovered).toEqual(spellsDiscovered);
+    expect(p?.loadout).toEqual(loadout);
+  });
 });
 
 describe('export and import', () => {

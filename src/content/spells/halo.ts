@@ -21,5 +21,6 @@ export const HALO = defineSpell({
       { id: 'triple_halo', mods: { count: 1 } },
     ],
   },
+  unlockCost: { ember: 60, dust: 2 },
   visual: { color: 0xfff6c8, glyph: 'eye' },
 });

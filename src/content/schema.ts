@@ -783,6 +783,13 @@ export const spellSchema = z.object({
   effect: spellEffectSchema,
   onKill: spellOnKillSchema.optional(),
   upgrades: upgradeTreeSchema,
+  /**
+   * Price at Sel's rune tower (ROADMAP M3.6); start spells have none. A spell found in a run
+   * is "discovered" and costs half.
+   */
+  unlockCost: z
+    .object({ ember: z.number().int().min(0), dust: z.number().int().min(0) })
+    .optional(),
   visual: z.object({ color: z.number().int().nonnegative(), glyph: glyphSchema }),
 });
 
@@ -852,6 +859,8 @@ const treeEffectSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('lastSpark'), healPerRank: z.array(z.number().min(0).max(1)).min(1) }),
   z.object({ kind: z.literal('boonReroll'), perRank: z.number().int().positive() }),
   z.object({ kind: z.literal('staminaSegment'), perRank: z.number().int().positive() }),
+  /** Runenkunde (ROADMAP M3.6): the equipped active spell starts this many levels higher. */
+  z.object({ kind: z.literal('spellStartLevel'), perRank: z.number().int().positive() }),
 ]);
 
 export const treeNodeSchema = z.object({
@@ -876,7 +885,7 @@ export function defineTreeNode(def: TreeNodeDef): TreeNodeDef {
   return node;
 }
 
-export const speakerSchema = z.enum(['maren', 'nix']);
+export const speakerSchema = z.enum(['maren', 'nix', 'sel']);
 
 /** Hades-style dialogue (GDD §2.6): the best-matching unseen line wins, fillers repeat. */
 export const dialogueLineSchema = z.object({
