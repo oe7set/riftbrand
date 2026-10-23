@@ -29,6 +29,8 @@ export interface DebugHooks {
   giveShards(amount: number): void;
   /** Meta currencies for testing the Ember Tree and Nix. */
   giveMeta(ember: number, dust: number): void;
+  /** Downloads the local run log (last 50 runs) as JSON. */
+  exportRunLog(): void;
   fillUltimate(): void;
   refillCast(): void;
   giveEvolution(id: string): void;
@@ -153,6 +155,11 @@ export class DebugMenu {
           ...evolutionIds.map((id) =>
             this.button(`Evolve: ${id}`, () => this.hooks.giveEvolution(id)),
           ),
+        ]),
+      ]),
+      this.section('Run log', false, [
+        el('div', { className: 'rb-debug-row' }, [
+          this.button('Export run log (JSON)', () => this.hooks.exportRunLog()),
         ]),
       ]),
       this.section('Stress test', false, [

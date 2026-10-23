@@ -167,6 +167,15 @@ export function shopStock(run: RunState, node: Pick<MapNode, 'id'>): ShopItem[] 
 
 // ── Events ────────────────────────────────────────────────────────────────
 
+/** Whether an event option can be chosen right now (shard and HP requirements). */
+export function eventOptionAvailable(
+  run: Pick<RunState, 'shards' | 'hp'>,
+  option: { requiresShards?: number; requiresHpAbove?: number },
+): boolean {
+  if (option.requiresShards !== undefined && run.shards < option.requiresShards) return false;
+  return option.requiresHpAbove === undefined || run.hp > option.requiresHpAbove;
+}
+
 export function eventFor(seed: number, nodeId: number) {
   const rng = createRng(hashString(`${seed}:event:${nodeId}`));
   return EVENTS[nextInt(rng, 0, EVENTS.length)] ?? EVENTS[0];

@@ -139,6 +139,11 @@ export class GameView {
     this.hud.resize(size.width, size.height);
   }
 
+  /** Idle opacity of the on-screen touch buttons (layout editor setting). */
+  setTouchOpacity(alpha: number): void {
+    this.touchControls.idleAlpha = alpha;
+  }
+
   addZoomPunch(amount: number): void {
     this.zoomPunch = Math.max(this.zoomPunch, amount);
   }

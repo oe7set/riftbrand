@@ -1,0 +1,50 @@
+name: itch.io
+
+# Uploads the web build to itch.io with butler (ROADMAP M2: "Early Prototype").
+# Runs on demand and for version tags. Needs, under Settings → Secrets and variables → Actions:
+#   - secret   BUTLER_API_KEY  (itch.io → Settings → API keys)
+#   - variable ITCH_TARGET     e.g. "username/riftbrand" (the itch.io project must exist)
+# Without them the job only builds and skips the upload. Whether the page is hidden,
+# restricted or public is set on itch.io itself, not here.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - name: Build (relative paths, no service worker)
+        run: pnpm build
+        env:
+          # itch.io serves the game from a CDN subfolder inside an iframe.
+          BASE_PATH: ./
+          ENABLE_PWA: "false"
+          GIT_SHA: ${{ github.sha }}
+      - name: Upload with butler
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+          ITCH_TARGET: ${{ vars.ITCH_TARGET }}
+          VERSION: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
+        run: |
+          if [ -z "$BUTLER_API_KEY" ] || [ -z "$ITCH_TARGET" ]; then
+            echo "::notice::BUTLER_API_KEY or ITCH_TARGET not set; skipping the itch.io upload."
+            exit 0
+          fi
+          curl -sSfL -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip -d butler
+          chmod +x butler/butler
+          ./butler/butler push dist "$ITCH_TARGET:html5" --userversion "$VERSION"

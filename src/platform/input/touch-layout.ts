@@ -1,7 +1,25 @@
 import { Button, type ButtonBit } from '../../shared/input-frame';
 
+export type TouchButtonId = 'attack' | 'dash' | 'special' | 'cast' | 'ultimate' | 'pause';
+
+/** A player's adjustment of one button: position as a fraction of the screen, size factor. */
+export interface TouchButtonOverride {
+  x: number;
+  y: number;
+  scale: number;
+}
+
+/** Layout editor result (GDD §10.1): one profile per orientation. */
+export interface TouchLayoutOverrides {
+  portrait: Partial<Record<TouchButtonId, TouchButtonOverride>>;
+  landscape: Partial<Record<TouchButtonId, TouchButtonOverride>>;
+}
+
+export const MIN_BUTTON_SCALE = 0.6;
+export const MAX_BUTTON_SCALE = 1.8;
+
 export interface TouchButtonLayout {
-  id: 'attack' | 'dash' | 'special' | 'cast' | 'ultimate' | 'pause';
+  id: TouchButtonId;
   /** Pause is an app action, not a sim button. */
   bit: ButtonBit | 0;
   x: number;
@@ -27,7 +45,11 @@ export interface TouchLayout {
  * Default thumb-friendly layout in CSS pixels: attack button in the bottom-right corner,
  * dash/special/cast/ultimate on an arc around it. Portrait keeps everything in the lower third.
  */
-export function computeTouchLayout(width: number, height: number): TouchLayout {
+export function computeTouchLayout(
+  width: number,
+  height: number,
+  overrides?: TouchLayoutOverrides,
+): TouchLayout {
   const portrait = height > width;
   const short = Math.min(width, height);
   // Scale with the short screen edge, clamped so buttons stay finger-sized.
@@ -98,7 +120,19 @@ export function computeTouchLayout(width: number, height: number): TouchLayout {
     ? { x: 0, y: height * 0.55, width: width * 0.55, height: height * 0.45 }
     : { x: 0, y: height * 0.25, width: width * 0.5, height: height * 0.75 };
 
-  return { orientation: portrait ? 'portrait' : 'landscape', joystickZone, buttons };
+  const orientation = portrait ? 'portrait' : 'landscape';
+  const custom = overrides?.[orientation];
+  if (custom) {
+    for (const b of buttons) {
+      const o = custom[b.id];
+      if (!o) continue;
+      b.radius *= Math.min(MAX_BUTTON_SCALE, Math.max(MIN_BUTTON_SCALE, o.scale));
+      // Keep every button fully on screen whatever the stored fractions say.
+      b.x = Math.min(width - b.radius, Math.max(b.radius, o.x * width));
+      b.y = Math.min(height - b.radius, Math.max(b.radius, o.y * height));
+    }
+  }
+  return { orientation, joystickZone, buttons };
 }
 
 /** Topmost button under the point, with a small grace radius for imprecise thumbs. */

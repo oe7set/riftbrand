@@ -85,11 +85,11 @@ _Hinweis: Wurf- und Ultimate-Button sind sichtbar, aber erst ab M2 belegt._
 - [x] Meta: Glut und Rissstaub, Glutbaum (ca. 8 Knoten), Zuflucht als einfacher Hub mit 2 Figuren und Dialogsystem (ca. 30 Zeilen)
 - [x] **Speichern:** Profil, Einstellungen, Run-Zwischenstand, Migrationen, Export/Import
 - [x] **i18n** EN/DE, Menü-Oberfläche (Preact): Titel, Hub, Belohnungs-Auswahl, Pause mit Build-Übersicht, Ergebnis bzw. Tod mit Fortschrittsbalken
-- [ ] Musik: 2 Tracks mit Schichten (Erkundung bzw. Kampf, Boss)
-- [ ] Headless-Simulator v1 mit Bot und Balancing-Bericht
-- [ ] Lokales Run-Log mit Export
-- [ ] Touch-Layout-Editor
-- [ ] Erster Upload auf itch.io als „Early Prototype“ (unveröffentlicht oder öffentlich, nach deiner Entscheidung)
+- [x] Musik: 2 Tracks mit Schichten (Erkundung bzw. Kampf, Boss) _(prozedural, ADR 0004)_
+- [x] Headless-Simulator v1 mit Bot und Balancing-Bericht
+- [x] Lokales Run-Log mit Export
+- [x] Touch-Layout-Editor
+- [ ] Erster Upload auf itch.io als „Early Prototype“ (unveröffentlicht oder öffentlich, nach deiner Entscheidung) _(Pipeline steht; es fehlen das itch.io-Projekt und der API-Key)_
 
 **Pakete (je ein PR):**
 1. ✅ **M2.1 Run-Gerüst:** Map-Generierung und Map-Ansicht, Raumvorlagen mit Hindernissen, Raumtypen Kampf/Elite/Horde/Rast/Boss (Platzhalter-Boss), Ausgang nach dem Raum-Clear, Titelbildschirm, Run-Zwischenstand speichern und fortsetzen, Sieg-Bildschirm, Debug-Button im Pause-Menü
@@ -98,7 +98,7 @@ _Hinweis: Wurf- und Ultimate-Button sind sichtbar, aber erst ab M2 belegt._
 4. ✅ **M2.4 Neue Aktionen:** Riss-Geschoss, Brandausbruch, Duo-Segen, Evolution Phönixklinge
 5. ✅ **M2.5 Gegner und Boss:** 3 weitere Gegner, 3 Elite-Modifikatoren, Boss „Der Glutwächter“ (2 Phasen)
 6. ✅ **M2.6 Meta:** Zuflucht (Hub), Glut und Rissstaub, Glutbaum, Dialoge, Profil-Speicherstand, Export/Import
-7. **M2.7 Abrundung:** Musik, Headless-Simulator v1, Run-Log, Touch-Layout-Editor, itch.io
+7. ✅ **M2.7 Abrundung:** Musik, Headless-Simulator v1, Run-Log, Touch-Layout-Editor, itch.io
 
 **Abnahme:** Ein Run durch Biom 1 dauert 6–8 Minuten und macht Spaß. Ein Tod motiviert zum nächsten Run. Mindestens 3 externe Tester spielen 3 oder mehr Runs freiwillig. Der Simulator zeigt keine offensichtlichen Ausreißer.
 

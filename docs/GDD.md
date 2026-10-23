@@ -444,7 +444,7 @@ Beispiele:
   - Linke Bildschirmhälfte: Floating Joystick (erscheint unter dem Daumen, Totzone 10 %, Radius 60 px).
   - Rechts: großer Angriffs-Button. Im Bogen darum liegen Dash (groß), Spezialangriff, Wurf und Ultimate (mit Lade-Ring).
 - **Hochformat:** Die Steuerung sitzt im unteren Drittel. Die Kamera zeigt mehr vertikalen Raum, das HUD sitzt oben.
-- **Anpassbar:** Größe, Position und Deckkraft jedes Buttons über einen Layout-Editor, mit Profilen pro Ausrichtung.
+- **Anpassbar:** Größe, Position und Deckkraft jedes Buttons über einen Layout-Editor, mit Profilen pro Ausrichtung. _(M2.7: Pause → Einstellungen → „Touch-Layout anpassen“. Position und Größe pro Button, Deckkraft für alle Buttons zusammen.)_
 - **Input-Buffer** von 150 ms für alle Aktionen.
 - Pause durch Antippen des Pause-Icons. Die App pausiert außerdem automatisch, wenn sie den Fokus verliert.
 
@@ -503,6 +503,7 @@ Die zuletzt verwendete Eingabemethode bestimmt die angezeigten Hinweise und die 
   - Boss: eigener Track
 - **Prioritäten und Ducking:** Wichtige Sounds (Telegraphs, Spieler getroffen) sind immer hörbar.
 - **Stil (offen, zu klären):** Vorschlag Darksynth bzw. Synthwave mit orchestralen Elementen, passend zum Neon-Look und zur mythischen Stimmung.
+- **Umgesetzt (M2.7):** prozedurale Darksynth-Musik aus dem eigenen Synthesizer (ADR 0004). Aschefelder: a-Moll, 110 BPM, Pad und Arpeggio beim Erkunden, Bass, Kick, Snare und Hi-Hats kommen im Kampf dazu und verschwinden nach dem Raum-Clear wieder. Glutwächter: d-Moll, 128 BPM, eigener Track mit Lead-Melodie. Treffer, Ultimate und Boss-Brüllen ducken die Musik kurz. Musik hat einen eigenen Lautstärkeregler.
 
 ---
 

@@ -1030,3 +1030,68 @@ body {
   font-size: 14px;
   opacity: 0.9;
 }
+
+/* ── M2.7: touch layout editor ───────────────────────────────────── */
+
+.rb-layout-editor {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 4, 12, 0.55);
+  touch-action: none;
+  user-select: none;
+}
+
+.rb-layout-button {
+  position: absolute;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ffffff;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  cursor: grab;
+  touch-action: none;
+}
+
+.rb-layout-button.is-selected {
+  border-color: var(--rb-accent);
+  box-shadow: 0 0 14px var(--rb-accent);
+  background: rgba(127, 246, 255, 0.15);
+}
+
+.rb-layout-toolbar {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 8px;
+  width: min(460px, 94vw);
+  padding: 10px 12px;
+  background: rgba(10, 8, 20, 0.92);
+  border: 1px solid rgba(127, 246, 255, 0.4);
+  border-radius: 12px;
+}
+
+.rb-layout-title {
+  font-weight: 800;
+  text-align: center;
+}
+
+.rb-layout-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+}
+
+.rb-layout-row .rb-button {
+  padding: 6px 12px;
+  min-width: 40px;
+}

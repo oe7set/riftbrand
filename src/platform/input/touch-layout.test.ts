@@ -43,3 +43,27 @@ describe('touch layout', () => {
     expect(hitTestButton(layout, 10, 10)).toBeNull();
   });
 });
+
+describe('layout overrides', () => {
+  it('moves and scales buttons per orientation, clamped to the screen', () => {
+    const base = computeTouchLayout(400, 900);
+    const attack = base.buttons.find((b) => b.id === 'attack');
+    const custom = computeTouchLayout(400, 900, {
+      portrait: { attack: { x: 0.5, y: 0.5, scale: 1.5 }, dash: { x: 2, y: -1, scale: 1 } },
+      landscape: {},
+    });
+    const moved = custom.buttons.find((b) => b.id === 'attack');
+    expect(moved?.x).toBe(200);
+    expect(moved?.y).toBe(450);
+    expect(moved?.radius).toBeCloseTo((attack?.radius ?? 0) * 1.5);
+    const dash = custom.buttons.find((b) => b.id === 'dash');
+    expect(dash?.x).toBeLessThanOrEqual(400 - (dash?.radius ?? 0));
+    expect(dash?.y).toBeGreaterThanOrEqual(dash?.radius ?? 0);
+    // A portrait profile leaves landscape alone.
+    const onlyPortrait = {
+      portrait: { attack: { x: 0.1, y: 0.1, scale: 1 } },
+      landscape: {},
+    };
+    expect(computeTouchLayout(900, 400, onlyPortrait)).toEqual(computeTouchLayout(900, 400));
+  });
+});

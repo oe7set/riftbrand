@@ -40,7 +40,12 @@ export class PauseOverlay {
 
   constructor(
     parent: HTMLElement,
-    actions: { resume(): void; toTitle(): void; toggleDebug(): void },
+    private readonly actions: {
+      resume(): void;
+      toTitle(): void;
+      toggleDebug(): void;
+      editLayout(): void;
+    },
     private readonly settings: Settings,
     private readonly onSettingsChange: (s: Settings) => void,
   ) {
@@ -68,7 +73,7 @@ export class PauseOverlay {
     box.replaceChildren(div('rb-settings-title', t('settings.title')));
     const slider = (
       label: string,
-      key: 'masterVolume' | 'sfxVolume' | 'shake' | 'flashes' | 'vibration',
+      key: 'masterVolume' | 'sfxVolume' | 'musicVolume' | 'shake' | 'flashes' | 'vibration',
     ) => {
       const input = document.createElement('input');
       input.type = 'range';
@@ -87,6 +92,7 @@ export class PauseOverlay {
     };
     slider(t('settings.master_volume'), 'masterVolume');
     slider(t('settings.sfx_volume'), 'sfxVolume');
+    slider(t('settings.music_volume'), 'musicVolume');
     slider(t('settings.shake'), 'shake');
     slider(t('settings.flashes'), 'flashes');
     slider(t('settings.vibration'), 'vibration');
@@ -119,6 +125,13 @@ export class PauseOverlay {
     qualityRow.className = 'rb-setting';
     qualityRow.append(div('rb-setting-label', t('settings.quality')), quality);
     box.append(qualityRow);
+
+    const layout = document.createElement('button');
+    layout.type = 'button';
+    layout.className = 'rb-button rb-small';
+    layout.textContent = t('settings.touch_layout');
+    layout.addEventListener('click', () => this.actions.editLayout());
+    box.append(layout);
   }
 
   /** Build overview (ROADMAP M2.3): every boon and relic with its current effect. */
@@ -212,6 +225,11 @@ export class PauseOverlay {
 
   hide(): void {
     this.root.hidden = true;
+  }
+
+  /** Steps aside while the touch layout editor is open, without leaving the pause. */
+  setVisible(visible: boolean): void {
+    this.root.hidden = !visible;
   }
 }
 

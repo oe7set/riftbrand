@@ -20,11 +20,12 @@ pnpm typecheck    # tsc --noEmit
 pnpm test         # Vitest: Unit-, Determinismus- und Architekturtests
 pnpm e2e          # Playwright-Smoke-Test (vorher pnpm build)
 pnpm bench:ecs    # ECS-Benchmark (ADR 0001)
+pnpm sim          # Headless-Simulator: Bots spielen Runs, Balancing-Bericht (--runs, --bot, --fresh, --csv)
 pnpm icons        # PWA-Icons aus public/icons/icon.svg rendern
 ```
 - Vor jedem Commit: `pnpm check && pnpm typecheck && pnpm test`.
 - In der Claude-Cloud-Umgebung ist Chromium vorinstalliert: `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium pnpm e2e` (nie `playwright install` ausführen).
-- `pnpm sim` (Headless-Simulator) kommt in M2.
+- Balancing-Änderungen mit `pnpm sim` vorher und nachher prüfen und die Zahlen im PR nennen.
 - **Nie** `pkill -f "vite preview"` o. Ä. verwenden: Das Muster trifft die eigene Shell. Stattdessen die PID gezielt beenden.
 
 ## Harte Architekturregeln

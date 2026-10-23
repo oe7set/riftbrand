@@ -263,6 +263,7 @@ export class FeedbackDirector {
         this.view.addZoomPunch(TUNING.lastEnemyZoomPunch);
         this.view.hud.onBossPhase(last);
         this.audio.play('roar', { pitchVariation: 0, pitch: last ? 1.15 : 1 });
+        this.audio.duckMusic(0.7, 0.6);
         this.haptics.pulse(80, 0.8);
         this.requestSlowMo({
           scale: TUNING.lastEnemyTimeScale,
@@ -299,6 +300,7 @@ export class FeedbackDirector {
         this.view.hud.onPlayerHit();
         shake.add(TUNING.shakePlayerHitTrauma);
         this.audio.play('playerHit', { pitchVariation: 0.04 });
+        this.audio.duckMusic(0.5, 0.2);
         this.haptics.pulse(40, 1);
         break;
       case Ev.StaminaEmpty:
@@ -357,6 +359,7 @@ export class FeedbackDirector {
         shake.add(1);
         this.view.addZoomPunch(TUNING.lastEnemyZoomPunch * 1.5);
         this.audio.play('ultimate', { pitchVariation: 0 });
+        this.audio.duckMusic(0.7, 0.4);
         this.haptics.pulse(90, 1);
         this.requestSlowMo({
           scale: TUNING.ultimateTimeScale,
