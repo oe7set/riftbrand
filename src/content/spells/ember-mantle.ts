@@ -22,5 +22,15 @@ export const EMBER_MANTLE = defineSpell({
     knockback: 0,
     delaySec: 0,
   },
+  upgrades: {
+    tier3: [
+      { id: 'wide_mantle', mods: { radiusMult: 1.35 } },
+      { id: 'searing', mods: { stacksAdd: 1 } },
+    ],
+    tier5: [
+      { id: 'quick_flame', mods: { pulseMult: 0.65 } },
+      { id: 'blaze', mods: { radiusMult: 1.25, stacksAdd: 1 } },
+    ],
+  },
   visual: { color: 0xffa64d, glyph: 'flame' },
 });

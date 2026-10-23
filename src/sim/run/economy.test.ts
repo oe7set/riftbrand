@@ -83,14 +83,14 @@ describe('run economy', () => {
     expect(run.shards).toBe(12 + 10);
   });
 
-  it('elites always grant relics; combat rewards are mostly boons', () => {
+  it('elites always grant relics; boons are the most common combat reward (45 %)', () => {
     let boons = 0;
     for (let id = 0; id < 400; id++) {
       expect(nodeReward(5, { id, type: 'elite' })?.kind).toBe('relic');
       if (nodeReward(5, { id, type: 'combat' })?.kind === 'boon') boons++;
     }
-    expect(boons).toBeGreaterThan(200);
-    expect(boons).toBeLessThan(290);
+    expect(boons).toBeGreaterThan(150);
+    expect(boons).toBeLessThan(210);
     expect(nodeReward(5, { id: 1, type: 'rest' })).toBeNull();
   });
 
@@ -161,12 +161,12 @@ describe('spells as rewards (M3.3)', () => {
 
   it('replaces the spell of the same kind and keeps its level', () => {
     const run = createRun(32);
-    run.spells.active = { id: 'frost_nova', level: 3 };
+    run.spells.active = { id: 'frost_nova', level: 3, branches: [1] };
     equipRunSpell(run, 'meteor');
-    expect(run.spells.active).toEqual({ id: 'meteor', level: 3 });
+    expect(run.spells.active).toEqual({ id: 'meteor', level: 3, branches: [1] });
     expect(run.spells.aura?.id).toBe('ember_mantle');
     equipRunSpell(run, 'halo');
-    expect(run.spells.aura).toEqual({ id: 'halo', level: 1 });
+    expect(run.spells.aura).toEqual({ id: 'halo', level: 1, branches: [] });
   });
 
   it('stocks one spell in the shop', () => {

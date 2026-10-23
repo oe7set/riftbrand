@@ -402,6 +402,7 @@ export class FeedbackDirector {
         if (kind?.type === 'beam') {
           // Beams start at the player, which is where the event sits.
           fx.beam(e.x, e.y, e.dirX, e.dirY, e.amount, kind.widthPx, color);
+          if (e.flags === 1) break;
           shake.add(TUNING.shakeLightTrauma);
           this.audio.play('spellBeam', { pan: this.pan(e.x) });
           this.haptics.pulse(20, 0.5);

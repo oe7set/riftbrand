@@ -21,5 +21,15 @@ export const FROST_NOVA = defineSpell({
     knockback: 260,
     delaySec: 0,
   },
+  upgrades: {
+    tier3: [
+      { id: 'wide_ring', mods: { radiusMult: 1.35 } },
+      { id: 'shatter', mods: { damageMult: 2.2, knockbackMult: 1.3 } },
+    ],
+    tier5: [
+      { id: 'echo', mods: { count: 1 } },
+      { id: 'deep_winter', mods: { cooldownMult: 0.7 } },
+    ],
+  },
   visual: { color: 0x8fe3ff, glyph: 'nova' },
 });

@@ -91,10 +91,19 @@ describe('run save', () => {
   });
 
   it('migrates v5 saves (no spells yet) to the start spells', () => {
-    const { spells: _s, ...v5Run } = createRun(14);
+    const { spells: _s, cast: _c, ...v5Run } = createRun(14);
     const migrated = migrateRunSave({ version: 5, run: { ...v5Run, shards: 12 } });
     expect(migrated?.shards).toBe(12);
     expect(migrated?.spells).toEqual(startSpellSlots());
+  });
+
+  it('migrates v6 saves (no upgrade branches yet)', () => {
+    const { cast: _c, ...v6Run } = createRun(15);
+    const spells = { active: { id: 'meteor', level: 2 }, aura: null };
+    const migrated = migrateRunSave({ version: 6, run: { ...v6Run, spells } });
+    expect(migrated?.spells.active).toEqual({ id: 'meteor', level: 2, branches: [] });
+    expect(migrated?.spells.aura).toBeNull();
+    expect(migrated?.cast).toEqual({ level: 1, branches: [] });
   });
 
   it('clears the save', () => {

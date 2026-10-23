@@ -12,13 +12,13 @@ import { clearBonusShards, heal, nodeReward, runStats } from './economy';
 import { buildEncounter, type Encounter } from './encounter';
 import { generateMap, type MapNode, type RunMap } from './map';
 import { addBoon, type BoonOffer, rewardRarityBonus, rollBoonOffer } from './rewards';
+import type { UpgradeState } from './upgrades';
 
 export type RunStatus = 'map' | 'room' | 'won' | 'lost';
 
-/** A spell in one of the two slots (ROADMAP M3.2); levels grow in the run (M3.4). */
-export interface OwnedSpell {
+/** A spell in one of the two slots (ROADMAP M3.2); level and branches grow in the run (M3.4). */
+export interface OwnedSpell extends UpgradeState {
   id: string;
-  level: number;
 }
 
 export interface SpellSlots {
@@ -28,8 +28,8 @@ export interface SpellSlots {
 
 export function startSpellSlots(): SpellSlots {
   return {
-    active: { id: START_SPELLS.active, level: 1 },
-    aura: { id: START_SPELLS.aura, level: 1 },
+    active: { id: START_SPELLS.active, level: 1, branches: [] },
+    aura: { id: START_SPELLS.aura, level: 1, branches: [] },
   };
 }
 
@@ -79,6 +79,8 @@ export interface RunState {
   reachedBoss: boolean;
   /** Equipped spells (ROADMAP M3.2). */
   spells: SpellSlots;
+  /** Rift shot upgrades (ROADMAP M3.4). */
+  cast: UpgradeState;
 }
 
 export interface RoomSetup {
@@ -98,6 +100,7 @@ export interface RoomSetup {
   lastSparks: number;
   lastSparkHeal: number;
   spells: SpellSlots;
+  cast: UpgradeState;
 }
 
 export function createRun(
@@ -136,6 +139,7 @@ export function createRun(
     clearedBoss: 0,
     reachedBoss: false,
     spells: startSpellSlots(),
+    cast: { level: 1, branches: [] },
   };
 }
 
@@ -185,6 +189,7 @@ export function roomSetupFor(run: RunState, node: MapNode): RoomSetup {
     lastSparks: run.lastSparks,
     lastSparkHeal: run.meta.lastSparkHeal,
     spells: run.spells,
+    cast: run.cast,
   };
 }
 

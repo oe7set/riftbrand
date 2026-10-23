@@ -16,6 +16,8 @@ import type {
 export interface OwnedBoon {
   id: string;
   rarity: Rarity;
+  /** Boon level from Glutsplitter (ROADMAP M3.4); 1 when missing. */
+  level?: number;
 }
 
 /** A relic the player owns; duplicates stack instead of adding entries. */
@@ -207,7 +209,7 @@ export function compileBuild(
         ? fallback
         : typeof ref === 'number'
           ? ref
-          : boonValue(def, ref, owned.rarity),
+          : boonValue(def, ref, owned.rarity, owned.level ?? 1),
     );
   }
   for (const owned of relics) {

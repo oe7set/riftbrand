@@ -1,3 +1,4 @@
+import { boonById } from '../../content/boons';
 import { BEING_IDS } from '../../content/boons/beings';
 import { EVENTS } from '../../content/events';
 import { RELIC_ECONOMY, RELICS, relicById } from '../../content/relics';
@@ -9,6 +10,14 @@ import { createRng, hashString, nextFloat, nextInt, type Rng } from '../rng/rng'
 import type { MapNode } from './map';
 import { type BoonOption, rewardBeing, rollBoonOffer } from './rewards';
 import type { RunState } from './run-state';
+import {
+  branchTier,
+  MAX_BOON_LEVEL,
+  MAX_UPGRADE_LEVEL,
+  type UpgradeOption,
+  type UpgradeState,
+  type UpgradeTarget,
+} from './upgrades';
 
 export const MIN_MAX_HP = 20;
 
@@ -49,6 +58,7 @@ export function relicStacks(relics: readonly OwnedRelic[], id: string): number {
 export type NodeReward =
   | { kind: 'boon'; being: BeingId }
   | { kind: 'spell' }
+  | { kind: 'upgrade' }
   | { kind: 'relic'; rarityBonus: number }
   | { kind: 'shards'; amount: number };
 
@@ -58,15 +68,18 @@ export function nodeReward(seed: number, node: Pick<MapNode, 'id' | 'type'>): No
   switch (node.type) {
     case 'combat': {
       const roll = nextFloat(rng);
-      if (roll < 0.5) return { kind: 'boon', being: rewardBeing(seed, node.id) };
-      if (roll < 0.62) return { kind: 'spell' };
-      if (roll < 0.85) return { kind: 'relic', rarityBonus: 0 };
+      if (roll < 0.45) return { kind: 'boon', being: rewardBeing(seed, node.id) };
+      if (roll < 0.55) return { kind: 'spell' };
+      if (roll < 0.7) return { kind: 'upgrade' };
+      if (roll < 0.88) return { kind: 'relic', rarityBonus: 0 };
       return { kind: 'shards', amount: RELIC_ECONOMY.shardsRewardAmount };
     }
     case 'elite':
       // GDD §6.2: elites guarantee a rarer relic.
       return { kind: 'relic', rarityBonus: 1 };
     case 'horde':
+      // GDD §6.2: hordes improve what the player already has.
+      return { kind: 'upgrade' };
     case 'altar':
       return { kind: 'boon', being: rewardBeing(seed, node.id) };
     default:
@@ -154,8 +167,72 @@ export function rollSpellOffer(run: RunState, nodeId: number, count = 3): string
 export function equipRunSpell(run: RunState, id: string): void {
   const def = spellById(id);
   if (!def) return;
-  if (def.kind === 'active') run.spells.active = { id, level: run.spells.active?.level ?? 1 };
-  else run.spells.aura = { id, level: run.spells.aura?.level ?? 1 };
+  const slot = def.kind === 'active' ? run.spells.active : run.spells.aura;
+  const next = { id, level: slot?.level ?? 1, branches: [...(slot?.branches ?? [])] };
+  if (def.kind === 'active') run.spells.active = next;
+  else run.spells.aura = next;
+}
+
+// ── Upgrades (ROADMAP M3.4) ───────────────────────────────────────────────
+
+function upgradeStateOf(run: RunState, target: UpgradeTarget): UpgradeState | null {
+  if (target === 'cast') return run.cast;
+  return target === 'active' ? run.spells.active : run.spells.aura;
+}
+
+/** Every upgrade the player could take now, grouped so both branches of a level stay together. */
+function upgradeGroups(run: RunState): UpgradeOption[][] {
+  const groups: UpgradeOption[][] = [];
+  for (const target of ['active', 'aura', 'cast'] as const) {
+    const state = upgradeStateOf(run, target);
+    if (!state || state.level >= MAX_UPGRADE_LEVEL) continue;
+    const level = state.level + 1;
+    groups.push(
+      branchTier(level)
+        ? [
+            { kind: 'level', target, level, branch: 0 },
+            { kind: 'level', target, level, branch: 1 },
+          ]
+        : [{ kind: 'level', target, level, branch: null }],
+    );
+  }
+  for (const b of run.boons) {
+    const def = boonById(b.id);
+    const level = b.level ?? 1;
+    // Duo boons are prizes of their own; they don't grow.
+    if (!def || def.partner || level >= MAX_BOON_LEVEL) continue;
+    groups.push([{ kind: 'boon', boonId: b.id, level: level + 1 }]);
+  }
+  return groups;
+}
+
+/**
+ * Three (or four, when a branch pair is drawn) upgrade cards, deterministic per seed and node.
+ * Spell and rift shot upgrades come before boon levels, so the new systems show up early.
+ */
+export function rollUpgradeOffer(run: RunState, nodeId: number): UpgradeOption[] {
+  const rng = createRng(hashString(`${run.seed}:upgrades:${nodeId}`));
+  const groups = upgradeGroups(run);
+  const abilities = groups.filter((g) => g[0]?.kind === 'level');
+  const boons = groups.filter((g) => g[0]?.kind === 'boon');
+  const pick = (pool: UpgradeOption[][]) => pool.splice(nextInt(rng, 0, pool.length), 1)[0] ?? [];
+  const out: UpgradeOption[] = [];
+  while (out.length < 3 && abilities.length > 0) out.push(...pick(abilities));
+  while (out.length < 3 && boons.length > 0) out.push(...pick(boons));
+  return out;
+}
+
+export function applyUpgrade(run: RunState, option: UpgradeOption): void {
+  if (option.kind === 'boon') {
+    const owned = run.boons.find((b) => b.id === option.boonId);
+    if (owned) owned.level = option.level;
+    applyMaxHp(run);
+    return;
+  }
+  const state = upgradeStateOf(run, option.target);
+  if (!state || option.level !== state.level + 1) return;
+  state.level = option.level;
+  if (option.branch !== null) state.branches[option.level === 3 ? 0 : 1] = option.branch;
 }
 
 // ── Shop ──────────────────────────────────────────────────────────────────

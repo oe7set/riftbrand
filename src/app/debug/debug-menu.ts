@@ -36,6 +36,8 @@ export interface DebugHooks {
   refillCast(): void;
   /** Puts a spell into its slot (active or aura, from the spell's kind). */
   equipSpell(id: string): void;
+  /** Raises the active spell, aura or rift shot by one level (branch 0/1 on levels 3 and 5). */
+  upgrade(target: 'active' | 'aura' | 'cast', branch: number): void;
   giveEvolution(id: string): void;
   /** Adds stacks of a status to every enemy (status id from content/statuses). */
   applyStatus(id: string, stacks: number): void;
@@ -166,6 +168,14 @@ export class DebugMenu {
           { className: 'rb-debug-row' },
           spellIds.map((id) => this.button(`Spell: ${id}`, () => this.hooks.equipSpell(id))),
         ),
+        el('div', { className: 'rb-debug-row' }, [
+          this.button('Spell +1 (A)', () => this.hooks.upgrade('active', 0)),
+          this.button('Spell +1 (B)', () => this.hooks.upgrade('active', 1)),
+          this.button('Aura +1 (A)', () => this.hooks.upgrade('aura', 0)),
+          this.button('Aura +1 (B)', () => this.hooks.upgrade('aura', 1)),
+          this.button('Cast +1 (A)', () => this.hooks.upgrade('cast', 0)),
+          this.button('Cast +1 (B)', () => this.hooks.upgrade('cast', 1)),
+        ]),
       ]),
       this.section('Cast, ultimate & evolutions', false, [
         el('div', { className: 'rb-debug-row' }, [

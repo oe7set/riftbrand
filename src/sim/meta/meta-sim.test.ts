@@ -25,6 +25,7 @@ function setup(over: Partial<RoomSetup>): RoomSetup {
     lastSparks: 0,
     lastSparkHeal: 0,
     spells: { active: null, aura: null },
+    cast: { level: 1, branches: [] },
     ...over,
   };
 }

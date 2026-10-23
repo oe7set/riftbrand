@@ -1,4 +1,4 @@
-import { defineCast, defineUltimate } from './schema';
+import { defineCast, defineUltimate, upgradeTreeSchema } from './schema';
 import { registerTunables } from './tunables';
 
 /** Riss-Geschoss (GDD §4.1): a fast ranged shot with two recharging charges. */
@@ -16,6 +16,21 @@ export const RIFT_SHOT = defineCast({
   poiseDamage: 8,
   assistRangePx: 480,
   moveFactor: 0.5,
+});
+
+/**
+ * Riss-Geschoss upgrade branches (ROADMAP M3.4): more shots in a fan, or shots that pierce and
+ * hit harder.
+ */
+export const RIFT_SHOT_UPGRADES = upgradeTreeSchema.parse({
+  tier3: [
+    { id: 'double_shot', mods: { count: 1 } },
+    { id: 'piercing_shot', mods: { pierce: true, damageMult: 1.25 } },
+  ],
+  tier5: [
+    { id: 'triple_shot', mods: { count: 1 } },
+    { id: 'heavy_shot', mods: { damageMult: 1.5, radiusMult: 1.5, knockbackMult: 1.4 } },
+  ],
 });
 
 /**

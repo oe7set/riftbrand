@@ -8,6 +8,7 @@ import { emptyRunMeta, type RunMeta } from '../meta/profile';
 import {
   addRelic,
   applyOutcomes,
+  applyUpgrade,
   equipRunSpell,
   eventFor,
   eventOptionAvailable,
@@ -15,6 +16,7 @@ import {
   nodeReward,
   rollRelicOffer,
   rollSpellOffer,
+  rollUpgradeOffer,
   runStats,
   shopStock,
 } from '../run/economy';
@@ -122,6 +124,9 @@ function grantReward(run: RunState, node: MapNode): void {
   else if (reward?.kind === 'relic') {
     const id = rollRelicOffer(run.seed, node.id, reward.rarityBonus, run.lockedRelics)[0];
     if (id) addRelic(run, id);
+  } else if (reward?.kind === 'upgrade') {
+    const option = rollUpgradeOffer(run, node.id)[0];
+    if (option) applyUpgrade(run, option);
   } else if (reward?.kind === 'spell') {
     // Simple preference: the first offered spell (the offer is already random per seed).
     const id = rollSpellOffer(run, node.id)[0];

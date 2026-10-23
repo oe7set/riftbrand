@@ -1,5 +1,6 @@
 import type { BeingId, BoonDef, Rarity } from '../schema';
 import { registerTunables } from '../tunables';
+import { TUNING } from '../tuning';
 import { DUO_BOONS } from './duos';
 import { IGNARA_BOONS } from './ignara';
 import { VAELIS_BOONS } from './vaelis';
@@ -35,10 +36,12 @@ export function rarityIndex(rarity: Rarity): number {
 }
 
 /** Resolves a named boon value for a rarity. */
-export function boonValue(boon: BoonDef, name: string, rarity: Rarity): number {
+/** A value for the owned rarity; each boon level above 1 adds `boonLevelSteps` rarity steps. */
+export function boonValue(boon: BoonDef, name: string, rarity: Rarity, level = 1): number {
   const v = boon.values[name];
   if (!v) return 0;
-  const raw = v.base + v.step * rarityIndex(rarity);
+  const steps = rarityIndex(rarity) + Math.max(0, level - 1) * TUNING.boonLevelSteps;
+  const raw = v.base + v.step * steps;
   return v.int ? Math.round(raw) : raw;
 }
 
@@ -46,10 +49,10 @@ registerTunables('boons: rarity weights', 'src/content/boons/index.ts', RARITY_W
 registerTunables('boons: duo offer', 'src/content/boons/index.ts', DUO_OFFER);
 
 /** Description parameters for i18n: every named value, formatted for the given rarity. */
-export function boonDescParams(boon: BoonDef, rarity: Rarity): Record<string, string> {
+export function boonDescParams(boon: BoonDef, rarity: Rarity, level = 1): Record<string, string> {
   const params: Record<string, string> = {};
   for (const [name, v] of Object.entries(boon.values)) {
-    const value = boonValue(boon, name, rarity);
+    const value = boonValue(boon, name, rarity, level);
     params[name] = v.percent ? `${Math.round(value * 100)}%` : String(Math.round(value * 10) / 10);
   }
   return params;

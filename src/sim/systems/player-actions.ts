@@ -246,7 +246,7 @@ function startAction(state: SimState, next: BufferedId, input: InputFrame): void
     p.dirX = dirScratch.x;
     p.dirY = dirScratch.y;
     if (p.castCharges >= RIFT_SHOT.charges) {
-      p.castRechargeTicks = secondsToTicks(RIFT_SHOT.rechargeSec);
+      p.castRechargeTicks = secondsToTicks(state.cast.rechargeSec);
     }
     p.castCharges--;
     p.action = PlayerAction.Cast;
@@ -420,15 +420,22 @@ function burstVariant(state: SimState): BurstVariant {
   return being ? BRAND_BURST.variants[being] : BRAND_BURST.variants.none;
 }
 
+/** Fires the rift shot; upgrades fan out extra shots and may make them pierce (ROADMAP M3.4). */
 function fireCast(state: SimState): void {
   const p = state.player;
-  castSpec.damage = RIFT_SHOT.damage;
+  const cast = state.cast;
+  castSpec.damage = cast.damage;
   castSpec.speedPxPerSec = RIFT_SHOT.speedPxPerSec;
-  castSpec.radiusPx = RIFT_SHOT.radiusPx;
+  castSpec.radiusPx = cast.radiusPx;
   castSpec.rangePx = RIFT_SHOT.rangePx;
-  castSpec.knockback = RIFT_SHOT.knockback;
+  castSpec.knockback = cast.knockback;
   castSpec.poiseDamage = RIFT_SHOT.poiseDamage;
-  spawnPlayerShot(state, castSpec, p.dirX, p.dirY);
+  castSpec.pierce = cast.pierce;
+  const base = Math.atan2(p.dirY, p.dirX);
+  for (let i = 0; i < cast.shots; i++) {
+    const a = base + (i - (cast.shots - 1) / 2) * TUNING.upgradeFanDeg * DEG;
+    spawnPlayerShot(state, castSpec, Math.cos(a), Math.sin(a));
+  }
 }
 
 function fireUltimate(state: SimState): void {
@@ -458,7 +465,7 @@ function rechargeCast(state: SimState): void {
   if (p.castRechargeTicks > 0) return;
   p.castCharges++;
   if (p.castCharges < RIFT_SHOT.charges)
-    p.castRechargeTicks = secondsToTicks(RIFT_SHOT.rechargeSec);
+    p.castRechargeTicks = secondsToTicks(state.cast.rechargeSec);
 }
 
 export function playerActionSystem(state: SimState, input: InputFrame): void {

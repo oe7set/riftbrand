@@ -22,5 +22,15 @@ export const POISON_CLOUD = defineSpell({
     durationSec: 5,
     pulseSec: 0.5,
   },
+  upgrades: {
+    tier3: [
+      { id: 'spreading', mods: { radiusMult: 1.4 } },
+      { id: 'potent', mods: { stacksAdd: 1 } },
+    ],
+    tier5: [
+      { id: 'twin_clouds', mods: { count: 1 } },
+      { id: 'lingering', mods: { durationMult: 1.8 } },
+    ],
+  },
   visual: { color: 0x7dff6b, glyph: 'cloud' },
 });

@@ -701,6 +701,36 @@ export const spellOnKillSchema = z.object({
   ...spellHit,
 });
 
+/**
+ * What an upgrade branch changes (ROADMAP M3.4). Multipliers default to 1, additions to 0.
+ * `count` adds impacts: echoes of a self burst, a meteor shower around the target, extra
+ * clouds, extra beams in a fan, or more shots dissolved per pulse.
+ */
+export const upgradeModsSchema = z.object({
+  count: z.number().int().min(0).optional(),
+  radiusMult: z.number().positive().optional(),
+  damageMult: z.number().positive().optional(),
+  stacksAdd: z.number().int().min(0).optional(),
+  cooldownMult: z.number().positive().optional(),
+  pulseMult: z.number().positive().optional(),
+  durationMult: z.number().positive().optional(),
+  knockbackMult: z.number().positive().optional(),
+  /** Rift shot: fly through every enemy. */
+  pierce: z.boolean().optional(),
+});
+
+export const upgradeBranchSchema = z.object({ id, mods: upgradeModsSchema });
+
+/** Two branches to choose from at level 3 and again at level 5. */
+export const upgradeTreeSchema = z.object({
+  tier3: z.tuple([upgradeBranchSchema, upgradeBranchSchema]),
+  tier5: z.tuple([upgradeBranchSchema, upgradeBranchSchema]),
+});
+
+export type UpgradeMods = z.infer<typeof upgradeModsSchema>;
+export type UpgradeBranch = z.infer<typeof upgradeBranchSchema>;
+export type UpgradeTree = z.infer<typeof upgradeTreeSchema>;
+
 export const spellSchema = z.object({
   id,
   school: spellSchoolSchema,
@@ -716,6 +746,7 @@ export const spellSchema = z.object({
   moveFactor: z.number().min(0).max(1),
   effect: spellEffectSchema,
   onKill: spellOnKillSchema.optional(),
+  upgrades: upgradeTreeSchema,
   visual: z.object({ color: z.number().int().nonnegative(), glyph: glyphSchema }),
 });
 

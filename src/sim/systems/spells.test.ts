@@ -13,7 +13,15 @@ import { C, stacksOf, Team } from '../ecs/components';
 import { Ev } from '../events';
 import { PlayerAction } from '../player-state';
 import { startSpellSlots } from '../run/run-state';
-import { createSim, equipSpells, type SimState, spawnEnemy, spellSlotsOf, stepSim } from '../sim';
+import {
+  createSim,
+  equipCast,
+  equipSpells,
+  type SimState,
+  spawnEnemy,
+  spellSlotsOf,
+  stepSim,
+} from '../sim';
 import { secondsToTicks } from '../time';
 import { MAX_COOLDOWN_REDUCTION, spellCooldownTicks } from './spells';
 
@@ -52,7 +60,7 @@ function step(s: SimState, ticks: number, pressed = 0): number[] {
 
 describe('active spell', () => {
   it('frost nova freezes enemies in its radius after the windup, not beyond', () => {
-    const s = sim({ active: { id: 'frost_nova', level: 1 }, aura: null });
+    const s = sim({ active: { id: 'frost_nova', level: 1, branches: [] }, aura: null });
     const near = enemyAt(s, 100);
     const far = enemyAt(s, spellRadiusPx(FROST_NOVA) + 120);
     const events = step(s, secondsToTicks(FROST_NOVA.windupSec) + 3, Button.Spell);
@@ -62,7 +70,7 @@ describe('active spell', () => {
   });
 
   it('goes on cooldown, refuses a second cast and reports when ready again', () => {
-    const s = sim({ active: { id: 'frost_nova', level: 1 }, aura: null });
+    const s = sim({ active: { id: 'frost_nova', level: 1, branches: [] }, aura: null });
     step(s, 30, Button.Spell);
     expect(s.player.spellCooldownTicks).toBeGreaterThan(0);
     const denied = step(s, 20, Button.Spell);
@@ -82,7 +90,7 @@ describe('active spell', () => {
   it('caps cooldown reduction', () => {
     const s = sim();
     s.build.stats.cooldownReduction = 0.9;
-    expect(spellCooldownTicks(s, FROST_NOVA)).toBe(
+    expect(spellCooldownTicks(s, FROST_NOVA.cooldownSec)).toBe(
       secondsToTicks(FROST_NOVA.cooldownSec * (1 - MAX_COOLDOWN_REDUCTION)),
     );
   });
@@ -90,7 +98,7 @@ describe('active spell', () => {
 
 describe('aura', () => {
   it('ember mantle burns enemies close by, not those further away', () => {
-    const s = sim({ active: null, aura: { id: 'ember_mantle', level: 1 } });
+    const s = sim({ active: null, aura: { id: 'ember_mantle', level: 1, branches: [] } });
     const near = enemyAt(s, 60);
     const far = enemyAt(s, spellRadiusPx(EMBER_MANTLE) + 120);
     step(s, 2);
@@ -99,13 +107,13 @@ describe('aura', () => {
   });
 
   it('pulses once per pulse interval', () => {
-    const s = sim({ active: null, aura: { id: 'ember_mantle', level: 1 } });
+    const s = sim({ active: null, aura: { id: 'ember_mantle', level: 1, branches: [] } });
     const events = step(s, secondsToTicks(EMBER_MANTLE.pulseSec * 2.5));
     expect(events.filter((t) => t === Ev.AuraPulse)).toHaveLength(3);
   });
 
   it('grows with the aura radius stat', () => {
-    const s = sim({ active: null, aura: { id: 'ember_mantle', level: 1 } });
+    const s = sim({ active: null, aura: { id: 'ember_mantle', level: 1, branches: [] } });
     s.build.stats.auraRadius = 1;
     const e = enemyAt(s, spellRadiusPx(EMBER_MANTLE) * 1.5);
     step(s, 2);
@@ -117,12 +125,15 @@ describe('spell slots', () => {
   it('round-trip between run form and the sim', () => {
     const s = sim();
     expect(spellSlotsOf(s)).toEqual(startSpellSlots());
-    equipSpells(s, { active: null, aura: { id: 'ember_mantle', level: 2 } });
-    expect(spellSlotsOf(s)).toEqual({ active: null, aura: { id: 'ember_mantle', level: 2 } });
+    equipSpells(s, { active: null, aura: { id: 'ember_mantle', level: 2, branches: [] } });
+    expect(spellSlotsOf(s)).toEqual({
+      active: null,
+      aura: { id: 'ember_mantle', level: 2, branches: [] },
+    });
   });
 
   it('counts spell and aura damage separately for the simulator', () => {
-    const s = sim({ active: { id: 'frost_nova', level: 1 }, aura: null });
+    const s = sim({ active: { id: 'frost_nova', level: 1, branches: [] }, aura: null });
     enemyAt(s, 80);
     step(s, 20, Button.Spell);
     expect(s.damageDealt.some((v) => v > 0)).toBe(true);
@@ -130,7 +141,7 @@ describe('spell slots', () => {
 });
 
 function cast(s: SimState, id: string, aimX = 1, aimY = 0): number[] {
-  equipSpells(s, { active: { id, level: 1 }, aura: null });
+  equipSpells(s, { active: { id, level: 1, branches: [] }, aura: null });
   const input = createInputFrame();
   input.hasAim = true;
   input.aimX = aimX;
@@ -187,7 +198,7 @@ describe('spell schools (M3.3)', () => {
   });
 
   it('plague breath: poisoned enemies leave a cloud when they die', () => {
-    const s = sim({ active: null, aura: { id: 'plague_breath', level: 1 } });
+    const s = sim({ active: null, aura: { id: 'plague_breath', level: 1, branches: [] } });
     const e = enemyAt(s, 60);
     step(s, 2);
     expect(stacksOf(s.c, e, Status.Poison)).toBeGreaterThan(0);
@@ -215,8 +226,45 @@ describe('spell schools (M3.3)', () => {
       }
     }
     expect(shots).toBeGreaterThan(0);
-    equipSpells(s, { active: null, aura: { id: 'halo', level: 1 } });
+    equipSpells(s, { active: null, aura: { id: 'halo', level: 1, branches: [] } });
     const events = step(s, 2);
     expect(events).toContain(Ev.ShotDissolved);
+  });
+});
+
+describe('upgraded spells and shots (M3.4)', () => {
+  it('a triple shot fires three projectiles', () => {
+    const s = sim({ active: null, aura: null });
+    equipCast(s, { level: 5, branches: [0, 0] });
+    const input = createInputFrame();
+    input.pressed = Button.Cast;
+    stepSim(s, input);
+    step(s, 5);
+    let shots = 0;
+    for (let i = 0; i < s.world.highWater; i++) {
+      if (((s.world.masks[i] ?? 0) & C.Projectile) !== 0 && s.c.team[i] === Team.Player) shots++;
+    }
+    expect(shots).toBe(3);
+  });
+
+  it('a meteor shower lands three impacts', () => {
+    const s = sim({ active: null, aura: null });
+    equipSpells(s, { active: { id: 'meteor', level: 3, branches: [0] }, aura: null });
+    const input = createInputFrame();
+    input.pressed = Button.Spell;
+    stepSim(s, input);
+    const events = step(s, secondsToTicks(1.5));
+    expect(events.filter((t) => t === Ev.ZonePulse)).toHaveLength(3);
+  });
+
+  it('frost nova echo freezes twice', () => {
+    const s = sim({ active: null, aura: null });
+    equipSpells(s, { active: { id: 'frost_nova', level: 5, branches: [0, 0] }, aura: null });
+    const input = createInputFrame();
+    input.pressed = Button.Spell;
+    stepSim(s, input);
+    const events = step(s, secondsToTicks(1));
+    expect(events.filter((t) => t === Ev.ZonePulse)).toHaveLength(1);
+    expect(events).toContain(Ev.SpellCast);
   });
 });

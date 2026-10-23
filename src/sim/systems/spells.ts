@@ -1,16 +1,19 @@
 import { type SpellDef, type StatusId, statusIdSchema } from '../../content/schema';
 import { SPELLS } from '../../content/spells';
 import { statusIndex } from '../../content/statuses';
+import { TUNING } from '../../content/tuning';
 import { C, RenderKind, stacksOf, Team } from '../ecs/components';
 import { addComponents, destroyEntity } from '../ecs/world';
 import { areaBurst, type BurstSpec, lineBurst } from '../effects/runtime';
 import { Ev, pushEvent } from '../events';
 import { PlayerAction } from '../player-state';
+import type { ResolvedSpell } from '../run/upgrades';
 import { type SimState, spawnEntity } from '../sim';
 import { secondsToTicks } from '../time';
 
 /** Cooldown reduction never goes beyond this, so spells stay a decision, not a spam button. */
 export const MAX_COOLDOWN_REDUCTION = 0.5;
+const DEG = Math.PI / 180;
 
 const spellSpec: BurstSpec = {
   radiusPx: 0,
@@ -23,42 +26,38 @@ const spellSpec: BurstSpec = {
 };
 
 export function activeSpellDef(state: SimState): SpellDef | undefined {
-  return SPELLS[state.player.activeSpell];
+  return state.activeSpell?.def;
 }
 
 export function auraSpellDef(state: SimState): SpellDef | undefined {
-  return SPELLS[state.player.auraSpell];
+  return state.auraSpell?.def;
 }
 
-/** Cooldown of the active spell in ticks, after cooldown reduction. */
-export function spellCooldownTicks(state: SimState, def: SpellDef): number {
+/** Cooldown in ticks after cooldown reduction from the build. */
+export function spellCooldownTicks(state: SimState, cooldownSec: number): number {
   const cdr = Math.min(MAX_COOLDOWN_REDUCTION, Math.max(0, state.build.stats.cooldownReduction));
-  return Math.max(1, secondsToTicks(def.cooldownSec * (1 - cdr)));
+  return Math.max(1, secondsToTicks(cooldownSec * (1 - cdr)));
 }
 
-export function auraRadiusPx(state: SimState, def: SpellDef): number {
+export function auraRadiusPx(state: SimState, spell: ResolvedSpell): number {
+  return spell.radiusPx * (1 + state.build.stats.auraRadius);
+}
+
+function statusOf(def: SpellDef): StatusId | undefined {
   const fx = def.effect;
-  const base = fx.type === 'beam' ? fx.widthPx / 2 : fx.radiusPx;
-  return base * (1 + state.build.stats.auraRadius);
+  return fx.type === 'ward' ? undefined : fx.status;
 }
 
-/** Fills the shared burst spec from a spell's hit data. */
-function prepareHit(
-  def: SpellDef,
-  radiusPx: number,
-  damage: number,
-  status: StatusId | undefined,
-  stacks: number,
-  knockback: number,
-  freeze: boolean,
-): BurstSpec {
+/** Fills the shared burst spec from a resolved spell. */
+function prepareHit(spell: ResolvedSpell, radiusPx: number): BurstSpec {
+  const fx = spell.def.effect;
   spellSpec.radiusPx = radiusPx;
-  spellSpec.damage = damage;
-  spellSpec.status = status ?? null;
-  spellSpec.stacks = stacks;
-  spellSpec.knockback = knockback;
-  spellSpec.freeze = freeze;
-  spellSpec.source = def.kind === 'aura' ? 'aura' : 'spell';
+  spellSpec.damage = spell.damage;
+  spellSpec.status = statusOf(spell.def) ?? null;
+  spellSpec.stacks = spell.stacks;
+  spellSpec.knockback = spell.knockback;
+  spellSpec.freeze = fx.type === 'burst' && fx.freeze;
+  spellSpec.source = spell.def.kind === 'aura' ? 'aura' : 'spell';
   return spellSpec;
 }
 
@@ -118,16 +117,14 @@ export function playerZoneSystem(state: SimState): void {
       const y = c.posY[eid] as number;
       const r = c.radius[eid] as number;
       const status = c.projStatus[eid] as number;
-      const spec = prepareHit(
-        def,
-        r,
-        c.projDamage[eid] as number,
-        status > 0 ? statusIdSchema.options[status - 1] : undefined,
-        c.projStacks[eid] as number,
-        c.projKnockback[eid] as number,
-        false,
-      );
-      const hits = areaBurst(state, x, y, spec);
+      spellSpec.radiusPx = r;
+      spellSpec.damage = c.projDamage[eid] as number;
+      spellSpec.status = status > 0 ? (statusIdSchema.options[status - 1] ?? null) : null;
+      spellSpec.stacks = c.projStacks[eid] as number;
+      spellSpec.knockback = c.projKnockback[eid] as number;
+      spellSpec.freeze = false;
+      spellSpec.source = def.kind === 'aura' ? 'aura' : 'spell';
+      const hits = areaBurst(state, x, y, spellSpec);
       const e = pushEvent(state.events, Ev.ZonePulse, x, y);
       if (e) {
         e.value = c.zoneSpell[eid] as number;
@@ -141,13 +138,38 @@ export function playerZoneSystem(state: SimState): void {
   }
 }
 
+/** A delayed copy of the spell's blast (echo of a nova, one meteor of a shower). */
+function delayedBlast(
+  state: SimState,
+  spell: ResolvedSpell,
+  x: number,
+  y: number,
+  delaySec: number,
+): void {
+  spawnPlayerZone(
+    state,
+    spell.index,
+    x,
+    y,
+    spell.radiusPx,
+    delaySec,
+    delaySec,
+    spell.damage,
+    statusOf(spell.def),
+    spell.stacks,
+    spell.knockback,
+  );
+}
+
 /**
  * Releases the active spell at the end of its windup (player-actions calls this). The player's
- * current direction (aim-assisted when the cast started) picks the target point.
+ * current direction (aim-assisted when the cast started) picks the target point. Upgrades add
+ * echoes, meteor showers, more clouds or a fan of beams (ROADMAP M3.4).
  */
 export function releaseActiveSpell(state: SimState): void {
-  const def = activeSpellDef(state);
-  if (!def) return;
+  const spell = state.activeSpell;
+  if (!spell) return;
+  const def = spell.def;
   const p = state.player;
   const c = state.c;
   const eid = state.playerEid;
@@ -158,75 +180,99 @@ export function releaseActiveSpell(state: SimState): void {
   const range = target ? fx.rangePx : 0;
   const x = px + p.dirX * range;
   const y = py + p.dirY * range;
+  // Beams fan out around the aim; the cast event carries the first beam's direction.
+  const beams = fx.type === 'beam' ? 1 + spell.extra : 1;
+  const firstAngle = Math.atan2(p.dirY, p.dirX) - ((beams - 1) / 2) * TUNING.upgradeFanDeg * DEG;
   const e = pushEvent(state.events, Ev.SpellCast, x, y);
   if (e) {
-    e.value = p.activeSpell;
-    e.amount = fx.type === 'beam' ? fx.lengthPx : fx.radiusPx;
-    e.dirX = p.dirX;
-    e.dirY = p.dirY;
+    e.value = spell.index;
+    e.amount = fx.type === 'beam' ? fx.lengthPx : spell.radiusPx;
+    e.dirX = beams > 1 ? Math.cos(firstAngle) : p.dirX;
+    e.dirY = beams > 1 ? Math.sin(firstAngle) : p.dirY;
   }
+  const echo = TUNING.upgradeEchoSec;
   switch (fx.type) {
     case 'burst':
       if (fx.delaySec > 0) {
-        // The impact spot is marked and fills up, then the blast lands (meteor).
-        spawnPlayerZone(
-          state,
-          p.activeSpell,
-          x,
-          y,
-          fx.radiusPx,
-          fx.delaySec,
-          fx.delaySec,
-          fx.damage,
-          fx.status,
-          fx.stacks,
-          fx.knockback,
-        );
+        delayedBlast(state, spell, x, y, fx.delaySec);
       } else {
-        areaBurst(
-          state,
-          x,
-          y,
-          prepareHit(def, fx.radiusPx, fx.damage, fx.status, fx.stacks, fx.knockback, fx.freeze),
-        );
+        areaBurst(state, x, y, prepareHit(spell, spell.radiusPx));
+      }
+      for (let i = 1; i <= spell.extra; i++) {
+        if (target) {
+          // Meteor shower: the extra impacts ring the target point, a little later each.
+          const a = (i / spell.extra) * Math.PI * 2 + Math.atan2(p.dirY, p.dirX);
+          const d = spell.radiusPx * 1.2;
+          delayedBlast(
+            state,
+            spell,
+            x + Math.cos(a) * d,
+            y + Math.sin(a) * d,
+            fx.delaySec + echo * i * 0.5,
+          );
+        } else {
+          // Echo: the blast repeats where it was cast.
+          delayedBlast(state, spell, x, y, fx.delaySec + echo * i);
+        }
       }
       break;
     case 'zone':
-      spawnPlayerZone(
-        state,
-        p.activeSpell,
-        x,
-        y,
-        fx.radiusPx,
-        fx.durationSec,
-        fx.pulseSec,
-        fx.damage,
-        fx.status,
-        fx.stacks,
-        fx.knockback,
-      );
+      for (let i = 0; i <= spell.extra; i++) {
+        // Extra clouds sit side by side across the aim direction.
+        const side = i === 0 ? 0 : (i % 2 === 1 ? 1 : -1) * Math.ceil(i / 2) * spell.radiusPx * 1.6;
+        spawnPlayerZone(
+          state,
+          spell.index,
+          x - p.dirY * side,
+          y + p.dirX * side,
+          spell.radiusPx,
+          spell.durationSec,
+          fx.pulseSec,
+          spell.damage,
+          fx.status,
+          spell.stacks,
+          spell.knockback,
+        );
+      }
       break;
-    case 'beam':
-      lineBurst(
-        state,
-        px,
-        py,
-        px + p.dirX * fx.lengthPx,
-        py + p.dirY * fx.lengthPx,
-        prepareHit(def, fx.widthPx / 2, fx.damage, fx.status, fx.stacks, fx.knockback, false),
-      );
+    case 'beam': {
+      for (let i = 0; i < beams; i++) {
+        const a = firstAngle + i * TUNING.upgradeFanDeg * DEG;
+        const dx = Math.cos(a);
+        const dy = Math.sin(a);
+        lineBurst(
+          state,
+          px,
+          py,
+          px + dx * fx.lengthPx,
+          py + dy * fx.lengthPx,
+          prepareHit(spell, spell.radiusPx),
+        );
+        if (i > 0) {
+          // Further beams of the fan get their own visual (flags = 1: no extra sound).
+          const ev = pushEvent(state.events, Ev.SpellCast, px, py);
+          if (ev) {
+            ev.value = spell.index;
+            ev.amount = fx.lengthPx;
+            ev.dirX = dx;
+            ev.dirY = dy;
+            ev.flags = 1;
+          }
+        }
+      }
       break;
+    }
     case 'ward':
-      dissolveShots(state, p.activeSpell, px, py, fx.radiusPx, fx.count);
+      dissolveShots(state, spell.index, px, py, spell.radiusPx, 1 + spell.extra);
       break;
   }
 }
 
 /** Starts the cooldown when the cast begins, so cancelling the windup can't refund it. */
 export function startSpellCooldown(state: SimState): void {
-  const def = activeSpellDef(state);
-  if (!def) return;
-  const ticks = spellCooldownTicks(state, def);
+  const spell = state.activeSpell;
+  if (!spell) return;
+  const ticks = spellCooldownTicks(state, spell.cooldownSec);
   state.player.spellCooldownTicks = ticks;
   state.player.spellCooldownTotal = ticks;
 }
@@ -277,16 +323,14 @@ function dissolveShots(
  * small cloud). killEnemy calls this while the enemy's status slots are still intact.
  */
 export function onEnemyKilledWithSpells(state: SimState, eid: number, x: number, y: number): void {
-  const p = state.player;
   for (let slot = 0; slot < 2; slot++) {
-    const index = slot === 0 ? p.activeSpell : p.auraSpell;
-    const def = SPELLS[index];
-    const k = def?.onKill;
-    if (!k) continue;
+    const spell = slot === 0 ? state.activeSpell : state.auraSpell;
+    const k = spell?.def.onKill;
+    if (!spell || !k) continue;
     if (stacksOf(state.c, eid, statusIndex(k.requiresStatus)) <= 0) continue;
     spawnPlayerZone(
       state,
-      index,
+      spell.index,
       x,
       y,
       k.radiusPx,
@@ -319,7 +363,7 @@ export function spellSystem(state: SimState): void {
       if (e) e.value = p.activeSpell;
     }
   }
-  const aura = auraSpellDef(state);
+  const aura = state.auraSpell;
   if (!aura) return;
   if (p.auraTimerTicks > 0) {
     p.auraTimerTicks--;
@@ -329,28 +373,13 @@ export function spellSystem(state: SimState): void {
   const x = c.posX[eid] as number;
   const y = c.posY[eid] as number;
   const radius = auraRadiusPx(state, aura);
-  const fx = aura.effect;
-  let hits = 0;
-  if (fx.type === 'ward') hits = dissolveShots(state, p.auraSpell, x, y, radius, fx.count);
-  else if (fx.type === 'burst' || fx.type === 'zone') {
-    hits = areaBurst(
-      state,
-      x,
-      y,
-      prepareHit(
-        aura,
-        radius,
-        fx.damage,
-        fx.status,
-        fx.stacks,
-        fx.knockback,
-        fx.type === 'burst' && fx.freeze,
-      ),
-    );
-  }
+  const hits =
+    aura.def.effect.type === 'ward'
+      ? dissolveShots(state, aura.index, x, y, radius, 1 + aura.extra)
+      : areaBurst(state, x, y, prepareHit(aura, radius));
   const e = pushEvent(state.events, Ev.AuraPulse, x, y);
   if (e) {
-    e.value = p.auraSpell;
+    e.value = aura.index;
     e.amount = radius;
     e.flags = hits;
   }

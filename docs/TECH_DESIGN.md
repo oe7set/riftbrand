@@ -479,7 +479,15 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Darstellung:** Zonen in Zauberfarbe (Meteor: Ring mit sich füllender Scheibe; Wolke: atmende Scheibe plus Rauchpartikel), Strahl-Effekt, Touch-Zielvorschau mit Reichweite, Radius und Farbe des Zaubers (`TouchInput.castAimingSpell`).
 - **Content-Helfer:** `spellReachPx()`, `spellRadiusPx()` in `content/spells/index.ts`.
 
-## 31. Risiken und Gegenmaßnahmen
+## 31. Stand nach M3.4 (Upgrade-Stufen)
+- **Daten:** `upgradeTreeSchema` (`tier3`/`tier5` mit je zwei Zweigen aus `upgradeModsSchema`: `count`, Multiplikatoren für Radius, Schaden, Abklingzeit, Puls, Dauer, Rückstoß, `stacksAdd`, `pierce`). Jeder Zauber hat `upgrades`, das Riss-Geschoss `RIFT_SHOT_UPGRADES`. Stufen-Boni als Tunables `upgradeLevel*`, `upgradeFanDeg`, `upgradeEchoSec`, `boonLevelSteps`.
+- **Auflösung:** `sim/run/upgrades.ts` faltet Stufe und Zweige (`foldMods`) zu `ResolvedSpell`/`ResolvedCast`. Das passiert einmal beim Raumstart (`equipSpells`, `equipCast`); die Simulation liest pro Tick nur fertige Zahlen (`SimState.activeSpell`, `auraSpell`, `cast`).
+- **Mehrfach-Effekte:** `extra` erzeugt Echos (Selbst-Explosion), Meteorschauer (Ring um den Zielpunkt), zusätzliche Wolken, Strahlen-Fächer (`Ev.SpellCast` mit `flags = 1` für weitere Strahlen) und mehr aufgelöste Geschosse; verzögerte Explosionen sind Zonen mit einem Puls.
+- **Belohnungen:** `NodeReward` `{ kind: 'upgrade' }`, `rollUpgradeOffer()` (Zweig-Paare bleiben zusammen, Fähigkeiten vor Segen), `applyUpgrade()`. Segen-Stufe in `OwnedBoon.level`, berücksichtigt in `boonValue()`/`boonDescParams()`.
+- **Speicherstand:** Run-Save **v7** (`OwnedSpell.branches`, `RunState.cast`, optionales `level` an Segen; Migration v6 → v7).
+- **UI:** Screen `upgrade` mit `UpgradeCard`; Build-Übersicht im Pause-Menü mit Zauber-Abschnitt. Debug-Menü: „Spell/Aura/Cast +1 (A/B)“.
+
+## 32. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |
