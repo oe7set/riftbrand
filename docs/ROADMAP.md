@@ -375,28 +375,28 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
 - Kampfraum-Belohnungen: 50 % Segen, 12 % Zauber, 23 % Relikt, 15 % Scherben (vorher 60/0/25/15).
 - Simulator (200 Runs, `--fresh`): balanced 92,0 % Siege (M3.2: 95,5 %), aggressive 21,5 % (27,5 %); Zauber-Schaden direkt ~3 %. Der Bericht listet jetzt die Zauber am Run-Ende mit Siegquote.
 
-### M3.4 Upgrade-Stufen (Doppel-, Dreifachgeschoss …) 🔜
+### M3.4 Upgrade-Stufen (Doppel-, Dreifachgeschoss …) ✅
 **Ziel:** Zauber und Riss-Geschoss wachsen im Run mit, mit spürbaren Sprüngen.
 
 **Umfang:**
-- [ ] **Stufen 1–5** für jeden Zauber und für das Riss-Geschoss:
+- [x] **Stufen 1–5** für jeden Zauber und für das Riss-Geschoss:
   - Stufe 2 und 4: bessere Werte (Schaden, Radius, Abklingzeit).
   - Stufe 3 und 5: **Wahl zwischen 2 Zweigen** mit sichtbarem Effekt.
-- [ ] **Zweige des Riss-Geschosses:**
+- [x] **Zweige des Riss-Geschosses:**
   - **Mehrfach:** Stufe 3 Doppelgeschoss, Stufe 5 Dreifachgeschoss im Fächer
   - **Durchschlag:** Stufe 3 durchdringt 2 Gegner, Stufe 5 prallt zusätzlich einmal ab
-- [ ] **Zweige der Zauber** (in den Daten), zum Beispiel:
+- [x] **Zweige der Zauber** (in den Daten), zum Beispiel:
   - Meteor: „Meteorschauer“ (3 kleine Einschläge) oder „Riesenmeteor“ (größer, wirft Gegner um)
   - Lichtlanze: „Doppellanze“ oder „Prisma“ (spaltet sich beim Treffer in 3 Strahlen)
   - Auren: größerer Radius oder schnellerer Puls
-- [ ] **Belohnung Runenfragment** (`upgrade`): Wahl aus 3 Upgrade-Angeboten für die eigenen Fähigkeiten. Quellen:
+- [x] **Belohnung Runenfragment** (`upgrade`): Wahl aus 3 Upgrade-Angeboten für die eigenen Fähigkeiten. Quellen:
   - Kampfraum-Belohnung (vorab sichtbar auf der Map)
   - Horde-Räume
   - Shop
   - Duell-Räume (garantiert)
-- [ ] **Glutsplitter** (`boon_level`) erhöht die Stufe eines Segens (GDD §7.1, bisher nicht umgesetzt). Er nutzt denselben Auswahl-Dialog.
-- [ ] Die Build-Übersicht im Pause-Menü zeigt Stufen und gewählte Zweige.
-- [ ] Der Bot wählt Upgrades (einfache Heuristik: zuerst der aktive Zauber).
+- [x] **Glutsplitter** (`boon_level`) erhöht die Stufe eines Segens (GDD §7.1, bisher nicht umgesetzt). Er nutzt denselben Auswahl-Dialog.
+- [x] Die Build-Übersicht im Pause-Menü zeigt Stufen und gewählte Zweige.
+- [x] Der Bot wählt Upgrades (einfache Heuristik: zuerst der aktive Zauber).
 
 **Technik:**
 - Daten-Schema: `levels: [{ stats }]` und `branches: { [level]: [optionA, optionB] }` mit Effekt-Überschreibungen.
@@ -411,7 +411,15 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
 
 **Abhängig von:** M3.3
 
-### M3.5 Duell-Räume und Mini-Bosse ⬜
+**Umgesetzt (Abweichungen vom Plan):**
+- Zweige des Riss-Geschosses: **Mehrfach** (Doppel-, dann Dreifachgeschoss) oder **Durchschlag** (durchdringt alle Gegner, +25 % Schaden, dann Schweres Geschoss mit +50 % Schaden). Abprallen entfällt.
+- Jede Stufe (nicht nur 2 und 4) gibt die Zahlen-Boni; die Zweige kommen auf Stufe 3 und 5 dazu.
+- Kein Upgrade im Shop; Quellen sind Kampfräume (15 %), Horde-Räume (immer) und ab M3.5 Duelle.
+- Segen-Stufen (Glutsplitter) bis Stufe 3, Duo-Segen wachsen nicht.
+- Run-Save **v7** (Zweige, Riss-Geschoss-Stufe, Segen-Stufe).
+- Simulator (200 Runs, `--fresh`): balanced 95,0 % (M3.3: 92,0 %), aggressive 19,5 % (21,5 %).
+
+### M3.5 Duell-Räume und Mini-Bosse 🔜
 **Ziel:** Neben den Wellen-Kämpfen gibt es Einzelkämpfe gegen 1–2 starke Gegner mit eigenen Mechaniken und Phasen (E1, E2).
 
 **Umfang:**

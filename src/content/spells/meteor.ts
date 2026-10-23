@@ -25,5 +25,15 @@ export const METEOR = defineSpell({
     knockback: 320,
     delaySec: 0.5,
   },
+  upgrades: {
+    tier3: [
+      { id: 'shower', mods: { count: 2, radiusMult: 0.65, damageMult: 0.7 } },
+      { id: 'giant', mods: { radiusMult: 1.4, damageMult: 1.4, knockbackMult: 1.3 } },
+    ],
+    tier5: [
+      { id: 'firestorm', mods: { stacksAdd: 3 } },
+      { id: 'quick_call', mods: { cooldownMult: 0.65 } },
+    ],
+  },
   visual: { color: 0xffb347, glyph: 'meteor' },
 });

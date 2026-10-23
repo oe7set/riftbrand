@@ -11,5 +11,15 @@ export const HALO = defineSpell({
   recoverySec: 0,
   moveFactor: 1,
   effect: { type: 'ward', radiusPx: 140, count: 1 },
+  upgrades: {
+    tier3: [
+      { id: 'twin_halo', mods: { count: 1 } },
+      { id: 'wide_halo', mods: { radiusMult: 1.4 } },
+    ],
+    tier5: [
+      { id: 'quick_halo', mods: { pulseMult: 0.6 } },
+      { id: 'triple_halo', mods: { count: 1 } },
+    ],
+  },
   visual: { color: 0xfff6c8, glyph: 'eye' },
 });

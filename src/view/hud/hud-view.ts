@@ -392,7 +392,7 @@ export class HudView {
     const p = sim.player;
     const rowY = MARGIN_PX + HP_HEIGHT_PX + 8;
     const castX = MARGIN_PX + segments * (PIP_WIDTH_PX + PIP_GAP_PX) + 6;
-    const recharge = 1 - p.castRechargeTicks / Math.max(1, RIFT_SHOT.rechargeSec * TICK_RATE_HZ);
+    const recharge = 1 - p.castRechargeTicks / Math.max(1, sim.cast.rechargeSec * TICK_RATE_HZ);
     this.castDeniedSec = Math.max(0, this.castDeniedSec - dtSec);
     const castPulse = this.castDeniedSec > 0 ? Math.sin(this.time * 50) * 0.5 + 0.5 : 0;
     for (let i = 0; i < this.castBack.length; i++) {

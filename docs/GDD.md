@@ -142,6 +142,18 @@ Meta (Tage)        Glut/Rissstaub ausgeben → Freischaltungen → Story-Dialog 
 - **Neue Segen:** Ignara „Glutkreis“ (+25 % Aura-Radius, +10 % Zauberschaden, mit Seltenheit mehr), Vaelis „Kalte Konzentration“ (Zauber laden 15 % schneller, mit Seltenheit mehr).
 - Am Handy zeigt das Zielen mit dem Zauber-Button Reichweite und Landefläche in der Farbe des Zaubers.
 
+**Umgesetzt (M3.4), Upgrade-Stufen:**
+- Jeder Zauber, jede Aura und das Riss-Geschoss wachsen im Run von **Stufe 1 bis 5**. Jede Stufe gibt +20 % Schaden, +6 % Fläche und 6 % kürzere Abklingzeit bzw. schnellere Pulse.
+- Auf **Stufe 3 und 5** wählt man zusätzlich einen von zwei **Zweigen**. Beispiele:
+  - Riss-Geschoss: Doppel- → Dreifachgeschoss, oder Durchschlag → Schweres Geschoss
+  - Meteor: Meteorschauer (3 kleinere) oder Riesenmeteor
+  - Lichtlanze: Doppel- → Dreifachlanze, oder Prisma → Fokus
+  - Frostnova: Weiter Ring oder Zerschmettern, dann Echo oder Tiefer Winter
+- **Runenfragment** (neue Belohnung, weißer Pfeil auf der Karte): Wahl aus 3 Upgrades (bei einer Zweig-Stufe stehen beide Zweige als eigene Karten da). Quellen: 15 % der Kampfräume und alle Horde-Räume. Kampfraum-Belohnungen jetzt: 45 % Segen, 10 % Zauber, 15 % Runenfragment, 18 % Relikt, 12 % Scherben.
+- **Glutsplitter** (GDD §7.1) sind Teil derselben Auswahl: Ein Segen steigt eine Stufe (bis Stufe 3); jede Stufe zählt wie 0,6 Seltenheits-Schritte.
+- Wird ein Zauber getauscht, übernimmt der neue Stufe und Zweig-Wahl (A/B) des alten.
+- Pause → Build zeigt Stufe und Zweige von Zaubern, Aura und Riss-Geschoss sowie Segen-Stufen.
+
 Die Abklingzeit beginnt mit dem Wirken (Abbrechen erstattet nichts) und ist mit Abklingzeit-Verkürzung höchstens um 50 % kürzbar. Die Werte stehen im Debug-Menü unter „spell: …“. Zauber- und Aura-Schaden zählen getrennt für Segen (`spellDamage`) und für den Simulator-Bericht.
 
 ### 4.2 Bewegung und Dash (Startwerte)

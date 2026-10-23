@@ -1,7 +1,6 @@
 import { RIFT_SHOT } from '../content/abilities';
 import { ELITES, eliteOf } from '../content/elites';
 import { attackOf, ENEMIES } from '../content/enemies';
-import { SPELLS, spellIndex } from '../content/spells';
 import { TUNING } from '../content/tuning';
 import type { InputFrame } from '../shared/input-frame';
 import { createSpatialHash, type SpatialHash } from './collision/spatial-hash';
@@ -31,6 +30,13 @@ import {
   type RoomState,
 } from './room';
 import type { RoomSetup, SpellSlots } from './run/run-state';
+import {
+  type ResolvedCast,
+  type ResolvedSpell,
+  resolveCast,
+  resolveSpell,
+  type UpgradeState,
+} from './run/upgrades';
 import { drifterAiSystem } from './systems/drifter-ai';
 import { enemyAiSystem } from './systems/enemy-ai';
 import { movementSystem } from './systems/movement';
@@ -94,6 +100,13 @@ export interface SimState {
   gameOver: boolean;
   arenaWidthPx: number;
   arenaHeightPx: number;
+  /** Equipped spells in run form, and resolved with their upgrades (ROADMAP M3.2/M3.4). */
+  spellSlots: SpellSlots;
+  activeSpell: ResolvedSpell | null;
+  auraSpell: ResolvedSpell | null;
+  /** Rift shot with its upgrades. */
+  castUpgrade: UpgradeState;
+  cast: ResolvedCast;
   /** Debug switches live in the state so replays with debug actions stay deterministic. */
   readonly debug: { godMode: boolean; wavesEnabled: boolean };
 }
@@ -144,6 +157,11 @@ export function createSim(seed: number, setup?: RoomSetup): SimState {
     arenaWidthPx: setup?.template.widthPx ?? TUNING.arenaWidthPx,
     arenaHeightPx: setup?.template.heightPx ?? TUNING.arenaHeightPx,
     debug: { godMode: false, wavesEnabled: true },
+    spellSlots: { active: null, aura: null },
+    activeSpell: null,
+    auraSpell: null,
+    castUpgrade: { level: 1, branches: [] },
+    cast: resolveCast({ level: 1, branches: [] }),
   };
   if (setup) {
     state.bonusAllDamage = setup.bonusAllDamage;
@@ -155,6 +173,7 @@ export function createSim(seed: number, setup?: RoomSetup): SimState {
     state.shards = setup.shards;
     state.player.ultCharge = setup.ultCharge;
     equipSpells(state, setup.spells);
+    equipCast(state, setup.cast);
     const t = setup.template;
     loadObstacles(state.room, t.obstacles);
     loadSpawnPoints(state.room, t.spawnPoints);
@@ -277,26 +296,39 @@ export function clearDrifters(state: SimState): void {
   }
 }
 
-/** Puts the run's spells into the player's slots; both start ready. */
+/**
+ * Puts the run's spells into the player's slots with their upgrades resolved once, so the sim
+ * reads plain numbers every tick. Both start ready.
+ */
 export function equipSpells(state: SimState, spells: SpellSlots): void {
   const p = state.player;
-  p.activeSpell = spells.active ? spellIndex(spells.active.id) : -1;
-  p.activeSpellLevel = spells.active?.level ?? 1;
-  p.auraSpell = spells.aura ? spellIndex(spells.aura.id) : -1;
-  p.auraSpellLevel = spells.aura?.level ?? 1;
+  state.spellSlots = {
+    active: spells.active ? { ...spells.active, branches: [...spells.active.branches] } : null,
+    aura: spells.aura ? { ...spells.aura, branches: [...spells.aura.branches] } : null,
+  };
+  state.activeSpell = spells.active ? resolveSpell(spells.active.id, spells.active) : null;
+  state.auraSpell = spells.aura ? resolveSpell(spells.aura.id, spells.aura) : null;
+  p.activeSpell = state.activeSpell?.index ?? -1;
+  p.activeSpellLevel = state.activeSpell?.level ?? 1;
+  p.auraSpell = state.auraSpell?.index ?? -1;
+  p.auraSpellLevel = state.auraSpell?.level ?? 1;
   p.spellCooldownTicks = 0;
   p.auraTimerTicks = 0;
 }
 
 /** The spells currently in the player's slots, in run form. */
 export function spellSlotsOf(state: SimState): SpellSlots {
-  const p = state.player;
-  const active = SPELLS[p.activeSpell];
-  const aura = SPELLS[p.auraSpell];
+  const s = state.spellSlots;
   return {
-    active: active ? { id: active.id, level: p.activeSpellLevel } : null,
-    aura: aura ? { id: aura.id, level: p.auraSpellLevel } : null,
+    active: s.active ? { ...s.active, branches: [...s.active.branches] } : null,
+    aura: s.aura ? { ...s.aura, branches: [...s.aura.branches] } : null,
   };
+}
+
+/** Applies rift shot upgrades (resolved once per room). */
+export function equipCast(state: SimState, cast: UpgradeState): void {
+  state.castUpgrade = { level: cast.level, branches: [...cast.branches] };
+  state.cast = resolveCast(cast);
 }
 
 /** Replaces the player's boons and recompiles the build (room start, debug). */

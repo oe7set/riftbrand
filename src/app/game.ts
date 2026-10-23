@@ -76,6 +76,7 @@ import {
 import {
   addRelic,
   applyOutcomes,
+  applyUpgrade,
   equipRunSpell,
   eventFor,
   heal,
@@ -83,6 +84,7 @@ import {
   type ResolvedOutcome,
   rollRelicOffer,
   rollSpellOffer,
+  rollUpgradeOffer,
   runStats,
   shopStock,
 } from '../sim/run/economy';
@@ -106,10 +108,12 @@ import {
   roomSetupFor,
   startSpellSlots,
 } from '../sim/run/run-state';
+import { branchTier, MAX_UPGRADE_LEVEL, type UpgradeOption } from '../sim/run/upgrades';
 import {
   clearDrifters,
   createSim,
   drainEvents,
+  equipCast,
   equipSpells,
   type SimState,
   setBuild,
@@ -328,11 +332,24 @@ export class Game {
           const def = spellById(id);
           if (!def) return;
           const slots = this.run?.spells ?? spellSlotsOf(this.sim);
-          const owned = { id, level: 1 };
+          const owned = { id, level: 1, branches: [] };
           const next =
             def.kind === 'active' ? { ...slots, active: owned } : { ...slots, aura: owned };
           if (this.run) this.run.spells = next;
           equipSpells(this.sim, next);
+        },
+        upgrade: (target, branch) => {
+          const slots = this.run?.spells ?? spellSlotsOf(this.sim);
+          const cast = this.run?.cast ?? {
+            level: this.sim.castUpgrade.level,
+            branches: [...this.sim.castUpgrade.branches],
+          };
+          const state = target === 'cast' ? cast : target === 'active' ? slots.active : slots.aura;
+          if (!state || state.level >= MAX_UPGRADE_LEVEL) return;
+          state.level++;
+          if (branchTier(state.level)) state.branches[state.level === 3 ? 0 : 1] = branch;
+          equipSpells(this.sim, slots);
+          equipCast(this.sim, cast);
         },
         giveEvolution: (id) => {
           setBuild(this.sim, this.sim.boons, this.sim.relics, [
@@ -818,6 +835,12 @@ export class Game {
         this.showBoonChoice(offer, node);
         return;
       }
+    } else if (node && reward?.kind === 'upgrade') {
+      const options = rollUpgradeOffer(run, node.id);
+      if (options.length > 0) {
+        this.showUpgradeChoice(options);
+        return;
+      }
     } else if (node && reward?.kind === 'spell') {
       this.showSpellChoice(rollSpellOffer(run, node.id));
       return;
@@ -854,6 +877,24 @@ export class Game {
         addRelic(run, id);
         saveRun(this.store, run);
         this.audio.play('boonPick', { pitch: 0.9, pitchVariation: 0 });
+        this.showMap();
+      },
+    });
+  }
+
+  private showUpgradeChoice(options: UpgradeOption[]): void {
+    const run = this.run;
+    if (!run) return;
+    if (this.mode === 'room') this.loadSim(this.backdropSim());
+    this.setMode('reward');
+    this.ui.show({
+      kind: 'upgrade',
+      run,
+      options,
+      onPick: (option) => {
+        applyUpgrade(run, option);
+        saveRun(this.store, run);
+        this.audio.play('evolve', { pitch: 1.2, pitchVariation: 0, volume: 0.7 });
         this.showMap();
       },
     });
@@ -1090,6 +1131,8 @@ export class Game {
         relics: this.sim.relics,
         evolutions: this.sim.evolutions,
         shards: this.sim.shards,
+        spells: spellSlotsOf(this.sim),
+        cast: this.sim.castUpgrade,
       });
       this.audio.suspend();
     } else {

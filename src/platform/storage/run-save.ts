@@ -3,7 +3,7 @@ import { type RunState, startSpellSlots } from '../../sim/run/run-state';
 import type { KeyValueStore } from './settings';
 
 const STORAGE_KEY = 'riftbrand.run';
-export const RUN_SAVE_VERSION = 6;
+export const RUN_SAVE_VERSION = 7;
 
 const mapNodeSchema = z.object({
   id: z.number().int().min(0),
@@ -12,6 +12,12 @@ const mapNodeSchema = z.object({
   type: z.enum(['combat', 'elite', 'horde', 'rest', 'boss', 'altar', 'shop', 'event']),
   next: z.array(z.number().int().min(0)),
 });
+
+const upgradeStateSchema = z.object({
+  level: z.number().int().min(1).max(5),
+  branches: z.array(z.number().int().min(0).max(1)),
+});
+const ownedSpellSchema = upgradeStateSchema.extend({ id: z.string() });
 
 const runSchema = z.object({
   seed: z.number().int().min(0),
@@ -26,7 +32,11 @@ const runSchema = z.object({
   roomsCleared: z.number().int().min(0),
   playTimeSec: z.number().min(0),
   boons: z.array(
-    z.object({ id: z.string(), rarity: z.enum(['common', 'rare', 'epic', 'heroic']) }),
+    z.object({
+      id: z.string(),
+      rarity: z.enum(['common', 'rare', 'epic', 'heroic']),
+      level: z.number().int().min(1).optional(),
+    }),
   ),
   evolutions: z.array(z.string()),
   ultCharge: z.number().min(0).max(1),
@@ -53,10 +63,8 @@ const runSchema = z.object({
   shards: z.number().int().min(0),
   shopBought: z.array(z.number().int().min(0)),
   maxHpBonus: z.number().int(),
-  spells: z.object({
-    active: z.object({ id: z.string(), level: z.number().int().min(1) }).nullable(),
-    aura: z.object({ id: z.string(), level: z.number().int().min(1) }).nullable(),
-  }),
+  spells: z.object({ active: ownedSpellSchema.nullable(), aura: ownedSpellSchema.nullable() }),
+  cast: upgradeStateSchema,
 });
 
 const saveSchema = z.object({
@@ -127,6 +135,23 @@ function migrate5to6(raw: { version: number; run?: Record<string, unknown> }): u
   return { ...raw, version: 6, run: { ...raw.run, spells: startSpellSlots() } };
 }
 
+/** v6 → v7: upgrade branches for spells and the rift shot (M3.4). */
+function migrate6to7(raw: { version: number; run?: Record<string, unknown> }): unknown {
+  const run = raw.run ?? {};
+  const spells = (run.spells ?? {}) as Record<string, Record<string, unknown> | null>;
+  const withBranches = (slot: Record<string, unknown> | null | undefined) =>
+    slot ? { ...slot, branches: [] } : null;
+  return {
+    ...raw,
+    version: 7,
+    run: {
+      ...run,
+      spells: { active: withBranches(spells.active), aura: withBranches(spells.aura) },
+      cast: { level: 1, branches: [] },
+    },
+  };
+}
+
 export function migrateRunSave(raw: unknown): RunState | null {
   if (typeof raw !== 'object' || raw === null) return null;
   let data = raw as { version?: unknown; run?: Record<string, unknown> };
@@ -135,6 +160,7 @@ export function migrateRunSave(raw: unknown): RunState | null {
   if (data.version === 3) data = migrate3to4(data as { version: number }) as typeof data;
   if (data.version === 4) data = migrate4to5(data as { version: number }) as typeof data;
   if (data.version === 5) data = migrate5to6(data as { version: number }) as typeof data;
+  if (data.version === 6) data = migrate6to7(data as { version: number }) as typeof data;
   if (data.version !== RUN_SAVE_VERSION) return null;
   raw = data;
   const parsed = saveSchema.safeParse(raw);

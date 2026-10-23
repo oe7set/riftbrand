@@ -35,5 +35,15 @@ export const PLAGUE_BREATH = defineSpell({
     stacks: 1,
     knockback: 0,
   },
+  upgrades: {
+    tier3: [
+      { id: 'wide_plague', mods: { radiusMult: 1.35 } },
+      { id: 'virulent', mods: { stacksAdd: 1 } },
+    ],
+    tier5: [
+      { id: 'quick_plague', mods: { pulseMult: 0.65 } },
+      { id: 'pandemic', mods: { radiusMult: 1.25, stacksAdd: 1 } },
+    ],
+  },
   visual: { color: 0x7dff6b, glyph: 'drop' },
 });

@@ -46,6 +46,18 @@ export const TUNING = {
   /** Exponential decay rate of knockback velocity per second. */
   knockbackDecayPerSec: 12,
 
+  // Upgrade levels (ROADMAP M3.4): every level above 1 adds these, branches come on top.
+  upgradeLevelDamage: 0.2,
+  upgradeLevelRadius: 0.06,
+  /** Cooldown and pulse interval shrink by this per level. */
+  upgradeLevelCooldown: 0.06,
+  /** Angle between shots/beams when an upgrade adds more of them. */
+  upgradeFanDeg: 12,
+  /** Delay between echoes of a self-centred burst, and between meteors of a shower. */
+  upgradeEchoSec: 0.3,
+  /** Boon levels (Glutsplitter): each level adds this many rarity steps. */
+  boonLevelSteps: 0.6,
+
   // Freezing (GDD §2.4: Vaelis). Stacking statuses live in content/statuses.ts.
   freezeDurationSec: 1.6,
   /** Extra damage taken while frozen ("shatter"), before boons. */
@@ -148,6 +160,7 @@ registerTunables(
   keysWithPrefix('shake', 'hitFlash', 'squash', 'last', 'ultimate'),
 );
 registerTunables('camera', SOURCE, TUNING, {}, keysWithPrefix('camera', 'viewArea'));
+registerTunables('upgrades', SOURCE, TUNING, {}, keysWithPrefix('upgrade', 'boonLevel'));
 registerTunables(
   'arena & waves',
   SOURCE,

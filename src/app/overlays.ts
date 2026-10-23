@@ -1,16 +1,23 @@
+import { RIFT_SHOT_UPGRADES } from '../content/abilities';
 import { boonById, boonDescParams } from '../content/boons';
 import { BEINGS } from '../content/boons/beings';
 import { relicById, relicDescParams } from '../content/relics';
+import type { UpgradeTree } from '../content/schema';
+import { spellById } from '../content/spells';
 import type { InputDevice } from '../platform/input/input-manager';
 import type { Settings } from '../platform/storage/settings';
 import { type TranslationKey, t } from '../shared/i18n';
 import type { OwnedBoon, OwnedRelic } from '../sim/effects/build';
+import type { SpellSlots } from '../sim/run/run-state';
+import { branchesUpTo, type UpgradeState } from '../sim/run/upgrades';
 
 export interface BuildSummary {
   boons: readonly OwnedBoon[];
   relics: readonly OwnedRelic[];
   evolutions: readonly string[];
   shards: number;
+  spells: SpellSlots;
+  cast: UpgradeState;
 }
 
 function div(className: string, text = ''): HTMLDivElement {
@@ -165,6 +172,34 @@ export class PauseOverlay {
       el.append(head, div('rb-build-meta', meta), div('rb-build-desc', desc));
       return el;
     };
+    // Spells and the rift shot with their level and chosen branches (ROADMAP M3.4).
+    const upgradeMeta = (tree: UpgradeTree, state: UpgradeState) =>
+      [
+        t('build.level', { n: state.level }),
+        ...branchesUpTo(tree, state).map((b) => t(`upgrade.${b.id}.name` as TranslationKey)),
+      ].join(' · ');
+    const spellRows: HTMLElement[] = [];
+    for (const slot of [build.spells.active, build.spells.aura]) {
+      const def = slot ? spellById(slot.id) : undefined;
+      if (!slot || !def) continue;
+      spellRows.push(
+        row(
+          t(`spell.${def.id}.name` as TranslationKey),
+          `${t(`spell.kind.${def.kind}` as TranslationKey)} · ${upgradeMeta(def.upgrades, slot)}`,
+          t(`spell.${def.id}.desc` as TranslationKey),
+          `#${def.visual.color.toString(16).padStart(6, '0')}`,
+        ),
+      );
+    }
+    spellRows.push(
+      row(
+        t('upgrade.cast_name'),
+        upgradeMeta(RIFT_SHOT_UPGRADES, build.cast),
+        t('build.cast_desc'),
+        '#c7b8ff',
+      ),
+    );
+    section(t('build.spells'), spellRows);
     if (build.evolutions.length > 0) {
       section(
         t('pause.evolutions'),
@@ -186,8 +221,8 @@ export class PauseOverlay {
         return [
           row(
             t(`boon.${b.id}.name` as TranslationKey),
-            `${def.partner ? t('reward.duo') : t(`rarity.${b.rarity}` as TranslationKey)} · ${t(`slot.${def.slot}` as TranslationKey)}`,
-            t(`boon.${b.id}.desc` as TranslationKey, boonDescParams(def, b.rarity)),
+            `${def.partner ? t('reward.duo') : t(`rarity.${b.rarity}` as TranslationKey)} · ${t(`slot.${def.slot}` as TranslationKey)}${(b.level ?? 1) > 1 ? ` · ${t('build.level', { n: b.level ?? 1 })}` : ''}`,
+            t(`boon.${b.id}.desc` as TranslationKey, boonDescParams(def, b.rarity, b.level ?? 1)),
             BEINGS[def.being].css,
           ),
         ];

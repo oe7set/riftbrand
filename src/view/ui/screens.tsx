@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { RIFT_SHOT_UPGRADES } from '../../content/abilities';
 import { boonById, boonDescParams } from '../../content/boons';
 import { BEINGS } from '../../content/boons/beings';
 import { evolutionById } from '../../content/evolutions';
 import { relicById, relicDescParams } from '../../content/relics';
-import type { BoonSlot, EventDef, RoomType, SpellDef } from '../../content/schema';
+import type { BoonSlot, EventDef, RoomType, SpellDef, UpgradeBranch } from '../../content/schema';
 import { spellById } from '../../content/spells';
+import { TUNING } from '../../content/tuning';
 import { type TranslationKey, t } from '../../shared/i18n';
 import type { OwnedRelic } from '../../sim/effects/build';
 import { nodeReward, relicStacks, type ShopItem } from '../../sim/run/economy';
 import type { MapNode } from '../../sim/run/map';
 import type { BoonOffer, BoonOption } from '../../sim/run/rewards';
 import { availableNodes, type RunState, type SpellSlots } from '../../sim/run/run-state';
+import { branchTier, type UpgradeOption } from '../../sim/run/upgrades';
 import { NodeIcon } from './icons';
 import { LayoutEditor, type LayoutEditorScreen } from './layout-editor';
 import {
@@ -58,6 +61,7 @@ export type Screen =
       onReroll(): void;
     }
   | { kind: 'relic'; options: string[]; owned: OwnedRelic[]; onPick(id: string): void }
+  | { kind: 'upgrade'; run: RunState; options: UpgradeOption[]; onPick(o: UpgradeOption): void }
   | {
       kind: 'spell';
       options: string[];
@@ -288,7 +292,13 @@ function RewardMarker({ run, node }: { run: RunState; node: MapNode }) {
     return <span class="rb-node-reward" style={{ background: BEINGS[reward.being].css }} />;
   }
   const cls =
-    reward.kind === 'relic' ? 'is-relic' : reward.kind === 'spell' ? 'is-spell' : 'is-shards';
+    reward.kind === 'relic'
+      ? 'is-relic'
+      : reward.kind === 'spell'
+        ? 'is-spell'
+        : reward.kind === 'upgrade'
+          ? 'is-upgrade'
+          : 'is-shards';
   return <span class={`rb-node-reward ${cls}`} />;
 }
 
@@ -547,6 +557,105 @@ function SpellScreen({ options, current, onPick, onSkip }: Extract<Screen, { kin
   );
 }
 
+const PCT = (v: number) => `${Math.round(v * 100)}%`;
+
+/** The branch an upgrade option picks, if it is a branch level. */
+function optionBranch(run: RunState, o: UpgradeOption): UpgradeBranch | null {
+  if (o.kind !== 'level' || o.branch === null) return null;
+  const tier = branchTier(o.level);
+  if (!tier) return null;
+  const tree =
+    o.target === 'cast'
+      ? RIFT_SHOT_UPGRADES
+      : spellById((o.target === 'active' ? run.spells.active : run.spells.aura)?.id ?? '')
+          ?.upgrades;
+  return tree ? tree[tier][o.branch === 1 ? 1 : 0] : null;
+}
+
+function UpgradeCard({
+  run,
+  option,
+  autofocus,
+  onClick,
+}: {
+  run: RunState;
+  option: UpgradeOption;
+  autofocus: boolean;
+  onClick(): void;
+}) {
+  let name: string;
+  let kindLabel: string;
+  let desc: string;
+  let color = '#b8a6ff';
+  if (option.kind === 'boon') {
+    const owned = run.boons.find((b) => b.id === option.boonId);
+    const def = boonById(option.boonId);
+    name = t(`boon.${option.boonId}.name` as TranslationKey);
+    kindLabel = t('upgrade.kind.boon');
+    desc = def
+      ? t(
+          `boon.${option.boonId}.desc` as TranslationKey,
+          boonDescParams(def, owned?.rarity ?? 'common', option.level),
+        )
+      : '';
+    if (def) color = BEINGS[def.being].css;
+  } else {
+    const slot = option.target === 'active' ? run.spells.active : run.spells.aura;
+    const spell = option.target === 'cast' ? undefined : spellById(slot?.id ?? '');
+    name = spell ? t(`spell.${spell.id}.name` as TranslationKey) : t('upgrade.cast_name');
+    kindLabel = t(`upgrade.kind.${option.target}` as TranslationKey);
+    if (spell) color = cssColor(spell.visual.color);
+    const branch = optionBranch(run, option);
+    desc = branch
+      ? `${t(`upgrade.${branch.id}.name` as TranslationKey)}: ${t(`upgrade.${branch.id}.desc` as TranslationKey)}`
+      : t(option.target === 'cast' ? 'upgrade.generic_cast' : 'upgrade.generic', {
+          damage: PCT(TUNING.upgradeLevelDamage),
+          radius: PCT(TUNING.upgradeLevelRadius),
+          cooldown: PCT(TUNING.upgradeLevelCooldown),
+        });
+  }
+  return (
+    <button
+      type="button"
+      class="rb-card rb-upgrade"
+      style={{ '--being': color }}
+      data-autofocus={autofocus ? true : undefined}
+      onClick={onClick}
+    >
+      <div class="rb-card-head">
+        <span class="rb-card-slot">{kindLabel}</span>
+        <span class="rb-card-rarity">
+          {t('upgrade.level', { from: option.level - 1, to: option.level })}
+        </span>
+      </div>
+      <div class="rb-card-name">{name}</div>
+      <div class="rb-card-desc">{desc}</div>
+    </button>
+  );
+}
+
+function UpgradeScreen({ run, options, onPick }: Extract<Screen, { kind: 'upgrade' }>) {
+  return (
+    <div class="rb-screen rb-center rb-boon-screen" style={{ '--being': '#b8a6ff' }}>
+      <div class="rb-being-name">{t('upgrade.title')}</div>
+      <div class="rb-overlay-hint">{t('upgrade.choose')}</div>
+      <Autofocus wide>
+        <div class="rb-cards">
+          {options.map((o, i) => (
+            <UpgradeCard
+              key={`${o.kind}-${o.kind === 'boon' ? o.boonId : `${o.target}-${o.branch}`}`}
+              run={run}
+              option={o}
+              autofocus={i === 0}
+              onClick={() => onPick(o)}
+            />
+          ))}
+        </div>
+      </Autofocus>
+    </div>
+  );
+}
+
 function RelicScreen({ options, owned, onPick }: Extract<Screen, { kind: 'relic' }>) {
   return (
     <div class="rb-screen rb-center rb-boon-screen" style={{ '--being': '#ffe6b0' }}>
@@ -775,6 +884,8 @@ export function UiRoot({ screen }: { screen: Screen }) {
       return <RelicScreen {...screen} />;
     case 'spell':
       return <SpellScreen {...screen} />;
+    case 'upgrade':
+      return <UpgradeScreen {...screen} />;
     case 'notice':
       return <NoticeScreen {...screen} />;
     case 'shop':

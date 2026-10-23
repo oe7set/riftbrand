@@ -96,6 +96,24 @@ describe('duo boons and evolutions', () => {
     }
   });
 
+  it('has a text for every upgrade branch of every spell and the rift shot', async () => {
+    const { SPELLS } = await import('./spells');
+    const { RIFT_SHOT_UPGRADES } = await import('./abilities');
+    const { LOCALES } = await import('../shared/i18n');
+    const trees = [RIFT_SHOT_UPGRADES, ...SPELLS.map((s) => s.upgrades)];
+    for (const tree of trees) {
+      const ids = [...tree.tier3, ...tree.tier5].map((b) => b.id);
+      expect(new Set(ids).size, ids.join()).toBe(ids.length);
+      for (const id of ids) {
+        for (const table of Object.values(LOCALES)) {
+          const strings = table as Record<string, string>;
+          expect(strings[`upgrade.${id}.name`], id).toBeTruthy();
+          expect(strings[`upgrade.${id}.desc`], id).toBeTruthy();
+        }
+      }
+    }
+  });
+
   it('reference existing boons and relics and have texts in every locale', async () => {
     const { BOONS, boonById } = await import('./boons');
     const { EVOLUTIONS } = await import('./evolutions');
