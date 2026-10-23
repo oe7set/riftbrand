@@ -1050,6 +1050,7 @@ export class Game {
     this.view.hud.flashIntensity = s.flashes;
     this.view.damageNumbers.enabled = s.damageNumbers;
     this.view.entities.statusIcons.enabled = s.statusIcons;
+    this.view.effects.auraRingEnabled = s.auraRing;
     this.view.setGlowQuality(s.quality);
     this.haptics.intensity = s.vibration;
     this.view.setTouchOpacity(s.touchOpacity);

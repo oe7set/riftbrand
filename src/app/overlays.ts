@@ -128,6 +128,18 @@ export class PauseOverlay {
     iconsRow.append(icons, div('rb-setting-label', t('settings.status_icons')));
     box.append(iconsRow);
 
+    const ring = document.createElement('input');
+    ring.type = 'checkbox';
+    ring.checked = s.auraRing;
+    ring.addEventListener('change', () => {
+      s.auraRing = ring.checked;
+      this.onSettingsChange(s);
+    });
+    const ringRow = document.createElement('label');
+    ringRow.className = 'rb-setting rb-setting-inline';
+    ringRow.append(ring, div('rb-setting-label', t('settings.aura_ring')));
+    box.append(ringRow);
+
     const quality = document.createElement('select');
     for (const value of ['high', 'low'] as const) {
       const option = document.createElement('option');
