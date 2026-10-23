@@ -1,6 +1,7 @@
 import { autoDetectRenderer, Container, type Renderer } from 'pixi.js';
 import { AdvancedBloomFilter } from 'pixi-filters';
 import { RIFT_SHOT } from '../content/abilities';
+import { RIGS } from '../content/rigs';
 import { SPELLS, spellRadiusPx, spellReachPx } from '../content/spells';
 import { TUNING } from '../content/tuning';
 import type { InputDevice } from '../platform/input/input-manager';
@@ -22,6 +23,7 @@ import {
 import { DebugDraw } from './render/debug-draw';
 import { EntityView } from './render/entity-view';
 import { PALETTE } from './render/palette';
+import { bakeRig } from './render/rig/bake-rig';
 import { RoomView } from './render/room-view';
 import { type BakedTextures, bakeTextures } from './render/textures';
 import { DamageNumbers } from './vfx/damage-numbers';
@@ -76,9 +78,13 @@ export class GameView {
 
   private constructor(readonly renderer: Renderer) {
     this.textures = bakeTextures(renderer);
-    this.entities = new EntityView(this.textures);
-    this.roomView = new RoomView(this.textures);
     this.effects = new Effects(this.fxParticles, this.groundParticles, this.textures);
+    this.entities = new EntityView(
+      this.textures,
+      RIGS.map((rig) => bakeRig(renderer, rig)),
+      this.effects,
+    );
+    this.roomView = new RoomView(this.textures);
     this.hud = new HudView(
       this.textures.white,
       this.textures.vignette,
@@ -234,7 +240,7 @@ export class GameView {
 
     this.arena.sync(sim.arenaWidthPx, sim.arenaHeightPx);
     this.roomView.sync(sim.room, realDtSec);
-    this.entities.sync(sim, alpha, realDtSec);
+    this.entities.sync(sim, alpha, realDtSec, simDtSec);
     this.fxParticles.update(realDtSec);
     this.groundParticles.update(realDtSec);
     this.damageNumbers.update(realDtSec);

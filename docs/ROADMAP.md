@@ -603,24 +603,24 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
    - pro Gegner ein Container mit vorab angelegten Sprites aus einem Pool
    - Budgets aus TECH_DESIGN §16 einhalten
 
-### M4.1 Prototyp: Vesper und Schlacke (vorher/nachher) ⬜
+### M4.1 Prototyp: Vesper und Schlacke (vorher/nachher) 🧪
 **Ziel:** Der PO kann den neuen Look an zwei Figuren beurteilen, bevor er in die Breite geht.
 
 **Umfang:**
-- [ ] **Rig-System** in `src/view/render/rig/`:
+- [x] **Rig-System** in `src/view/render/rig/`:
   - Rig-Daten als Content in `src/content/rigs/`: Teile, Gelenke, Ruhepose, Farbschichten
   - Bake ins Atlas
-- [ ] **Animations-Bausteine:**
+- [x] **Animations-Bausteine:**
   - Laufzyklus aus dem Tempo
   - Atmen im Stand
   - Ausholen und Zuschlagen aus der Angriffsphase
   - Treffer-Zucken, Squash und Stretch
   - Dash-Nachbild
   - Tod: Zerfall in Glut
-- [ ] **Vesper:** schlanke Figur mit Kopf, Umhang, Armen und Beinen, leuchtendem Brandmal. Die Waffe in der Hand folgt der Combo.
-- [ ] **Schlacke:** gedrungene Lavakreatur auf vier Beinen mit glühenden Rissen. Bei der Vorbereitung duckt sie den Kopf.
-- [ ] **Debug-Menü:** Umschalter „Look: classic / rig“ für den direkten Vergleich, dazu Zeitlupe zum Betrachten.
-- [ ] **Leistungsmessung:** 40 Schlacken mit Rig gegen den klassischen Look, CPU ×4. Die Zahlen stehen im PR.
+- [x] **Vesper:** schlanke Figur mit Kopf, Umhang, Armen und Beinen, leuchtendem Brandmal. Die Waffe in der Hand folgt der Combo.
+- [x] **Schlacke:** gedrungene Lavakreatur auf vier Beinen mit glühenden Rissen. Bei der Vorbereitung duckt sie den Kopf.
+- [x] **Debug-Menü:** Umschalter „Look: classic / rig“ für den direkten Vergleich, dazu Zeitlupe zum Betrachten.
+- [x] **Leistungsmessung:** 40 Schlacken mit Rig gegen den klassischen Look, CPU ×4. Die Zahlen stehen im PR.
 
 **Technik:** ADR „Rig-Animation: Teile-Sprites statt Sprite-Sheets“.
 
@@ -631,6 +631,24 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
 - Sonst wird nachgebessert oder die Richtung geändert, bevor es in die Breite geht.
 
 **Abhängig von:** M3 abgenommen
+
+**Umgesetzt (wartet auf die PO-Entscheidung):**
+- **Seitenansicht:** Figuren stehen aufrecht und werden je nach Blickrichtung gespiegelt. Die Klinge folgt Zielrichtung und Combo: Hieb von oben, Hieb von unten, Stoß; beim Spezialangriff wirbelt sie einmal herum.
+- **Größe:** Vesper wird 1,4-fach, Schlacke 1,2-fach des Kollisionsradius gezeichnet, damit die Körper am Handy lesbar sind. Die Hitboxen bleiben unverändert. Ein weicher Glow hält Vesper als hellstes Element.
+- **Tod:** Der Körper zerfällt in seine Teile, die mit Glut davonfliegen. Gilt für Gegner und für Vesper.
+- **Debug-Menü:**
+  - „View“ → „Look: rig (off = classic)“
+  - „Time scale“ für Zeitlupe
+  - Rig-Werte unter „rigs (look)“ und „rig: vesper/slag“
+- **Leistung** (40 Schlacken, Simulation eingefroren, Render-CPU-Zeit pro Frame, Swiftshader im Container):
+
+  | | Rig | klassisch |
+  |---|---|---|
+  | CPU ×4 | ca. 4,3 ms | ca. 2,7 ms |
+  | ohne Drosselung | ca. 1,5 ms | ca. 0,95 ms |
+
+  Das Budget fürs Rendering liegt bei 8 ms. Die FPS werden im Container von der Software-Grafik begrenzt; die echte Messung am OnePlus 13 macht der PO.
+- **ADR 0005**, TECH_DESIGN §34.
 
 ### M4.2 Alle Kreaturen der Aschefelder ⬜
 **Umfang:**

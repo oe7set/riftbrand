@@ -1,22 +1,33 @@
 import { Container, Sprite, type Texture } from 'pixi.js';
 import { eliteOf } from '../../content/elites';
 import { attackOf, ENEMIES } from '../../content/enemies';
+import { ENEMY_RIGS, PLAYER_RIG_ID, RIG_TUNING, rigIndex } from '../../content/rigs';
 import { SPELLS } from '../../content/spells';
 import { Status, statusDef } from '../../content/statuses';
 import { TUNING } from '../../content/tuning';
+import { BRAND_BLADE } from '../../content/weapons/brand-blade';
 import { AiState, C, RenderKind, stacksOf } from '../../sim/ecs/components';
 import { PlayerAction } from '../../sim/player-state';
 import type { SimState } from '../../sim/sim';
 import { linkedDamageFactor, partnerOf } from '../../sim/systems/champions';
 import { secondsToTicks } from '../../sim/time';
+import type { Effects } from '../vfx/effects';
 import { StatusIcons } from '../vfx/status-overlay';
 import { PALETTE } from './palette';
+import { createRigInput, type RigInput, resetRigInput } from './rig/animate';
+import type { BakedRig } from './rig/bake-rig';
+import { RigInstance } from './rig/rig-instance';
 import { BAKE_RADIUS_PX, type BakedTextures, type BodyTextures } from './textures';
 
 const SPAWN_POP_SEC = 0.25;
 const HP_BAR_WIDTH_PX = 34;
 const HP_BAR_HEIGHT_PX = 4;
 const INVULN_BLINK_HZ = 16;
+/** Facing must clearly point the other way before the side view flips (no flicker). */
+const FACING_FLIP_THRESHOLD = 0.15;
+
+/** Classic: glowing shapes (M1–M3). Rig: bodies made of animated parts (ROADMAP M4). */
+export type Look = 'classic' | 'rig';
 
 /** Per-entity-slot display objects, created lazily and reused for the slot's next occupant. */
 interface Slot {
@@ -39,6 +50,8 @@ interface Slot {
   /** Elite marker: coloured halo, plus the frontal shield arc for shielded elites. */
   eliteRing: Sprite;
   shield: Sprite;
+  /** Rig instances by rig index, created when first needed. */
+  rigs: Array<RigInstance | undefined>;
   generation: number;
 }
 
@@ -57,10 +70,40 @@ export class EntityView {
   private readonly squashDirX = new Float32Array(4096);
   private readonly squashDirY = new Float32Array(4096);
   private readonly ageSec = new Float32Array(4096);
+  /** Rig animation state per entity id. */
+  private readonly walkCycles = new Float32Array(4096);
+  private readonly moveBlend = new Float32Array(4096);
+  private readonly facingSign = new Int8Array(4096);
+  private readonly rigInput: RigInput = createRigInput();
+  private readonly partScratch = { x: 0, y: 0, rotation: 0 };
+  /** Rig index per enemy type, -1 = classic shape. */
+  private readonly enemyRig: Int8Array;
+  private readonly playerRig: number;
   private time = 0;
+  /** Animation clock in sim time, so slow motion slows the bodies too. */
+  private animTime = 0;
+  look: Look = 'rig';
 
-  constructor(private readonly textures: BakedTextures) {
+  constructor(
+    private readonly textures: BakedTextures,
+    private readonly rigs: readonly BakedRig[],
+    private readonly effects: Effects,
+  ) {
     this.statusIcons = new StatusIcons(textures);
+    this.enemyRig = Int8Array.from(ENEMIES, (e) => {
+      const rigId = ENEMY_RIGS[e.id];
+      return rigId === undefined ? -1 : rigIndex(rigId);
+    });
+    this.playerRig = rigIndex(PLAYER_RIG_ID);
+  }
+
+  /** Rig index for an entity, -1 when it keeps the classic shape. */
+  private rigOf(sim: SimState, eid: number): number {
+    if (this.look !== 'rig') return -1;
+    const kind = sim.c.renderKind[eid];
+    if (kind === RenderKind.Player) return this.playerRig;
+    if (kind === RenderKind.Enemy) return this.enemyRig[sim.c.enemyType[eid] as number] ?? -1;
+    return -1;
   }
 
   /** Hit feedback: white flash plus a squash along the hit direction. */
@@ -111,6 +154,7 @@ export class EntityView {
       revive: make(this.textures.ring, this.overlayLayer),
       eliteRing: make(this.textures.ring, this.groundLayer),
       shield: make(this.textures.shieldArc, this.overlayLayer),
+      rigs: [],
       generation: -1,
     };
     slot.hpBack.tint = PALETTE.hpBack;
@@ -133,11 +177,13 @@ export class EntityView {
     slot.revive.visible = false;
     slot.eliteRing.visible = false;
     slot.shield.visible = false;
+    for (const rig of slot.rigs) if (rig) rig.visible = false;
   }
 
   /** `alpha` interpolates between the previous and the current tick (0..1). */
-  sync(sim: SimState, alpha: number, dtSec: number): void {
+  sync(sim: SimState, alpha: number, dtSec: number, simDtSec: number): void {
     this.time += dtSec;
+    this.animTime += simDtSec;
     const { world, c } = sim;
     const masks = world.masks;
     const renderMask = C.Transform | C.Renderable;
@@ -170,6 +216,9 @@ export class EntityView {
         this.ageSec[eid] = 0;
         this.flashSec[eid] = 0;
         this.squashSec[eid] = 0;
+        this.walkCycles[eid] = 0;
+        this.moveBlend[eid] = 0;
+        this.facingSign[eid] = (c.facingX[eid] as number) < 0 ? -1 : 1;
       }
       this.ageSec[eid] = (this.ageSec[eid] as number) + dtSec;
       const px = c.prevX[eid] as number;
@@ -214,8 +263,11 @@ export class EntityView {
         if (p.action === PlayerAction.Dead) body.alpha = 0;
       }
       body.scale.set(scale * sx, scale * sy);
+      const rigIdx = this.rigOf(sim, eid);
+      const baked = rigIdx >= 0 ? this.rigs[rigIdx] : undefined;
+      body.visible = baked === undefined;
 
-      if ((mask & C.Enemy) !== 0) this.syncEnemyExtras(sim, eid, s, x, y);
+      if ((mask & C.Enemy) !== 0) this.syncEnemyExtras(sim, eid, s, x, y, baked);
       else {
         s.body.tint = 0xffffff;
         s.aura.visible = false;
@@ -231,6 +283,19 @@ export class EntityView {
         s.hpBack.visible = false;
         s.hpFill.visible = false;
       }
+      this.syncRig(
+        sim,
+        eid,
+        s,
+        rigIdx,
+        x,
+        y,
+        scale / ((c.radius[eid] as number) / BAKE_RADIUS_PX),
+        sx,
+        sy,
+        flashing,
+        simDtSec,
+      );
     }
     for (let i = world.highWater; i < this.slots.length; i++) {
       const slot = this.slots[i];
@@ -340,7 +405,15 @@ export class EntityView {
    * crust that thickens per stack; burn = flickering ember glow; poison = green tint and haze;
    * blind = light halo over the head. Icons with stack counts are drawn by StatusIcons.
    */
-  private syncStatus(sim: SimState, eid: number, s: Slot, x: number, y: number, r: number): void {
+  private syncStatus(
+    sim: SimState,
+    eid: number,
+    s: Slot,
+    x: number,
+    y: number,
+    r: number,
+    topY: number,
+  ): void {
     const c = sim.c;
     const frozen = (c.frozenTicks[eid] as number) > 0;
     const chill = stacksOf(c, eid, Status.Chill);
@@ -397,7 +470,7 @@ export class EntityView {
     halo.visible = blind > 0;
     if (halo.visible) {
       halo.tint = statusDef(Status.Blind).visual.color;
-      halo.position.set(x, y - r * 1.05);
+      halo.position.set(x, topY);
       halo.rotation = 0;
       // A flat ellipse reads as a halo above the body.
       halo.scale.set((r * 0.8) / BAKE_RADIUS_PX, (r * 0.3) / BAKE_RADIUS_PX);
@@ -438,12 +511,23 @@ export class EntityView {
     }
   }
 
-  private syncEnemyExtras(sim: SimState, eid: number, s: Slot, x: number, y: number): void {
+  private syncEnemyExtras(
+    sim: SimState,
+    eid: number,
+    s: Slot,
+    x: number,
+    y: number,
+    baked: BakedRig | undefined,
+  ): void {
     const c = sim.c;
     const def = ENEMIES[c.enemyType[eid] as number];
     if (!def) return;
-    const r = c.radius[eid] as number;
-    this.syncStatus(sim, eid, s, x, y, r);
+    const rig = baked?.layout.rig;
+    const r = (c.radius[eid] as number) * (rig?.visualScale ?? 1);
+    // Upright rig bodies rise above the ground point; glows and bars follow the body.
+    const bodyY = rig ? y - rig.centerUnits * r : y;
+    const headY = rig ? y - rig.heightUnits * r : y - r * 1.05;
+    this.syncStatus(sim, eid, s, x, bodyY, r, headY);
     this.syncElite(sim, eid, s, x, y, r);
 
     const hp = c.hp[eid] as number;
@@ -452,13 +536,13 @@ export class EntityView {
     s.hpBack.visible = showHp;
     s.hpFill.visible = showHp;
     if (showHp) {
-      const top = y - r - 10;
+      const top = rig ? headY - 8 : y - r - 10;
       s.hpBack.position.set(x, top);
       s.hpBack.scale.set(HP_BAR_WIDTH_PX + 2, HP_BAR_HEIGHT_PX + 2);
       s.hpFill.position.set(x - HP_BAR_WIDTH_PX / 2, top);
       s.hpFill.scale.set(HP_BAR_WIDTH_PX * Math.max(0, hp / maxHp), HP_BAR_HEIGHT_PX);
     }
-    this.statusIcons.sync(sim, eid, x, y - r - 10, this.time);
+    this.statusIcons.sync(sim, eid, x, rig ? headY - 8 : y - r - 10, this.time);
 
     this.syncChampion(sim, eid, s, x, y, r);
     const state = c.aiState[eid];
@@ -586,6 +670,202 @@ export class EntityView {
     if (atk.kind === 'slam') {
       s.teleBack.anchor.set(0.5);
       s.teleFill.anchor.set(0.5);
+    }
+  }
+
+  /**
+   * Drives the rigged body (ROADMAP M4.1) from the sim state: walk cycle from speed, attack
+   * phases, spell pose, hit recoil and dash afterimages. Reads the sim, never writes it.
+   */
+  private syncRig(
+    sim: SimState,
+    eid: number,
+    s: Slot,
+    rigIdx: number,
+    x: number,
+    y: number,
+    pop: number,
+    sx: number,
+    sy: number,
+    flashing: boolean,
+    simDtSec: number,
+  ): void {
+    for (let i = 0; i < s.rigs.length; i++) {
+      const other = s.rigs[i];
+      if (other && i !== rigIdx) other.visible = false;
+    }
+    const baked = rigIdx >= 0 ? this.rigs[rigIdx] : undefined;
+    if (!baked) return;
+    let rig = s.rigs[rigIdx];
+    if (!rig) {
+      rig = new RigInstance(
+        baked,
+        this.bodyLayer,
+        this.groundLayer,
+        this.textures.dot,
+        this.textures.softGlow,
+      );
+      s.rigs[rigIdx] = rig;
+    }
+    rig.visible = true;
+    const c = sim.c;
+    const def = baked.layout.rig;
+    const r = (c.radius[eid] as number) * def.visualScale;
+    const fx = c.facingX[eid] as number;
+    const fy = c.facingY[eid] as number;
+    if (fx > FACING_FLIP_THRESHOLD) this.facingSign[eid] = 1;
+    else if (fx < -FACING_FLIP_THRESHOLD) this.facingSign[eid] = -1;
+    const facing = (this.facingSign[eid] as number) || 1;
+
+    const frozen = (c.frozenTicks[eid] as number) > 0;
+    const vx = c.velX[eid] as number;
+    const vy = c.velY[eid] as number;
+    const speed = frozen ? 0 : Math.sqrt(vx * vx + vy * vy);
+    const isPlayer = eid === sim.playerEid;
+    const refSpeed = isPlayer
+      ? TUNING.playerSpeedPxPerSec
+      : (ENEMIES[c.enemyType[eid] as number]?.speedPxPerSec ?? 100);
+    this.walkCycles[eid] =
+      (this.walkCycles[eid] as number) + (speed * simDtSec) / (def.strideUnits * r);
+    const target = Math.min(1, speed / Math.max(1, refSpeed));
+    const blend = Math.min(1, RIG_TUNING.moveBlendPerSec * simDtSec);
+    this.moveBlend[eid] =
+      (this.moveBlend[eid] as number) + (target - (this.moveBlend[eid] as number)) * blend;
+
+    const input = resetRigInput(this.rigInput);
+    input.timeSec = frozen ? eid : this.animTime + eid * 0.37;
+    input.walkCycles = this.walkCycles[eid] as number;
+    input.move = this.moveBlend[eid] as number;
+    input.aimDeg = (Math.atan2(fy, Math.abs(fx)) * 180) / Math.PI;
+    const squash = this.squashSec[eid] as number;
+    if (squash > 0) {
+      // Pushed from the front leans back, from behind forward.
+      const along = (this.squashDirX[eid] as number) * facing;
+      input.twitch = (squash / TUNING.squashSec) * (along > 0.2 ? -0.6 : 1);
+    }
+    if (isPlayer) this.playerRigInput(sim, input);
+    else this.enemyRigInput(sim, eid, input);
+
+    rig.update(input, x, y, r, facing, sx * pop, sy * pop, flashing);
+    rig.root.tint = s.body.tint;
+    rig.root.alpha = s.body.alpha;
+    rig.shadow.tint = def.colors.body;
+    rig.shadow.alpha = 0.22 * s.body.alpha;
+  }
+
+  /**
+   * Dash afterimage in the rig look: the figure's silhouette, mirrored like the body. Returns
+   * false when the player has no visible rig, so the caller falls back to the classic one.
+   */
+  rigAfterimage(sim: SimState): boolean {
+    const eid = sim.playerEid;
+    const rig = this.slots[eid]?.rigs[this.playerRig];
+    if (this.look !== 'rig' || !rig?.visible) return false;
+    const def = rig.baked.layout.rig;
+    this.effects.rigAfterimage(
+      rig.baked.ghost,
+      rig.root.position.x,
+      rig.root.position.y,
+      Math.abs(rig.root.scale.y),
+      rig.root.scale.x < 0 ? -1 : 1,
+      def.colors.body,
+    );
+    return true;
+  }
+
+  private playerRigInput(sim: SimState, input: RigInput): void {
+    const p = sim.player;
+    const t = p.actionTicks;
+    if (p.action === PlayerAction.Attack) {
+      const hit = BRAND_BLADE.combo[p.comboIndex];
+      if (!hit) return;
+      const w = Math.max(1, secondsToTicks(hit.windupSec));
+      const a = Math.max(1, secondsToTicks(hit.activeSec));
+      const rec = Math.max(1, secondsToTicks(hit.recoverySec));
+      const phase =
+        t < w ? t / w : t < w + a ? 1 + (t - w) / a : 2 + Math.min(1, (t - w - a) / rec);
+      input.swingStep = p.comboIndex;
+      input.swingPhase = phase;
+      input.windup = phase < 1 ? phase : phase < 2 ? 2 - phase : 0;
+      input.strike = phase < 1 ? 0 : phase < 2 ? phase - 1 : Math.max(0, 3 - phase);
+    } else if (p.action === PlayerAction.Special) {
+      const sp = BRAND_BLADE.special;
+      const total = secondsToTicks(sp.windupSec + sp.activeSec + sp.recoverySec);
+      input.whirl = Math.min(1, t / Math.max(1, total));
+      input.strike = 1 - input.whirl;
+    } else if (p.action === PlayerAction.Dash) {
+      input.move = 1;
+      input.lean = 1.5;
+    } else if (
+      p.action === PlayerAction.Spell ||
+      p.action === PlayerAction.Cast ||
+      p.action === PlayerAction.Ultimate
+    ) {
+      input.cast = Math.min(1, (t + 1) / 5);
+    }
+  }
+
+  private enemyRigInput(sim: SimState, eid: number, input: RigInput): void {
+    const c = sim.c;
+    const def = ENEMIES[c.enemyType[eid] as number];
+    if (!def) return;
+    const atk = attackOf(def, c.aiPhase[eid] as number, c.aiPattern[eid] as number);
+    const ticks = c.aiTicks[eid] as number;
+    switch (c.aiState[eid]) {
+      case AiState.Windup:
+        input.windup = Math.min(1, ticks / Math.max(1, secondsToTicks(atk.windupSec)));
+        break;
+      case AiState.Active:
+        input.strike = 1;
+        break;
+      case AiState.Recover:
+        input.strike = Math.max(0, 1 - ticks / Math.max(1, secondsToTicks(atk.recoverySec)));
+        break;
+      case AiState.Stagger:
+        input.twitch = Math.sin(this.time * 40) * 0.5;
+        break;
+    }
+  }
+
+  /**
+   * Death (ROADMAP M4.1): the rigged body breaks into its parts, which fly apart and burn out.
+   * Uses the last drawn pose, so call it before the next sync.
+   */
+  shatter(eid: number, dirX: number, dirY: number): void {
+    const slot = this.slots[eid];
+    if (!slot) return;
+    for (const rig of slot.rigs) {
+      if (!rig?.visible) continue;
+      const root = rig.root;
+      const unit = Math.abs(root.scale.y);
+      const mirror = root.scale.x < 0 ? -1 : 1;
+      const color = rig.baked.layout.rig.colors.body;
+      const parts = rig.baked.parts;
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        if (!part) continue;
+        rig.partPose(i, this.partScratch);
+        const p = this.partScratch;
+        const cos = Math.cos(p.rotation);
+        const sin = Math.sin(p.rotation);
+        const lx = (p.x + cos * part.centerX - sin * part.centerY) * BAKE_RADIUS_PX;
+        const ly = (p.y + sin * part.centerX + cos * part.centerY) * BAKE_RADIUS_PX;
+        const wx = root.position.x + lx * unit * mirror;
+        const wy = root.position.y + ly * unit;
+        const out = Math.atan2(ly, lx * mirror);
+        this.effects.rigPart(
+          part.normal,
+          wx,
+          wy,
+          p.rotation * mirror,
+          unit,
+          mirror,
+          color,
+          Math.cos(out) * 0.6 + dirX,
+          Math.sin(out) * 0.6 + dirY - 0.4,
+        );
+      }
+      rig.visible = false;
     }
   }
 }

@@ -1,3 +1,5 @@
+import type { Texture } from 'pixi.js';
+import { RIG_TUNING } from '../../content/rigs';
 import { PALETTE } from '../render/palette';
 import type { BakedTextures } from '../render/textures';
 import { type ParticleSystem, PFlag } from './particles';
@@ -661,6 +663,76 @@ export class Effects {
       scaleStart: radius / 13,
       scaleEnd: radius / 15,
     });
+  }
+
+  /** Dash afterimage of a rigged body (ROADMAP M4.1): a fading silhouette left behind. */
+  rigAfterimage(
+    texture: Texture,
+    x: number,
+    y: number,
+    scale: number,
+    mirror: number,
+    color: number,
+  ): void {
+    this.ground.emit({
+      texture,
+      x,
+      y,
+      lifeSec: RIG_TUNING.afterimageLifeSec,
+      color,
+      alpha: 0.45,
+      scaleStart: scale,
+      stretch: mirror,
+    });
+  }
+
+  /**
+   * One part of a rigged body breaking off on death: it tumbles away and burns out. `dirX`/`dirY`
+   * is the flight direction (roughly unit length).
+   */
+  rigPart(
+    texture: Texture,
+    x: number,
+    y: number,
+    rotation: number,
+    scale: number,
+    mirror: number,
+    color: number,
+    dirX: number,
+    dirY: number,
+  ): void {
+    const speed = RIG_TUNING.shatterSpeedPxPerSec * rand(0.6, 1.2);
+    this.fx.emit({
+      texture,
+      x,
+      y,
+      vx: dirX * speed,
+      vy: dirY * speed,
+      lifeSec: RIG_TUNING.shatterLifeSec * rand(0.8, 1.2),
+      color,
+      rotation,
+      spin: rand(-9, 9),
+      scaleStart: scale,
+      scaleEnd: scale * 0.6,
+      dragPerSec: 0.08,
+      stretch: mirror,
+      flags: PFlag.Shrink,
+    });
+    // Embers trailing off the part.
+    for (let i = 0; i < 2; i++) {
+      this.fx.emit({
+        texture: this.tex.dot,
+        x,
+        y,
+        vx: dirX * speed * 0.5 + rand(-60, 60),
+        vy: dirY * speed * 0.5 - rand(40, 120),
+        lifeSec: rand(0.4, 0.8),
+        color: PALETTE.ember,
+        scaleStart: rand(0.15, 0.3),
+        dragPerSec: 0.2,
+        flags: PFlag.Shrink,
+      });
+    }
   }
 
   /** Gold glints rising from a kill: shards gained. */

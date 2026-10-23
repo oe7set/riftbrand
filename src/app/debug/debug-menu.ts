@@ -23,6 +23,8 @@ export interface DebugHooks {
   setGodMode(enabled: boolean): void;
   setTimeScale(scale: number): void;
   setHitboxes(enabled: boolean): void;
+  /** Rig bodies (ROADMAP M4.1) or the classic shapes, for comparing the looks. */
+  setRigLook(enabled: boolean): void;
   giveBoon(id: string): void;
   clearBoons(): void;
   giveRelic(id: string): void;
@@ -111,6 +113,7 @@ export class DebugMenu {
       this.statsBox,
       this.section('View', true, [
         this.checkbox('Hitboxes', false, (on) => this.hooks.setHitboxes(on)),
+        this.checkbox('Look: rig (off = classic)', true, (on) => this.hooks.setRigLook(on)),
         this.checkbox('FPS overlay', false, (on) => {
           this.showFpsChip = on;
           this.fpsChip.hidden = !on;

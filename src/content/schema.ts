@@ -919,3 +919,143 @@ export type Speaker = z.infer<typeof speakerSchema>;
 export function defineDialogue(lines: DialogueLineDef[]): DialogueLineDef[] {
   return lines.map((l) => dialogueLineSchema.parse(l));
 }
+
+// ── Rigs (ROADMAP M4): bodies made of baked parts, animated by transforming the parts ───────
+
+/**
+ * Rig units: 1 = the entity's collision radius. The figure is drawn in side view facing +x
+ * (the view mirrors it); +y points down, the entity position is the body's ground centre.
+ */
+const rigPoint = z.number().min(-4).max(4);
+
+const rigPaint = z.object({
+  /** Which rig colour fills or strokes the shape. */
+  fill: z.enum(['body', 'accent', 'core']).optional(),
+  fillAlpha: z.number().min(0).max(1).default(1),
+  stroke: z.enum(['body', 'accent', 'core']).optional(),
+  /** Stroke width in rig units. */
+  strokeWidth: z.number().min(0).max(1).default(0.1),
+  /** A soft halo behind the shape (baked, cheap): neon glow for marks and cracks. */
+  glow: z.boolean().default(false),
+});
+
+const rigShapeSchema = z.discriminatedUnion('kind', [
+  rigPaint.extend({
+    kind: z.literal('ellipse'),
+    x: rigPoint,
+    y: rigPoint,
+    rx: z.number().positive().max(4),
+    ry: z.number().positive().max(4),
+  }),
+  rigPaint.extend({ kind: z.literal('poly'), points: z.array(rigPoint).min(6) }),
+  /** An open polyline with round caps: limbs, cracks, blades. */
+  rigPaint.extend({ kind: z.literal('line'), points: z.array(rigPoint).min(4) }),
+]);
+
+/** Per-part animation response; every channel is optional and in degrees or rig units. */
+const rigMotionSchema = z.object({
+  /** Swing with the walk cycle; `walkPhase` offsets it (0.5 = opposite leg). */
+  walkSwingDeg: z.number().default(0),
+  walkPhase: z.number().min(0).max(1).default(0),
+  /** Lift on the forward half of the swing (feet leaving the ground). */
+  walkLift: z.number().min(0).default(0),
+  /** Scale pulse while idle (chest breathing). */
+  breath: z.number().min(0).max(0.3).default(0),
+  /** Pose offsets blended in by the attack windup and strike (0..1 each). */
+  windupDeg: z.number().default(0),
+  windupX: z.number().default(0),
+  windupY: z.number().default(0),
+  strikeDeg: z.number().default(0),
+  strikeX: z.number().default(0),
+  strikeY: z.number().default(0),
+  /** Pose while casting a spell or the rift shot. */
+  castDeg: z.number().default(0),
+  /** Trails behind at speed (cape, tail): rotation at full speed. */
+  lagDeg: z.number().default(0),
+  /** Extra wobble at twice the walk rate (cloth, flames). */
+  flutterDeg: z.number().default(0),
+});
+
+const rigPartSchema = z.object({
+  id,
+  /** Parent part; must be listed earlier. Roots hang off the entity position. */
+  parent: id.optional(),
+  /** Joint position in the parent's space (rig units). */
+  x: rigPoint,
+  y: rigPoint,
+  rotationDeg: z.number().default(0),
+  /** Draw order, back to front; independent of the parent order (a back leg hangs off the torso). */
+  z: z.number().int().min(0).max(31),
+  shapes: z.array(rigShapeSchema).min(1),
+  motion: rigMotionSchema.default(rigMotionSchema.parse({})),
+});
+
+const rigSwingSchema = z.object({
+  /** Weapon angle relative to the aim direction at the end of the windup and of the strike. */
+  windupDeg: z.number(),
+  strikeDeg: z.number(),
+  /** Forward push of the weapon part during the strike (thrusts), rig units. */
+  reach: z.number().min(0).default(0),
+});
+
+export const rigSchema = z.object({
+  id,
+  colors: z.object({
+    body: z.number().int().nonnegative(),
+    accent: z.number().int().nonnegative(),
+    core: z.number().int().nonnegative(),
+  }),
+  /** Parents before children; `z` sets the draw order. */
+  parts: z.array(rigPartSchema).min(1).max(20),
+  /** Distance covered per full walk cycle and the body bob per step, rig units. */
+  strideUnits: z.number().positive(),
+  bobUnits: z.number().min(0).default(0),
+  /** Forward lean at full speed. */
+  leanDeg: z.number().default(0),
+  /** Top of the head: health bars and halos sit above it. */
+  heightUnits: z.number().positive(),
+  /** Visual centre above the ground point: status glows and shells sit there. */
+  centerUnits: z.number().min(0),
+  /** Shadow ellipse under the feet (half width). */
+  shadowUnits: z.number().positive(),
+  /**
+   * Drawn size relative to the collision radius. Upright bodies may be a bit larger than the
+   * ground circle so they read on a phone; hitboxes stay circles (ROADMAP M4 rule 2).
+   */
+  visualScale: z.number().min(0.5).max(2).default(1),
+  /** Soft body glow behind the figure (0 = none): the player stays the brightest element. */
+  glowAlpha: z.number().min(0).max(1).default(0.3),
+  /** Weapon arm that follows the aim and the combo (player only). */
+  weapon: z
+    .object({
+      part: id,
+      /** Hanging angle when not attacking, relative to straight down. */
+      restDeg: z.number(),
+      swings: z.array(rigSwingSchema).min(1),
+      /** Turns of the weapon arm during the special (whirl). */
+      specialTurns: z.number().min(0).default(1),
+    })
+    .optional(),
+});
+
+export type RigDef = z.infer<typeof rigSchema>;
+export type RigPartDef = z.infer<typeof rigPartSchema>;
+export type RigShapeDef = z.infer<typeof rigShapeSchema>;
+
+export function defineRig(def: z.input<typeof rigSchema>): RigDef {
+  const rig = rigSchema.parse(def);
+  const seen = new Set<string>();
+  for (const part of rig.parts) {
+    if (seen.has(part.id)) throw new Error(`rig ${rig.id}: duplicate part ${part.id}`);
+    if (part.parent !== undefined && !seen.has(part.parent)) {
+      throw new Error(
+        `rig ${rig.id}: part ${part.id} needs its parent ${part.parent} listed first`,
+      );
+    }
+    seen.add(part.id);
+  }
+  if (rig.weapon && !seen.has(rig.weapon.part)) {
+    throw new Error(`rig ${rig.id}: weapon part ${rig.weapon.part} missing`);
+  }
+  return rig;
+}

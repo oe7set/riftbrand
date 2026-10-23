@@ -39,7 +39,11 @@ export interface BakedTextures {
   /** 1×1 white for bars and rectangles. */
   white: Texture;
   vignette: Texture;
+  /** Smooth radial falloff (white centre to transparent edge), GLOW_TEXTURE_PX wide. */
+  softGlow: Texture;
 }
+
+export const GLOW_TEXTURE_PX = 128;
 
 function glowHalo(g: Graphics, color: number, radius: number): void {
   // Cheap pre-rendered bloom for the "low" quality tier; the bloom filter adds to it on "high".
@@ -294,6 +298,11 @@ export function bakeTextures(renderer: Renderer): BakedTextures {
       spellIcon(renderer, s.visual.glyph, s.visual.color, s.kind === 'aura'),
     ),
     white: Texture.WHITE,
+    softGlow: radialTexture(GLOW_TEXTURE_PX, [
+      [0, 'rgba(255,255,255,1)'],
+      [0.45, 'rgba(255,255,255,0.45)'],
+      [1, 'rgba(255,255,255,0)'],
+    ]),
     vignette: radialTexture(256, [
       [0, 'rgba(0,0,0,0)'],
       [0.55, 'rgba(0,0,0,0)'],
