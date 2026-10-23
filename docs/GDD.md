@@ -545,5 +545,5 @@ Die zuletzt verwendete Eingabemethode bestimmt die angezeigten Hinweise und die 
 3. Monetarisierungsmodell (Entscheidung zur Beta).
 4. ~~Hochformat: Nach dem Prototyp-Test bestätigen oder auf Querformat beschränken.~~ → Entschieden nach M1: Hoch- und Querformat bleiben beide.
 5. Ein 6. Wesen (Erz) nach Version 1.0?
-6. Gift und Licht: nur Zauber-Schulen oder auch eigene Wesen mit Segen? (ROADMAP A1, vor M6.4)
-7. Zuflucht „wie Cult of the Lamb“: Wiederaufbau ja, Anhänger-Management nein? (ROADMAP A2, vor M5.3)
+6. Gift und Licht sind Zauber-Schulen (entschieden 2026-10-23). Offen: zusätzlich eigene Wesen mit Segen? (ROADMAP A1, vor M6.4)
+7. ~~Zuflucht „wie Cult of the Lamb“: Wiederaufbau ja, Anhänger-Management nein?~~ → Entschieden 2026-10-23: genau so (ROADMAP A2).

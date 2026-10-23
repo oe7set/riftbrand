@@ -80,14 +80,14 @@ M0 Fundament ─▶ M1 Prototyp ─▶ M2 Vertical Slice ─▶ M3 Kampftiefe �
 | E13 | Story | **Beides:** mehr Story im Run und im Hub | M5.7, M6 |
 | E14 | Reihenfolge | M2 ist abgenommen. Reihenfolge: Kampftiefe → Look → Hub-Welt → weitere Welten und Bosse | M3 bis M6 |
 
-### Annahmen, die der PO noch bestätigen soll ❓
-| Nr. | Annahme | Gilt bis zur Antwort | Spätestens klären vor |
+### Annahmen (vom PO am 2026-10-23 bestätigt: A1, A2 und A3)
+| Nr. | Annahme | Stand | Betrifft |
 |---|---|---|---|
-| A1 | **Elemente:** Die 5 Wesen bleiben (Flamme, Frost, Sturm, Leere, Blut). **Gift** und **Licht** kommen als neue Zauber-Schulen dazu. „Dunkelheit“ entspricht der Leere (Nihl). Offen ist, ob Gift und Licht später auch eigene Wesen mit Segen werden. | Zauber-Schulen ohne eigene Wesen | M6.4 |
-| A2 | **„Wie Cult of the Lamb“** heißt: eine Zuflucht, die durch Wiederaufbau sichtbar wächst, dazu eine Weltkarte mit Portalen und kurze Welt-Runs. **Kein** Anhänger-Management (Hunger, Glaube, Arbeitsaufträge). | ohne Anhänger-Management | M5.3 |
-| A3 | **Run-Länge:** Ein Run führt durch **eine** Welt (8–12 min) statt durch 4 Biome am Stück (20–30 min). Der Durchmarsch durch alle Welten kommt als Endgame-Modus in M7. | Welt-Runs | M5.2 |
-| A4 | **Zauber-Taste:** Nur der aktive Zauber braucht eine Taste, die Aura wirkt von selbst. Am Handy kommt genau **ein** Button dazu. | ein neuer Button | M3.2 |
-| A5 | Weitere Hades-Elemente (Rüstungsleisten bei Gegnern, Dash-Angriff) wurden nicht gewünscht und bleiben im Ideen-Pool. | Ideen-Pool | – |
+| A1 | **Elemente:** Die 5 Wesen bleiben (Flamme, Frost, Sturm, Leere, Blut). **Gift** und **Licht** kommen als neue Zauber-Schulen dazu. „Dunkelheit“ entspricht der Leere (Nihl). Ob Gift und Licht später zusätzlich eigene Wesen mit Segen werden, bleibt offen. | ✅ bestätigt; ❓ eigene Wesen offen bis M6.4 | M3.3, M6.4 |
+| A2 | **„Wie Cult of the Lamb“** heißt: eine Zuflucht, die durch Wiederaufbau sichtbar wächst, dazu eine Weltkarte mit Portalen und kurze Welt-Runs. **Kein** Anhänger-Management (Hunger, Glaube, Arbeitsaufträge). | ✅ bestätigt | M5.2, M5.3 |
+| A3 | **Run-Länge:** Ein Run führt durch **eine** Welt (8–12 min) statt durch 4 Biome am Stück (20–30 min). Der Durchmarsch durch alle Welten kommt als Endgame-Modus in M7. | ✅ bestätigt (Teil von A2) | M5.2 |
+| A4 | **Zauber-Taste:** Nur der aktive Zauber braucht eine Taste, die Aura wirkt von selbst. Am Handy kommt genau **ein** Button dazu. | Annahme, im PR zu M3.2 prüfen | M3.2 |
+| A5 | Weitere Hades-Elemente (Rüstungsleisten bei Gegnern, Dash-Angriff) wurden nicht gewünscht und bleiben im Ideen-Pool. | Annahme | – |
 
 ---
 
@@ -698,7 +698,7 @@ Zuflucht (begehbar)
   - Archiv → Codex
 - [ ] **Sichtbares Wachstum** (GDD §2.3): Licht kehrt zurück, Pflanzen wachsen, Figuren ziehen ein.
 - [ ] **Dekorationen** als Belohnung. Sie sind reine Kosmetik und geben keine Macht.
-- [ ] ❓ A2: kein Anhänger-Management. Das muss vor Beginn des Pakets bestätigt sein.
+- [ ] Kein Anhänger-Management (A2, bestätigt).
 
 **Technik:**
 - Gebäude, Stufen und Kosten als Content in `src/content/hub/buildings.ts`.
@@ -937,7 +937,6 @@ Richtwerte. Wenn sich die Reihenfolge der Pakete ändert, verschieben sich die N
 - Rüstungsleisten bei Gegnern (wie in Hades) und ein Dash-Angriff (A5)
 - zweiter aktiver Zauber-Slot (z. B. durch ein 4er-Rüstungs-Set)
 - Begleiter bzw. Haustier in der Zuflucht und im Run
-- Anhänger-Management in der Zuflucht (falls A2 anders entschieden wird)
 - Endlos-Modus („Der tiefe Riss“)
 - weitere Sprachen
 - App-Store-Versionen (Capacitor)
