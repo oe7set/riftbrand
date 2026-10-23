@@ -1,9 +1,11 @@
 import { RIFT_SHOT } from '../content/abilities';
 import { ELITES, eliteOf } from '../content/elites';
 import { attackOf, ENEMIES } from '../content/enemies';
+import { SPELLS, spellIndex } from '../content/spells';
 import { TUNING } from '../content/tuning';
 import type { InputFrame } from '../shared/input-frame';
 import { createSpatialHash, type SpatialHash } from './collision/spatial-hash';
+import { DEALT_SOURCES } from './combat/dealt';
 import { hazardSystem } from './combat/hazards';
 import {
   AiState,
@@ -28,13 +30,14 @@ import {
   loadSpawnPoints,
   type RoomState,
 } from './room';
-import type { RoomSetup } from './run/run-state';
+import type { RoomSetup, SpellSlots } from './run/run-state';
 import { drifterAiSystem } from './systems/drifter-ai';
 import { enemyAiSystem } from './systems/enemy-ai';
 import { movementSystem } from './systems/movement';
 import { capturePlayerInput, playerActionSystem } from './systems/player-actions';
 import { projectileSystem } from './systems/projectiles';
 import { rebuildSpatialHash, separationSystem } from './systems/separation';
+import { spellSystem } from './systems/spells';
 import { createWaveState, type WaveState, waveSystem } from './systems/waves';
 import { secondsToTicks, TICK_RATE_HZ } from './time';
 
@@ -74,6 +77,8 @@ export interface SimState {
   killedBy: number;
   /** Damage taken per enemy type (index 255 = unknown source), for the run log. */
   readonly damageBySource: Float64Array;
+  /** Damage dealt per player source (DEALT_SOURCES order), for the simulator report. */
+  readonly damageDealt: Float64Array;
   /** Run currency carried into the room plus everything picked up here. */
   shards: number;
   /** Nesting depth of effects triggering effects, and the per-tick budget used. */
@@ -126,6 +131,7 @@ export function createSim(seed: number, setup?: RoomSetup): SimState {
     lastSparkHeal: 0,
     killedBy: -1,
     damageBySource: new Float64Array(256),
+    damageDealt: new Float64Array(DEALT_SOURCES.length),
     shards: 0,
     effectDepth: 0,
     effectsThisTick: 0,
@@ -148,6 +154,7 @@ export function createSim(seed: number, setup?: RoomSetup): SimState {
     setBuild(state, setup.boons, setup.relics, setup.evolutions);
     state.shards = setup.shards;
     state.player.ultCharge = setup.ultCharge;
+    equipSpells(state, setup.spells);
     const t = setup.template;
     loadObstacles(state.room, t.obstacles);
     loadSpawnPoints(state.room, t.spawnPoints);
@@ -270,6 +277,28 @@ export function clearDrifters(state: SimState): void {
   }
 }
 
+/** Puts the run's spells into the player's slots; both start ready. */
+export function equipSpells(state: SimState, spells: SpellSlots): void {
+  const p = state.player;
+  p.activeSpell = spells.active ? spellIndex(spells.active.id) : -1;
+  p.activeSpellLevel = spells.active?.level ?? 1;
+  p.auraSpell = spells.aura ? spellIndex(spells.aura.id) : -1;
+  p.auraSpellLevel = spells.aura?.level ?? 1;
+  p.spellCooldownTicks = 0;
+  p.auraTimerTicks = 0;
+}
+
+/** The spells currently in the player's slots, in run form. */
+export function spellSlotsOf(state: SimState): SpellSlots {
+  const p = state.player;
+  const active = SPELLS[p.activeSpell];
+  const aura = SPELLS[p.auraSpell];
+  return {
+    active: active ? { id: active.id, level: p.activeSpellLevel } : null,
+    aura: aura ? { id: aura.id, level: p.auraSpellLevel } : null,
+  };
+}
+
 /** Replaces the player's boons and recompiles the build (room start, debug). */
 export function setBuild(
   state: SimState,
@@ -302,6 +331,7 @@ export function stepSim(state: SimState, input: InputFrame): void {
   state.effectsThisTick = 0;
   rebuildSpatialHash(state);
   playerActionSystem(state, input);
+  spellSystem(state);
   enemyAiSystem(state);
   statusSystem(state);
   drifterAiSystem(state);

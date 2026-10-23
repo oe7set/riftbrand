@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const STORAGE_KEY = 'riftbrand.settings';
-export const SETTINGS_VERSION = 3;
+export const SETTINGS_VERSION = 4;
 
 const unit = z.number().min(0).max(1);
 
@@ -11,13 +11,14 @@ const buttonOverride = z.object({
   scale: z.number().min(0.6).max(1.8),
 });
 const layoutProfile = z.partialRecord(
-  z.enum(['attack', 'dash', 'special', 'cast', 'ultimate', 'pause']),
+  // v4 (M3.2): 'spell' joined; older layouts simply keep the default spell position.
+  z.enum(['attack', 'dash', 'special', 'cast', 'ultimate', 'spell', 'pause']),
   buttonOverride,
 );
 
 /**
  * Player settings (GDD §13). Every field has a default via `.catch`, so a missing, corrupt or
- * older save never breaks loading: v1 → v2 → v3 is exactly that (new fields get their defaults).
+ * older save never breaks loading: v1 → … → v4 is exactly that (new fields get their defaults).
  * New fields → bump SETTINGS_VERSION and extend migrate.
  */
 const settingsSchema = z.object({

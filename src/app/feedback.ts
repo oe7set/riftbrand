@@ -1,5 +1,6 @@
 import { eliteOf } from '../content/elites';
 import { attackOf, ENEMIES, ENEMY_TYPE } from '../content/enemies';
+import { SPELLS } from '../content/spells';
 import { Status, statusDef } from '../content/statuses';
 import { TUNING } from '../content/tuning';
 import { BRAND_BLADE } from '../content/weapons/brand-blade';
@@ -390,8 +391,31 @@ export class FeedbackDirector {
         this.haptics.pulse(15, 0.3);
         break;
       case Ev.Denied:
-        this.view.hud.onDenied(e.value === 2);
+        if (e.value === 3) this.view.hud.onSpellDenied();
+        else this.view.hud.onDenied(e.value === 2);
         this.audio.play('staminaEmpty', { pitchVariation: 0, pitch: 1.2 });
+        break;
+      case Ev.SpellCast: {
+        const def = SPELLS[e.value];
+        const color = def?.visual.color ?? PALETTE.playerSlash;
+        fx.nova(e.x, e.y, e.amount, color);
+        fx.nova(e.x, e.y, e.amount * 0.6, 0xffffff);
+        if (def?.effect.freeze) fx.freezeBurst(e.x, e.y, e.amount * 0.3);
+        shake.add(TUNING.shakeHeavyTrauma);
+        this.audio.play('spellCast', { pan: this.pan(e.x) });
+        this.haptics.pulse(30, 0.6);
+        break;
+      }
+      case Ev.AuraPulse: {
+        const color = SPELLS[e.value]?.visual.color ?? PALETTE.playerSlash;
+        fx.auraRing(e.x, e.y, e.amount, color, e.flags > 0);
+        this.view.hud.onAuraPulse();
+        if (e.flags > 0) this.audio.play('auraPulse', { volume: 0.5 });
+        break;
+      }
+      case Ev.SpellReady:
+        this.view.hud.onSpellReady();
+        this.audio.play('spellReady', { pitchVariation: 0 });
         break;
       case Ev.StatusApplied: {
         const first = (e.flags & StatusFlag.First) !== 0;

@@ -82,6 +82,7 @@ export class GameView {
       this.textures.vignette,
       this.textures.spark,
       this.textures.statusIcons,
+      this.textures.spellIcons,
     );
     this.aimPreview = new AimPreview(this.textures.white, this.textures.ring);
     this.fxParticles.root.blendMode = 'add';

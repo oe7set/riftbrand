@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { availableNodes, createRun, enterNode } from '../../sim/run/run-state';
+import { availableNodes, createRun, enterNode, startSpellSlots } from '../../sim/run/run-state';
 import { clearRun, loadRun, migrateRunSave, RUN_SAVE_VERSION, saveRun } from './run-save';
 
 function memoryStore() {
@@ -88,6 +88,13 @@ describe('run save', () => {
     expect(migrated?.lockedRelics).toEqual([]);
     expect(migrated?.clearedCombat).toBe(3);
     expect(migrated?.reachedBoss).toBe(false);
+  });
+
+  it('migrates v5 saves (no spells yet) to the start spells', () => {
+    const { spells: _s, ...v5Run } = createRun(14);
+    const migrated = migrateRunSave({ version: 5, run: { ...v5Run, shards: 12 } });
+    expect(migrated?.shards).toBe(12);
+    expect(migrated?.spells).toEqual(startSpellSlots());
   });
 
   it('clears the save', () => {

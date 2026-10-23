@@ -1,7 +1,7 @@
 import { BRAND_BURST } from '../../content/abilities';
 import { eliteOf } from '../../content/elites';
 import { ENEMIES } from '../../content/enemies';
-import type { HitSource, HitstopLevel } from '../../content/schema';
+import { type HitSource, type HitstopLevel, hitSourceSchema } from '../../content/schema';
 import { Status } from '../../content/statuses';
 import { TUNING } from '../../content/tuning';
 import { AiState, C, rememberHit, stacksOf, Token, wasHitBy } from '../ecs/components';
@@ -12,6 +12,7 @@ import { PlayerAction } from '../player-state';
 import { nextFloat } from '../rng/rng';
 import type { SimState } from '../sim';
 import { secondsToTicks } from '../time';
+import { DEALT_STATUS_INDEX } from './dealt';
 import { spawnHazard } from './hazards';
 
 export function hitstopSec(level: HitstopLevel): number {
@@ -83,6 +84,11 @@ export interface PlayerHitSpec {
   source: HitSource;
 }
 
+/** Tally slot per hit source (same order as hitSourceSchema). */
+const HIT_SOURCE_INDEX = Object.fromEntries(
+  hitSourceSchema.options.map((s, i) => [s, i]),
+) as Record<HitSource, number>;
+
 /** Damage multiplier from the build and the target's status (GDD §7). */
 function damageMultiplier(state: SimState, eid: number, source: HitSource): number {
   const c = state.c;
@@ -91,6 +97,7 @@ function damageMultiplier(state: SimState, eid: number, source: HitSource): numb
   if (source === 'attack') mult += stats.attackDamage;
   else if (source === 'special') mult += stats.specialDamage;
   else if (source === 'cast') mult += stats.castDamage;
+  else if (source === 'spell' || source === 'aura') mult += stats.spellDamage;
   if (stacksOf(c, eid, Status.Burn) > 0) mult += stats.damageVsBurning;
   if ((c.frozenTicks[eid] as number) > 0) mult += TUNING.frozenDamageBonus + stats.damageVsFrozen;
   mult += stacksOf(c, eid, Status.Chill) * stats.damageVsChilledPerStack;
@@ -135,6 +142,8 @@ export function damageEnemy(state: SimState, eid: number, spec: PlayerHitSpec): 
   const hp = (c.hp[eid] as number) - damage;
   c.hp[eid] = hp;
   const killed = hp <= 0;
+  const slot = HIT_SOURCE_INDEX[spec.source];
+  state.damageDealt[slot] = (state.damageDealt[slot] as number) + damage;
   if (spec.source !== 'ultimate') gainUltCharge(state, damage / BRAND_BURST.chargeDamageDealt);
 
   let knockback = blocked ? 0 : spec.knockback * (1 - def.weight);
@@ -186,6 +195,8 @@ export function damageEnemyDot(state: SimState, eid: number, amount: number): vo
   const damage = amount * damageMultiplier(state, eid, 'effect');
   const hp = (c.hp[eid] as number) - damage;
   c.hp[eid] = hp;
+  state.damageDealt[DEALT_STATUS_INDEX] =
+    (state.damageDealt[DEALT_STATUS_INDEX] as number) + damage;
   gainUltCharge(state, damage / BRAND_BURST.chargeDamageDealt);
   const e = pushEvent(state.events, Ev.Hit, c.posX[eid] as number, c.posY[eid] as number);
   if (e) {

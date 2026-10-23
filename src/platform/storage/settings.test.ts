@@ -36,7 +36,7 @@ describe('settings', () => {
 
   it('migrates v1 settings: keeps values, adds the default touch layout', () => {
     const s = migrateSettings({ version: 1, masterVolume: 0.4, quality: 'low' });
-    expect(s.version).toBe(3);
+    expect(s.version).toBe(4);
     expect(s.masterVolume).toBe(0.4);
     expect(s.quality).toBe('low');
     expect(s.touchLayout).toEqual({ portrait: {}, landscape: {} });
@@ -46,10 +46,18 @@ describe('settings', () => {
   it('migrates v2 settings: keeps the touch layout, shows status icons by default', () => {
     const layout = { portrait: {}, landscape: { dash: { x: 0.7, y: 0.8, scale: 1 } } };
     const s = migrateSettings({ version: 2, touchLayout: layout, touchOpacity: 0.5 });
-    expect(s.version).toBe(3);
+    expect(s.version).toBe(4);
     expect(s.touchLayout).toEqual(layout);
     expect(s.touchOpacity).toBe(0.5);
     expect(s.statusIcons).toBe(true);
+  });
+
+  it('migrates v3 settings: keeps a layout without the spell button', () => {
+    const layout = { portrait: { cast: { x: 0.6, y: 0.8, scale: 1.1 } }, landscape: {} };
+    const s = migrateSettings({ version: 3, touchLayout: layout, statusIcons: false });
+    expect(s.version).toBe(4);
+    expect(s.touchLayout).toEqual(layout);
+    expect(s.statusIcons).toBe(false);
   });
 
   it('keeps a valid touch layout and drops a broken one', () => {

@@ -20,6 +20,8 @@ export interface SimSummary {
   boons: Record<string, PickStats>;
   relics: Record<string, PickStats>;
   damageBySource: Record<string, number>;
+  /** Share of all damage dealt per player source (0..1). */
+  dealtShare: Record<string, number>;
 }
 
 function bump(map: Record<string, PickStats>, id: string, won: boolean): void {
@@ -36,6 +38,7 @@ export function summarize(reports: readonly RunReport[]): SimSummary {
   const boons: Record<string, PickStats> = {};
   const relics: Record<string, PickStats> = {};
   const damageBySource: Record<string, number> = {};
+  const dealt: Record<string, number> = {};
   const boss: number[] = [];
   let wins = 0;
   let timeouts = 0;
@@ -63,7 +66,13 @@ export function summarize(reports: readonly RunReport[]): SimSummary {
     for (const [id, amount] of Object.entries(r.damageBySource)) {
       damageBySource[id] = (damageBySource[id] ?? 0) + amount;
     }
+    for (const [id, amount] of Object.entries(r.damageDealt)) {
+      dealt[id] = (dealt[id] ?? 0) + amount;
+    }
   }
+  const dealtTotal = Object.values(dealt).reduce((a, b) => a + b, 0) || 1;
+  const dealtShare: Record<string, number> = {};
+  for (const [id, amount] of Object.entries(dealt)) dealtShare[id] = amount / dealtTotal;
   const roomSec: Record<string, number> = {};
   for (const [type, t] of Object.entries(roomTotals)) roomSec[type] = t.sec / t.count;
   return {
@@ -85,6 +94,7 @@ export function summarize(reports: readonly RunReport[]): SimSummary {
     boons,
     relics,
     damageBySource,
+    dealtShare,
   };
 }
 

@@ -1,6 +1,7 @@
 import { Graphics, Rectangle, type Renderer, Texture } from 'pixi.js';
 import { ENEMIES } from '../../content/enemies';
-import type { StatusGlyph } from '../../content/schema';
+import type { Glyph } from '../../content/schema';
+import { SPELLS } from '../../content/spells';
 import { STATUSES } from '../../content/statuses';
 import { PALETTE } from './palette';
 
@@ -33,6 +34,8 @@ export interface BakedTextures {
   shieldArc: Texture;
   /** Status icons (dark disc, coloured rim and glyph), indexed by status index. */
   statusIcons: Texture[];
+  /** Spell icons, indexed by spell index. */
+  spellIcons: Texture[];
   /** 1×1 white for bars and rectangles. */
   white: Texture;
   vignette: Texture;
@@ -105,7 +108,7 @@ function projectileTextures(texture: Texture): BodyTextures {
 }
 
 /** Glyphs differ in shape, not only colour, so statuses stay readable for colour-blind players. */
-function statusGlyph(g: Graphics, glyph: StatusGlyph, r: number, color: number): void {
+function drawGlyph(g: Graphics, glyph: Glyph, r: number, color: number): void {
   switch (glyph) {
     case 'flame':
       g.poly([
@@ -154,16 +157,62 @@ function statusGlyph(g: Graphics, glyph: StatusGlyph, r: number, color: number):
           .stroke({ color, width: r * 0.08, cap: 'round' });
       }
       break;
+    case 'nova':
+      g.circle(0, 0, 0.22 * r).fill({ color: 0xffffff });
+      for (let i = 0; i < 8; i++) {
+        const a = (i * Math.PI) / 4;
+        g.moveTo(Math.cos(a) * 0.38 * r, Math.sin(a) * 0.38 * r)
+          .lineTo(Math.cos(a) * 0.72 * r, Math.sin(a) * 0.72 * r)
+          .stroke({ color, width: r * 0.13, cap: 'round' });
+      }
+      break;
+    case 'ray':
+      g.moveTo(-0.62 * r, 0.62 * r)
+        .lineTo(0.5 * r, -0.5 * r)
+        .stroke({ color, width: r * 0.2, cap: 'round' });
+      g.star(0.5 * r, -0.5 * r, 4, 0.3 * r, 0.1 * r).fill({ color: 0xffffff });
+      break;
+    case 'meteor':
+      for (let i = 0; i < 3; i++) {
+        const o = (i - 1) * 0.22 * r;
+        g.moveTo(-0.65 * r + o, -0.1 * r - o)
+          .lineTo(0.05 * r + o, 0.6 * r - o)
+          .stroke({ color, width: r * 0.09, cap: 'round', alpha: 0.7 });
+      }
+      g.circle(0.25 * r, -0.25 * r, 0.32 * r).fill({ color });
+      g.circle(0.32 * r, -0.32 * r, 0.12 * r).fill({ color: 0xffffff });
+      break;
+    case 'cloud':
+      g.circle(-0.3 * r, 0.1 * r, 0.3 * r).fill({ color });
+      g.circle(0.05 * r, -0.12 * r, 0.36 * r).fill({ color });
+      g.circle(0.35 * r, 0.12 * r, 0.27 * r).fill({ color });
+      g.rect(-0.3 * r, 0.1 * r, 0.65 * r, 0.3 * r).fill({ color });
+      break;
   }
 }
 
-function statusIcon(renderer: Renderer, glyph: StatusGlyph, color: number): Texture {
+/**
+ * Spell icons: a diamond frame in the school colour (auras get a ring around it), so spells
+ * never read as statuses (round) or relics.
+ */
+function spellIcon(renderer: Renderer, glyph: Glyph, color: number, aura: boolean): Texture {
+  const r = BAKE_RADIUS_PX;
+  const g = new Graphics();
+  const diamond = [0, -r, r, 0, 0, r, -r, 0];
+  if (aura) g.circle(0, 0, r * 1.12).stroke({ color, width: r * 0.08, alpha: 0.8 });
+  g.poly(diamond).fill({ color: PALETTE.background, alpha: 0.9 });
+  g.poly(diamond).stroke({ color, width: r * 0.12 });
+  drawGlyph(g, glyph, r * 0.62, color);
+  return bake(renderer, g, r * 1.25);
+}
+
+function statusIcon(renderer: Renderer, glyph: Glyph, color: number): Texture {
   const r = BAKE_RADIUS_PX;
   const g = new Graphics();
   g.circle(0, 0, r * 1.15).fill({ color, alpha: 0.18 });
   g.circle(0, 0, r).fill({ color: PALETTE.background, alpha: 0.9 });
   g.circle(0, 0, r).stroke({ color, width: r * 0.12 });
-  statusGlyph(g, glyph, r * 0.85, color);
+  drawGlyph(g, glyph, r * 0.85, color);
   return bake(renderer, g, r * 1.2);
 }
 
@@ -241,6 +290,9 @@ export function bakeTextures(renderer: Renderer): BakedTextures {
     disc: bake(renderer, disc, r),
     shieldArc: bake(renderer, shieldArc, r),
     statusIcons: STATUSES.map((s) => statusIcon(renderer, s.visual.glyph, s.visual.color)),
+    spellIcons: SPELLS.map((s) =>
+      spellIcon(renderer, s.visual.glyph, s.visual.color, s.kind === 'aura'),
+    ),
     white: Texture.WHITE,
     vignette: radialTexture(256, [
       [0, 'rgba(0,0,0,0)'],

@@ -312,5 +312,10 @@
   "layout.button.cast": "Wurf",
   "layout.button.ultimate": "Ultimate",
   "layout.button.pause": "Pause",
-  "settings.touch_layout": "Touch-Layout anpassen"
+  "settings.touch_layout": "Touch-Layout anpassen",
+  "layout.button.spell": "Zauber",
+  "spell.frost_nova.name": "Frostnova",
+  "spell.frost_nova.desc": "Ein Kältering, der alle Gegner um dich herum einfriert.",
+  "spell.ember_mantle.name": "Glutmantel",
+  "spell.ember_mantle.desc": "Gegner in deiner Nähe fangen jede Sekunde Feuer."
 }

@@ -3,6 +3,7 @@ import { BEING_IDS } from '../../content/boons/beings';
 import { EVOLUTIONS } from '../../content/evolutions';
 import { ROOMS } from '../../content/rooms';
 import type { Rarity, RoomTemplateDef } from '../../content/schema';
+import { START_SPELLS } from '../../content/spells';
 import { TUNING } from '../../content/tuning';
 import type { OwnedBoon, OwnedRelic } from '../effects/build';
 import { emptyRunMeta, type RunMeta } from '../meta/profile';
@@ -13,6 +14,24 @@ import { generateMap, type MapNode, type RunMap } from './map';
 import { addBoon, type BoonOffer, rewardRarityBonus, rollBoonOffer } from './rewards';
 
 export type RunStatus = 'map' | 'room' | 'won' | 'lost';
+
+/** A spell in one of the two slots (ROADMAP M3.2); levels grow in the run (M3.4). */
+export interface OwnedSpell {
+  id: string;
+  level: number;
+}
+
+export interface SpellSlots {
+  active: OwnedSpell | null;
+  aura: OwnedSpell | null;
+}
+
+export function startSpellSlots(): SpellSlots {
+  return {
+    active: { id: START_SPELLS.active, level: 1 },
+    aura: { id: START_SPELLS.aura, level: 1 },
+  };
+}
 
 /**
  * Everything that persists between rooms. Plain JSON so it can be saved at every map node
@@ -58,6 +77,8 @@ export interface RunState {
   clearedElite: number;
   clearedBoss: number;
   reachedBoss: boolean;
+  /** Equipped spells (ROADMAP M3.2). */
+  spells: SpellSlots;
 }
 
 export interface RoomSetup {
@@ -76,6 +97,7 @@ export interface RoomSetup {
   staminaBonus: number;
   lastSparks: number;
   lastSparkHeal: number;
+  spells: SpellSlots;
 }
 
 export function createRun(
@@ -113,6 +135,7 @@ export function createRun(
     clearedElite: 0,
     clearedBoss: 0,
     reachedBoss: false,
+    spells: startSpellSlots(),
   };
 }
 
@@ -161,6 +184,7 @@ export function roomSetupFor(run: RunState, node: MapNode): RoomSetup {
     staminaBonus: run.meta.staminaBonus,
     lastSparks: run.lastSparks,
     lastSparkHeal: run.meta.lastSparkHeal,
+    spells: run.spells,
   };
 }
 

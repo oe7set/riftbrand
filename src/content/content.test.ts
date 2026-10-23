@@ -81,6 +81,21 @@ describe('relic and event content', () => {
 });
 
 describe('duo boons and evolutions', () => {
+  it('has unique spells with texts in every locale and valid start spells', async () => {
+    const { SPELLS, START_SPELLS, spellById } = await import('./spells');
+    const { LOCALES } = await import('../shared/i18n');
+    expect(new Set(SPELLS.map((s) => s.id)).size).toBe(SPELLS.length);
+    expect(spellById(START_SPELLS.active)?.kind).toBe('active');
+    expect(spellById(START_SPELLS.aura)?.kind).toBe('aura');
+    for (const spell of SPELLS) {
+      for (const table of Object.values(LOCALES)) {
+        const strings = table as Record<string, string>;
+        expect(strings[`spell.${spell.id}.name`], spell.id).toBeTruthy();
+        expect(strings[`spell.${spell.id}.desc`], spell.id).toBeTruthy();
+      }
+    }
+  });
+
   it('reference existing boons and relics and have texts in every locale', async () => {
     const { BOONS, boonById } = await import('./boons');
     const { EVOLUTIONS } = await import('./evolutions');

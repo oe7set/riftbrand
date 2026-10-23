@@ -12,6 +12,7 @@ import { BurstCode, Ev, pushEvent } from '../events';
 import { Buffered, type BufferedId, PlayerAction } from '../player-state';
 import type { SimState } from '../sim';
 import { secondsToTicks, TICK_DT_SEC } from '../time';
+import { activeSpellDef, releaseActiveSpell, startSpellCooldown } from './spells';
 
 const MOVE_EPSILON = 1e-3;
 const DEG = Math.PI / 180;
@@ -68,6 +69,7 @@ export function capturePlayerInput(state: SimState, input: InputFrame): void {
   // Dash wins ties: it is the defensive panic button. The ultimate is rare and deliberate.
   if (input.pressed & Button.Dash) wanted = Buffered.Dash;
   else if (input.pressed & Button.Ultimate) wanted = Buffered.Ultimate;
+  else if (input.pressed & Button.Spell) wanted = Buffered.Spell;
   else if (input.pressed & Button.Special) wanted = Buffered.Special;
   else if (input.pressed & Button.Cast) wanted = Buffered.Cast;
   else if (input.pressed & Button.Attack) wanted = Buffered.Attack;
@@ -96,6 +98,11 @@ function castPhaseTicks(): [number, number] {
   return [secondsToTicks(RIFT_SHOT.windupSec), secondsToTicks(RIFT_SHOT.recoverySec)];
 }
 
+function spellPhaseTicks(state: SimState): [number, number] {
+  const def = activeSpellDef(state);
+  return def ? [secondsToTicks(def.windupSec), secondsToTicks(def.recoverySec)] : [0, 0];
+}
+
 function ultPhaseTicks(): [number, number] {
   return [secondsToTicks(BRAND_BURST.windupSec), secondsToTicks(BRAND_BURST.recoverySec)];
 }
@@ -111,6 +118,7 @@ function canAfford(state: SimState, action: BufferedId): boolean {
   const p = state.player;
   if (action === Buffered.Cast) return p.castCharges >= 1;
   if (action === Buffered.Ultimate) return p.ultCharge >= 1;
+  if (action === Buffered.Spell) return p.activeSpell >= 0 && p.spellCooldownTicks === 0;
   return p.stamina + 1e-9 >= staminaCost(action);
 }
 
@@ -141,6 +149,11 @@ function canInterrupt(state: SimState, next: BufferedId): boolean {
       // The shot leaves at the end of the windup; afterwards anything but attack may cancel
       // (attacks wait in the buffer until the short recovery ends).
       const [w] = castPhaseTicks();
+      return t > w && next !== Buffered.Attack;
+    }
+    case PlayerAction.Spell: {
+      // Like the cast: once the spell is out, only attacks wait for the recovery.
+      const [w] = spellPhaseTicks(state);
       return t > w && next !== Buffered.Attack;
     }
     default:
@@ -220,6 +233,13 @@ function startAction(state: SimState, next: BufferedId, input: InputFrame): void
     c.velY[eid] = 0;
     const e = pushEvent(state.events, Ev.UltimateStart, px, py);
     if (e) e.value = burstCode(state);
+  } else if (next === Buffered.Spell) {
+    const def = activeSpellDef(state);
+    resolveAttackDir(state, input, dirScratch, Math.max(def?.effect.rangePx ?? 0, 200));
+    p.dirX = dirScratch.x;
+    p.dirY = dirScratch.y;
+    startSpellCooldown(state);
+    p.action = PlayerAction.Spell;
   } else if (next === Buffered.Cast) {
     resolveAttackDir(state, input, dirScratch, RIFT_SHOT.assistRangePx);
     p.dirX = dirScratch.x;
@@ -290,9 +310,9 @@ function tryBufferedAction(state: SimState, input: InputFrame): void {
       const eid = state.playerEid;
       const x = state.c.posX[eid] as number;
       const y = state.c.posY[eid] as number;
-      if (next === Buffered.Cast || next === Buffered.Ultimate) {
+      if (next === Buffered.Cast || next === Buffered.Ultimate || next === Buffered.Spell) {
         const e = pushEvent(state.events, Ev.Denied, x, y);
-        if (e) e.value = next === Buffered.Cast ? 1 : 2;
+        if (e) e.value = next === Buffered.Cast ? 1 : next === Buffered.Ultimate ? 2 : 3;
       } else {
         pushEvent(state.events, Ev.StaminaEmpty, x, y);
       }
@@ -538,6 +558,13 @@ export function playerActionSystem(state: SimState, input: InputFrame): void {
       const [w, r] = castPhaseTicks();
       controlMovement(state, input, RIFT_SHOT.moveFactor);
       if (t === w) fireCast(state);
+      if (t + 1 >= w + r + 1) p.action = PlayerAction.Idle;
+      break;
+    }
+    case PlayerAction.Spell: {
+      const [w, r] = spellPhaseTicks(state);
+      controlMovement(state, input, activeSpellDef(state)?.moveFactor ?? 1);
+      if (t === w) releaseActiveSpell(state);
       if (t + 1 >= w + r + 1) p.action = PlayerAction.Idle;
       break;
     }

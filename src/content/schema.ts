@@ -251,6 +251,12 @@ export const statIdSchema = z.enum([
   /** Multiplies all healing; negative values are curses. */
   'healing',
   'shardGain',
+  // Spells (M3.2)
+  'spellDamage',
+  /** Shortens active spell cooldowns; capped in the sim. */
+  'cooldownReduction',
+  /** Aura radius bonus (+0.2 = 20 % wider). */
+  'auraRadius',
 ]);
 
 /** A number, or the name of an entry in the boon's `values` (which scales with rarity). */
@@ -309,7 +315,15 @@ export const effectTriggerSchema = z.enum([
   'onBurnApplied',
 ]);
 /** `ultimate` and `effect` damage never trigger onHit (no loops, no ult-charging the ult). */
-export const hitSourceSchema = z.enum(['attack', 'special', 'cast', 'ultimate', 'effect']);
+export const hitSourceSchema = z.enum([
+  'attack',
+  'special',
+  'cast',
+  'ultimate',
+  'effect',
+  'spell',
+  'aura',
+]);
 
 export const effectSchema = z.discriminatedUnion('kind', [
   z.object({
@@ -566,7 +580,18 @@ export function defineEnemy(def: EnemyDef): EnemyDef {
 
 // ── Status effects (ROADMAP M3.1) ─────────────────────────────────────────
 
-export const statusGlyphSchema = z.enum(['flame', 'snowflake', 'drop', 'eye']);
+/** Icon glyphs, shared by statuses and spells (icon set grows in M4.3). */
+export const glyphSchema = z.enum([
+  'flame',
+  'snowflake',
+  'drop',
+  'eye',
+  'ray',
+  'nova',
+  'meteor',
+  'cloud',
+]);
+export const statusGlyphSchema = glyphSchema;
 
 export const statusSchema = z.object({
   id: statusIdSchema,
@@ -597,6 +622,70 @@ export type StatusGlyph = z.infer<typeof statusGlyphSchema>;
 
 export function defineStatus(def: StatusDef): StatusDef {
   return statusSchema.parse(def);
+}
+
+// ── Spells (ROADMAP M3.2) ─────────────────────────────────────────────────
+
+export const spellSchoolSchema = z.enum([
+  'flame',
+  'frost',
+  'storm',
+  'void',
+  'blood',
+  'poison',
+  'light',
+]);
+
+/**
+ * What a spell (or one aura pulse) does. Bursts hit everything in a circle around the player
+ * or around the aimed point; more effect types follow with the spell schools (M3.3).
+ */
+export const spellEffectSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('burst'),
+    at: z.enum(['self', 'target']),
+    /** Distance of the target point for `at: 'target'` (aim direction, aim-assisted). */
+    rangePx: px,
+    radiusPx: px,
+    damage: z.number().nonnegative(),
+    status: statusIdSchema.optional(),
+    stacks: z.number().int().nonnegative(),
+    freeze: z.boolean(),
+    knockback: z.number().nonnegative(),
+  }),
+]);
+
+export const spellSchema = z.object({
+  id,
+  school: spellSchoolSchema,
+  kind: z.enum(['active', 'aura']),
+  /** Active spells: time until the spell can be cast again. */
+  cooldownSec: sec,
+  /** Auras: time between pulses. */
+  pulseSec: sec,
+  /** Active spells: cast animation (the effect lands at the end of the windup). */
+  windupSec: sec,
+  recoverySec: sec,
+  /** Movement speed factor while casting. */
+  moveFactor: z.number().min(0).max(1),
+  effect: spellEffectSchema,
+  visual: z.object({ color: z.number().int().nonnegative(), glyph: glyphSchema }),
+});
+
+export type SpellDef = z.infer<typeof spellSchema>;
+export type SpellSchool = z.infer<typeof spellSchoolSchema>;
+export type SpellEffect = z.infer<typeof spellEffectSchema>;
+export type Glyph = z.infer<typeof glyphSchema>;
+
+export function defineSpell(def: SpellDef): SpellDef {
+  const spell = spellSchema.parse(def);
+  if (spell.kind === 'active' && spell.cooldownSec <= 0) {
+    throw new Error(`spell ${spell.id}: active spells need a cooldown`);
+  }
+  if (spell.kind === 'aura' && spell.pulseSec <= 0) {
+    throw new Error(`spell ${spell.id}: auras need a pulse interval`);
+  }
+  return spell;
 }
 
 // ── Elite modifiers (GDD §5.1) ────────────────────────────────────────────

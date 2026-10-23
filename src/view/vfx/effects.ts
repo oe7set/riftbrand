@@ -567,6 +567,20 @@ export class Effects {
     });
   }
 
+  /** A faint ring settling onto the aura's edge: shows its reach without stealing focus. */
+  auraRing(x: number, y: number, radius: number, color: number, strong: boolean): void {
+    this.ground.emit({
+      texture: this.tex.ring,
+      x,
+      y,
+      lifeSec: 0.4,
+      color,
+      alpha: strong ? 0.55 : 0.3,
+      scaleStart: radius / 13,
+      scaleEnd: radius / 15,
+    });
+  }
+
   /** Gold glints rising from a kill: shards gained. */
   shards(x: number, y: number, amount: number): void {
     const count = Math.min(8, 2 + amount);

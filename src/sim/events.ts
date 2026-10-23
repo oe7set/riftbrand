@@ -48,7 +48,7 @@ export const Ev = {
   Ultimate: 27,
   /** Ultimate meter just became full. */
   UltimateReady: 28,
-  /** Cast or ultimate pressed without charge. value = 1 cast, 2 ultimate. */
+  /** Cast, ultimate or spell pressed without charge. value = 1 cast, 2 ultimate, 3 spell. */
   Denied: 29,
   /** A mine or death blast was placed. amount = radius. */
   HazardPlaced: 30,
@@ -66,6 +66,12 @@ export const Ev = {
   LastSpark: 36,
   /** A status ran out on an enemy. value = StatusCode. */
   StatusExpired: 37,
+  /** Active spell released. value = spell index, amount = radius, dir = cast direction. */
+  SpellCast: 38,
+  /** Aura pulse around the player. value = spell index, amount = radius, flags = enemies hit. */
+  AuraPulse: 39,
+  /** The active spell's cooldown ran out. value = spell index. */
+  SpellReady: 40,
 } as const;
 
 /** Player projectile kinds in event payloads (matches content projectile kinds). */

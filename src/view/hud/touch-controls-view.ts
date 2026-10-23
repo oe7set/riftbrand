@@ -41,6 +41,10 @@ function drawIcon(g: Graphics, b: TouchButtonLayout): void {
     case 'ultimate':
       g.star(0, 0, 5, s, s * 0.45).stroke(style);
       break;
+    case 'spell':
+      g.poly([0, -s, s * 0.8, 0, 0, s, -s * 0.8, 0]).stroke(style);
+      g.star(0, 0, 4, s * 0.45, s * 0.15).fill({ color: PALETTE.touchBase, alpha: 0.9 });
+      break;
     case 'pause':
       g.rect(-s * 0.5, -s * 0.7, s * 0.3, s * 1.4).fill({ color: PALETTE.touchBase, alpha: 0.9 });
       g.rect(s * 0.2, -s * 0.7, s * 0.3, s * 1.4).fill({ color: PALETTE.touchBase, alpha: 0.9 });
@@ -59,8 +63,11 @@ export class TouchControlsView {
   /** Cast charge dots and the ultimate fill disc; built with the layout, only toggled/scaled. */
   private castDots: Graphics[] = [];
   private ultFill: Graphics | null = null;
+  /** Grows back as the spell cools down (scaled per frame, never redrawn). */
+  private spellFill: Graphics | null = null;
   private castIndex = -1;
   private ultIndex = -1;
+  private spellIndex = -1;
   private time = 0;
   /** Player setting from the layout editor; empty buttons fade proportionally. */
   idleAlpha = IDLE_ALPHA;
@@ -74,6 +81,8 @@ export class TouchControlsView {
     for (const child of this.buttons.removeChildren()) child.destroy({ children: true });
     this.castDots = [];
     this.ultFill = null;
+    this.spellFill = null;
+    this.spellIndex = layout.buttons.findIndex((b) => b.id === 'spell');
     this.castIndex = layout.buttons.findIndex((b) => b.id === 'cast');
     this.ultIndex = layout.buttons.findIndex((b) => b.id === 'ultimate');
     for (const b of layout.buttons) {
@@ -84,6 +93,12 @@ export class TouchControlsView {
         fill.circle(0, 0, b.radius).fill({ color: PALETTE.ultimate, alpha: 0.35 });
         g.addChild(fill);
         this.ultFill = fill;
+      }
+      if (b.id === 'spell') {
+        const fill = new Graphics();
+        fill.circle(0, 0, b.radius).fill({ color: PALETTE.touchAccent, alpha: 0.3 });
+        g.addChild(fill);
+        this.spellFill = fill;
       }
       g.circle(0, 0, b.radius).fill({ color: PALETTE.touchBase, alpha: 0.08 });
       g.circle(0, 0, b.radius).stroke({ color: PALETTE.touchBase, width: 2, alpha: 0.6 });
@@ -133,6 +148,10 @@ export class TouchControlsView {
       let idle = this.idleAlpha;
       const empty = EMPTY_ALPHA * (this.idleAlpha / IDLE_ALPHA);
       if (i === this.castIndex && player.castCharges < 1) idle = empty;
+      if (i === this.spellIndex) {
+        // No spell equipped: barely there. Cooling down: faded until it is ready again.
+        if (player.activeSpell < 0 || player.spellCooldownTicks > 0) idle = empty;
+      }
       if (i === this.ultIndex) {
         // A full meter pulses to invite the press.
         idle = player.ultCharge >= 1 ? 0.6 + 0.3 * Math.sin(this.time * 6) : EMPTY_ALPHA + 0.15;
@@ -144,6 +163,13 @@ export class TouchControlsView {
       dot.alpha = i < player.castCharges ? 1 : 0.15;
     }
     if (this.ultFill) this.ultFill.scale.set(Math.max(0.001, player.ultCharge));
+    if (this.spellFill) {
+      const ready =
+        player.activeSpell < 0
+          ? 0
+          : 1 - player.spellCooldownTicks / Math.max(1, player.spellCooldownTotal);
+      this.spellFill.scale.set(Math.max(0.001, ready));
+    }
     const j = touch.joystick;
     this.joystickBase.visible = j.active;
     this.joystickKnob.visible = j.active;

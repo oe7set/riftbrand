@@ -24,6 +24,7 @@ function setup(over: Partial<RoomSetup>): RoomSetup {
     staminaBonus: 0,
     lastSparks: 0,
     lastSparkHeal: 0,
+    spells: { active: null, aura: null },
     ...over,
   };
 }
