@@ -479,6 +479,8 @@ export const relicSchema = z.object({
   tags: z.array(z.string()),
   /** Shop price in shards before the shop's rarity markup. */
   price: z.number().int().positive(),
+  /** Rift dust to unlock it at Nix (GDD §2.3); without it the relic is in the pool from the start. */
+  unlockCost: z.number().int().positive().optional(),
   values: z.record(z.string(), relicValueSchema),
   effects: z.array(effectSchema).min(1),
 });
@@ -589,4 +591,74 @@ export function defineRoom(def: RoomTemplateDef): RoomTemplateDef {
 
 export function defineBiome(def: BiomeDef): BiomeDef {
   return biomeSchema.parse(def);
+}
+
+// ── Meta progression (GDD §8) ─────────────────────────────────────────────
+
+const treeEffectSchema = z.discriminatedUnion('kind', [
+  /** Adds `perRank` to a build stat for the whole run (e.g. maxHp, allDamage). */
+  z.object({ kind: z.literal('stat'), stat: statIdSchema, perRank: z.number() }),
+  z.object({ kind: z.literal('startShards'), perRank: z.number().int().positive() }),
+  z.object({ kind: z.literal('roomHeal'), perRank: z.number().positive() }),
+  /** Survive a lethal hit once per run; the heal fraction is per rank. */
+  z.object({ kind: z.literal('lastSpark'), healPerRank: z.array(z.number().min(0).max(1)).min(1) }),
+  z.object({ kind: z.literal('boonReroll'), perRank: z.number().int().positive() }),
+  z.object({ kind: z.literal('staminaSegment'), perRank: z.number().int().positive() }),
+]);
+
+export const treeNodeSchema = z.object({
+  id,
+  /** Cost of each rank, in order; the number of entries is the max rank. */
+  ranks: z
+    .array(z.object({ ember: z.number().int().min(0), dust: z.number().int().min(0) }))
+    .min(1),
+  effect: treeEffectSchema,
+  /** Another node that needs at least one rank first. */
+  requires: id.optional(),
+});
+
+export type TreeNodeDef = z.infer<typeof treeNodeSchema>;
+export type TreeEffect = z.infer<typeof treeEffectSchema>;
+
+export function defineTreeNode(def: TreeNodeDef): TreeNodeDef {
+  const node = treeNodeSchema.parse(def);
+  if (node.effect.kind === 'lastSpark' && node.effect.healPerRank.length !== node.ranks.length) {
+    throw new Error(`tree node ${node.id}: one heal value per rank`);
+  }
+  return node;
+}
+
+export const speakerSchema = z.enum(['maren', 'nix']);
+
+/** Hades-style dialogue (GDD §2.6): the best-matching unseen line wins, fillers repeat. */
+export const dialogueLineSchema = z.object({
+  id,
+  speaker: speakerSchema,
+  /** Higher wins. Story beats > context reactions > fillers. */
+  priority: z.number().int(),
+  /** Story and context lines play once; fillers (false) may repeat. */
+  once: z.boolean(),
+  when: z
+    .object({
+      minRuns: z.number().int().min(0).optional(),
+      maxRuns: z.number().int().min(0).optional(),
+      minWins: z.number().int().min(0).optional(),
+      lastResult: z.enum(['won', 'lost']).optional(),
+      /** Enemy id that ended the last run. */
+      killedBy: id.optional(),
+      lastDominant: z.enum(['ignara', 'vaelis']).optional(),
+      /** The last run reached the boss node. */
+      reachedBoss: z.boolean().optional(),
+      hasFlag: id.optional(),
+      lacksFlag: id.optional(),
+    })
+    .optional(),
+  setsFlag: id.optional(),
+});
+
+export type DialogueLineDef = z.infer<typeof dialogueLineSchema>;
+export type Speaker = z.infer<typeof speakerSchema>;
+
+export function defineDialogue(lines: DialogueLineDef[]): DialogueLineDef[] {
+  return lines.map((l) => dialogueLineSchema.parse(l));
 }

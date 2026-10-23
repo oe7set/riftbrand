@@ -16,6 +16,8 @@ export const TUNING = {
   /** Invulnerability after taking a hit. */
   playerHitInvulnSec: 0.6,
   playerHitKnockback: 220,
+  /** Invulnerability after the Last Spark saved the player (Ember Tree). */
+  playerLastSparkInvulnSec: 2,
 
   // Dash (GDD §4.2)
   dashDurationSec: 0.18,

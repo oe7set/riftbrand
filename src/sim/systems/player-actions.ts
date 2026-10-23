@@ -453,9 +453,9 @@ export function playerActionSystem(state: SimState, input: InputFrame): void {
 
   if (p.invulnTicks > 0) p.invulnTicks--;
   if (p.staminaDelayTicks > 0) p.staminaDelayTicks--;
-  else if (p.stamina < TUNING.staminaMax) {
+  else if (p.stamina < state.staminaMax) {
     p.stamina = Math.min(
-      TUNING.staminaMax,
+      state.staminaMax,
       p.stamina +
         (1 + state.build.stats.staminaRegen) /
           Math.max(1, secondsToTicks(TUNING.staminaRegenSecPerSegment)),

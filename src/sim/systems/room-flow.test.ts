@@ -24,6 +24,11 @@ function roomSim(encounter: Encounter, template = OPEN, seed = 4): SimState {
     shards: 0,
     evolutions: [],
     ultCharge: 0,
+    bonusAllDamage: 0,
+    bonusStaminaRegen: 0,
+    staminaBonus: 0,
+    lastSparks: 0,
+    lastSparkHeal: 0,
   });
 }
 

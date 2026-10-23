@@ -1,0 +1,104 @@
+import { type DialogueLineDef, defineDialogue } from '../schema';
+
+/**
+ * Hub dialogue (GDD §2.6). Text lives in the locales as `dialogue.<id>`. Priorities:
+ * 100 introductions, 80–95 story beats, 50–70 reactions to the last run, 0 fillers.
+ */
+export const DIALOGUE: readonly DialogueLineDef[] = defineDialogue([
+  // ── Maren, die Hüterin ────────────────────────────────────────────────
+  { id: 'maren_intro', speaker: 'maren', priority: 100, once: true, setsFlag: 'met_maren' },
+  {
+    id: 'maren_first_death',
+    speaker: 'maren',
+    priority: 90,
+    once: true,
+    when: { lastResult: 'lost', maxRuns: 2 },
+  },
+  {
+    id: 'maren_first_win',
+    speaker: 'maren',
+    priority: 95,
+    once: true,
+    when: { lastResult: 'won' },
+  },
+  {
+    id: 'maren_killed_warden',
+    speaker: 'maren',
+    priority: 80,
+    once: true,
+    when: { killedBy: 'ember_warden' },
+  },
+  {
+    id: 'maren_killed_brute',
+    speaker: 'maren',
+    priority: 70,
+    once: true,
+    when: { killedBy: 'brute' },
+  },
+  {
+    id: 'maren_killed_layer',
+    speaker: 'maren',
+    priority: 70,
+    once: true,
+    when: { killedBy: 'cinder_layer' },
+  },
+  {
+    id: 'maren_killed_slag',
+    speaker: 'maren',
+    priority: 60,
+    once: true,
+    when: { killedBy: 'slag' },
+  },
+  {
+    id: 'maren_ignara',
+    speaker: 'maren',
+    priority: 60,
+    once: true,
+    when: { lastDominant: 'ignara' },
+  },
+  {
+    id: 'maren_vaelis',
+    speaker: 'maren',
+    priority: 60,
+    once: true,
+    when: { lastDominant: 'vaelis' },
+  },
+  {
+    id: 'maren_reached_boss',
+    speaker: 'maren',
+    priority: 65,
+    once: true,
+    when: { reachedBoss: true, lastResult: 'lost' },
+  },
+  { id: 'maren_runs5', speaker: 'maren', priority: 50, once: true, when: { minRuns: 5 } },
+  { id: 'maren_runs10', speaker: 'maren', priority: 50, once: true, when: { minRuns: 10 } },
+  { id: 'maren_wins3', speaker: 'maren', priority: 55, once: true, when: { minWins: 3 } },
+  { id: 'maren_filler_1', speaker: 'maren', priority: 0, once: false },
+  { id: 'maren_filler_2', speaker: 'maren', priority: 0, once: false },
+  { id: 'maren_filler_3', speaker: 'maren', priority: 0, once: false },
+  { id: 'maren_filler_4', speaker: 'maren', priority: 0, once: false, when: { minRuns: 3 } },
+
+  // ── Nix, die Händlerin ────────────────────────────────────────────────
+  { id: 'nix_intro', speaker: 'nix', priority: 100, once: true, setsFlag: 'met_nix' },
+  { id: 'nix_dust', speaker: 'nix', priority: 70, once: true, when: { minRuns: 2 } },
+  { id: 'nix_won', speaker: 'nix', priority: 90, once: true, when: { lastResult: 'won' } },
+  {
+    id: 'nix_killed_mite',
+    speaker: 'nix',
+    priority: 60,
+    once: true,
+    when: { killedBy: 'ember_mite' },
+  },
+  { id: 'nix_runs3', speaker: 'nix', priority: 50, once: true, when: { minRuns: 3 } },
+  {
+    id: 'nix_reached_boss',
+    speaker: 'nix',
+    priority: 65,
+    once: true,
+    when: { reachedBoss: true, lastResult: 'lost' },
+  },
+  { id: 'nix_filler_1', speaker: 'nix', priority: 0, once: false },
+  { id: 'nix_filler_2', speaker: 'nix', priority: 0, once: false },
+  { id: 'nix_filler_3', speaker: 'nix', priority: 0, once: false },
+  { id: 'nix_filler_4', speaker: 'nix', priority: 0, once: false, when: { minRuns: 2 } },
+]);

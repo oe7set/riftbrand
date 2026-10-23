@@ -17,7 +17,10 @@ export function runStats(run: RunState): Stats {
 
 /** Recomputes max HP from relics; gains also heal, losses only cap current HP. */
 export function applyMaxHp(run: RunState): void {
-  const target = Math.max(MIN_MAX_HP, TUNING.playerMaxHp + run.maxHpBonus + runStats(run).maxHp);
+  const target = Math.max(
+    MIN_MAX_HP,
+    TUNING.playerMaxHp + run.meta.maxHp + run.maxHpBonus + runStats(run).maxHp,
+  );
   const delta = target - run.maxHp;
   run.maxHp = target;
   run.hp = delta > 0 ? Math.min(target, run.hp + delta) : Math.min(target, run.hp);
@@ -94,13 +97,16 @@ function rollRelicRarity(rng: Rng, bonus: number): Exclude<RelicRarity, 'curse'>
 }
 
 /** A random relic of a rarity pool, deterministic for the given rng. */
+/** `locked` relics are not in the pool yet (Nix unlocks them, GDD §2.3). */
 export function rollRelic(
   rng: Rng,
   pool: RelicRarity,
   exclude: ReadonlySet<string> = new Set(),
+  locked: readonly string[] = [],
 ): string | null {
-  const candidates = RELICS.filter((r) => r.rarity === pool && !exclude.has(r.id));
-  const any = candidates.length > 0 ? candidates : RELICS.filter((r) => r.rarity === pool);
+  const inPool = RELICS.filter((r) => r.rarity === pool && !locked.includes(r.id));
+  const candidates = inPool.filter((r) => !exclude.has(r.id));
+  const any = candidates.length > 0 ? candidates : inPool;
   return any[nextInt(rng, 0, any.length)]?.id ?? null;
 }
 
@@ -108,11 +114,16 @@ export function rollRelic(
  * Three relic choices (never curses; GDD §7.2 curses are never forced). Owned relics may be
  * offered again, which stacks them.
  */
-export function rollRelicOffer(seed: number, nodeId: number, rarityBonus: number): string[] {
+export function rollRelicOffer(
+  seed: number,
+  nodeId: number,
+  rarityBonus: number,
+  locked: readonly string[] = [],
+): string[] {
   const rng = createRng(hashString(`${seed}:relics:${nodeId}`));
   const picked = new Set<string>();
   for (let tries = 0; picked.size < 3 && tries < 30; tries++) {
-    const id = rollRelic(rng, rollRelicRarity(rng, rarityBonus), picked);
+    const id = rollRelic(rng, rollRelicRarity(rng, rarityBonus), picked, locked);
     if (id) picked.add(id);
   }
   return [...picked];
@@ -136,13 +147,13 @@ export function shopStock(run: RunState, node: Pick<MapNode, 'id'>): ShopItem[] 
   const items: ShopItem[] = [];
   const chosen = new Set<string>();
   for (let i = 0; i < 2; i++) {
-    const id = rollRelic(rng, rollRelicRarity(rng, 0.5), chosen);
+    const id = rollRelic(rng, rollRelicRarity(rng, 0.5), chosen, run.lockedRelics);
     const def = id ? relicById(id) : undefined;
     if (!id || !def) continue;
     chosen.add(id);
     items.push({ kind: 'relic', id, price: def.price });
   }
-  const curse = rollRelic(rng, 'curse');
+  const curse = rollRelic(rng, 'curse', undefined, run.lockedRelics);
   const curseDef = curse ? relicById(curse) : undefined;
   if (curse && curseDef)
     items.push({ kind: 'relic', id: curse, price: Math.round(curseDef.price * CURSE_DISCOUNT) });
@@ -191,7 +202,7 @@ export function applyOutcomes(
         results.push(o);
         break;
       case 'relic': {
-        const id = rollRelic(rng, o.pool);
+        const id = rollRelic(rng, o.pool, undefined, run.lockedRelics);
         if (id) addRelic(run, id);
         results.push(id ? { ...o, relicId: id } : o);
         break;

@@ -229,6 +229,7 @@ export function killEnemy(
       elite.deathBlastRadiusPx,
       elite.deathBlastDamage,
       elite.deathBlastFuseSec,
+      type,
     );
   }
   state.enemiesAlive--;
@@ -260,12 +261,16 @@ function defeatBoss(state: SimState, type: number, x: number, y: number): void {
 
 export type PlayerDamageResult = 'hit' | 'dodged' | 'ignored';
 
-/** Applies enemy damage to the player, honoring dash i-frames and hit invulnerability. */
+/**
+ * Applies enemy damage to the player, honoring dash i-frames and hit invulnerability.
+ * `sourceType` is the attacking enemy type (-1 unknown), remembered if the hit is lethal.
+ */
 export function damagePlayer(
   state: SimState,
   amount: number,
   sourceX: number,
   sourceY: number,
+  sourceType = -1,
 ): PlayerDamageResult {
   const p = state.player;
   if (state.gameOver) return 'ignored';
@@ -278,7 +283,7 @@ export function damagePlayer(
     if (!p.perfectDashUsed && p.actionTicks <= secondsToTicks(TUNING.perfectDashWindowSec)) {
       p.perfectDashUsed = true;
       p.guaranteedCrit = true;
-      p.stamina = Math.min(TUNING.staminaMax, p.stamina + TUNING.perfectDashStaminaRefund);
+      p.stamina = Math.min(state.staminaMax, p.stamina + TUNING.perfectDashStaminaRefund);
       pushEvent(state.events, Ev.PerfectDash, px, py);
       fireOnPerfectDash(state);
     }
@@ -311,8 +316,18 @@ export function damagePlayer(
     e.flags = hp <= 0 ? EvFlag.Killed : 0;
   }
   applyHitstop(state, TUNING.hitstopPlayerHitSec);
+  if (hp <= 0 && state.lastSparks > 0) {
+    // Letzter Funke (Ember Tree): the killing blow is refused once per run.
+    state.lastSparks--;
+    c.hp[eid] = Math.max(1, (c.maxHp[eid] as number) * state.lastSparkHeal);
+    p.invulnTicks = secondsToTicks(TUNING.playerLastSparkInvulnSec);
+    const spark = pushEvent(state.events, Ev.LastSpark, px, py);
+    if (spark) spark.amount = c.hp[eid] as number;
+    return 'hit';
+  }
   if (hp > 0) fireOnDamaged(state);
   if (hp <= 0) {
+    state.killedBy = sourceType;
     c.hp[eid] = 0;
     p.action = PlayerAction.Dead;
     p.actionTicks = 0;

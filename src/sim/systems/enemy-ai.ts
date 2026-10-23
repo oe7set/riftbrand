@@ -92,11 +92,13 @@ function fireVolley(state: SimState, eid: number, atk: EnemyAttackDef): void {
     c.facingY[p] = dy;
     c.projDamage[p] = atk.damage;
     c.projLifeTicks[p] = secondsToTicks(atk.projectileLifeSec);
+    // Remembered so a lethal shot can name its shooter.
+    c.enemyType[p] = c.enemyType[eid] as number;
   }
 }
 
 /** Mines land around the player's current spot, so standing still is punished (GDD §5.1). */
-function layMines(state: SimState, atk: EnemyAttackDef, px: number, py: number): void {
+function layMines(state: SimState, eid: number, atk: EnemyAttackDef, px: number, py: number): void {
   if (atk.kind !== 'mine') return;
   const rng = state.rng.ai;
   for (let i = 0; i < atk.count; i++) {
@@ -110,6 +112,7 @@ function layMines(state: SimState, atk: EnemyAttackDef, px: number, py: number):
       atk.blastRadiusPx,
       atk.damage,
       atk.fuseSec,
+      state.c.enemyType[eid] as number,
     );
   }
 }
@@ -322,10 +325,11 @@ export function enemyAiSystem(state: SimState): void {
               fireVolley(state, eid, atk);
               break;
             case 'slam':
-              if (dist <= atk.slamRadiusPx + pr) damagePlayer(state, atk.damage, ex, ey);
+              if (dist <= atk.slamRadiusPx + pr)
+                damagePlayer(state, atk.damage, ex, ey, c.enemyType[eid] as number);
               break;
             case 'mine':
-              layMines(state, atk, px, py);
+              layMines(state, eid, atk, px, py);
               break;
             case 'summon':
               summon(state, eid, atk);
@@ -348,7 +352,7 @@ export function enemyAiSystem(state: SimState): void {
           const reach = (c.radius[eid] as number) + pr + LUNGE_CONTACT_SLACK_PX;
           if (c.aiAttackDone[eid] === 0 && dist <= reach) {
             c.aiAttackDone[eid] = 1;
-            damagePlayer(state, atk.damage, ex, ey);
+            damagePlayer(state, atk.damage, ex, ey, c.enemyType[eid] as number);
           }
         } else {
           c.velX[eid] = 0;

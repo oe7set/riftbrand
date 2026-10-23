@@ -23,6 +23,9 @@ export class Ui {
     this.host.className = 'rb-ui';
     parent.append(this.host);
     this.host.addEventListener('keydown', (e) => {
+      // Text fields (save code import) keep their keys; WASD must type, not navigate.
+      const target = e.target;
+      if (target instanceof HTMLTextAreaElement || target instanceof HTMLInputElement) return;
       const dir = ARROW_KEYS[e.code];
       if (!dir) return;
       e.preventDefault();
@@ -36,6 +39,11 @@ export class Ui {
 
   get active(): boolean {
     return this.current.kind !== 'none';
+  }
+
+  /** Which screen is showing, e.g. to drop a late async update for a screen already left. */
+  get kind(): Screen['kind'] {
+    return this.current.kind;
   }
 
   show(screen: Screen): void {

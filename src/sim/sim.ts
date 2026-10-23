@@ -61,7 +61,17 @@ export interface SimState {
   relics: OwnedRelic[];
   /** Weapon evolutions unlocked in this run (GDD §4.9). */
   evolutions: string[];
+  /** Ember Tree bonuses added on top of the build (GDD §8.2). */
+  bonusAllDamage: number;
+  bonusStaminaRegen: number;
   build: CompiledBuild;
+  /** Stamina segments (3 + Ember Tree). */
+  staminaMax: number;
+  /** Last Spark (Ember Tree): lethal hits survived left, and the heal it grants. */
+  lastSparks: number;
+  lastSparkHeal: number;
+  /** Enemy type that dealt the final blow (-1 = unknown), for hub dialogue. */
+  killedBy: number;
   /** Run currency carried into the room plus everything picked up here. */
   shards: number;
   /** Nesting depth of effects triggering effects, and the per-tick budget used. */
@@ -106,7 +116,13 @@ export function createSim(seed: number, setup?: RoomSetup): SimState {
     boons: [],
     relics: [],
     evolutions: [],
+    bonusAllDamage: 0,
+    bonusStaminaRegen: 0,
     build: compileBuild([]),
+    staminaMax: TUNING.staminaMax,
+    lastSparks: 0,
+    lastSparkHeal: 0,
+    killedBy: -1,
     shards: 0,
     effectDepth: 0,
     effectsThisTick: 0,
@@ -121,6 +137,11 @@ export function createSim(seed: number, setup?: RoomSetup): SimState {
     debug: { godMode: false, wavesEnabled: true },
   };
   if (setup) {
+    state.bonusAllDamage = setup.bonusAllDamage;
+    state.bonusStaminaRegen = setup.bonusStaminaRegen;
+    state.staminaMax = TUNING.staminaMax + setup.staminaBonus;
+    state.lastSparks = setup.lastSparks;
+    state.lastSparkHeal = setup.lastSparkHeal;
     setBuild(state, setup.boons, setup.relics, setup.evolutions);
     state.shards = setup.shards;
     state.player.ultCharge = setup.ultCharge;
@@ -139,7 +160,7 @@ export function createSim(seed: number, setup?: RoomSetup): SimState {
   } else {
     state.playerEid = spawnPlayer(state, state.arenaWidthPx / 2, state.arenaHeightPx / 2);
   }
-  state.player.stamina = TUNING.staminaMax;
+  state.player.stamina = state.staminaMax;
   state.player.castCharges = RIFT_SHOT.charges;
   state.waves.timerTicks = secondsToTicks(TUNING.firstWaveDelaySec);
   return state;
@@ -257,6 +278,8 @@ export function setBuild(
   state.relics = relics.map((r) => ({ ...r }));
   state.evolutions = [...evolutions];
   state.build = compileBuild(state.boons, state.relics, state.evolutions);
+  state.build.stats.allDamage += state.bonusAllDamage;
+  state.build.stats.staminaRegen += state.bonusStaminaRegen;
 }
 
 /** Advances the simulation by exactly one fixed tick. */

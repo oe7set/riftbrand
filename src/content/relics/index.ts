@@ -83,6 +83,7 @@ export const RELICS: readonly RelicDef[] = [
   defineRelic({
     id: 'executioner_mark',
     rarity: 'rare',
+    unlockCost: 3,
     tags: ['crit'],
     price: 70,
     values: { bonus: { base: 0.3, perStack: 0.3, percent: true } },
@@ -91,6 +92,7 @@ export const RELICS: readonly RelicDef[] = [
   defineRelic({
     id: 'breath_stone',
     rarity: 'rare',
+    unlockCost: 2,
     tags: ['dash'],
     price: 65,
     values: { bonus: { base: 0.2, perStack: 0.2, percent: true } },
@@ -107,6 +109,7 @@ export const RELICS: readonly RelicDef[] = [
   defineRelic({
     id: 'second_wind',
     rarity: 'common',
+    unlockCost: 3,
     tags: ['heal'],
     price: 40,
     values: { heal: { base: 6, perStack: 6, int: true } },
@@ -131,6 +134,7 @@ export const RELICS: readonly RelicDef[] = [
   defineRelic({
     id: 'glass_bones',
     rarity: 'curse',
+    unlockCost: 2,
     tags: ['crit', 'curse'],
     price: 30,
     values: {

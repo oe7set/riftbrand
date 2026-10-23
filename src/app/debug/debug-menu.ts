@@ -27,6 +27,8 @@ export interface DebugHooks {
   clearBoons(): void;
   giveRelic(id: string): void;
   giveShards(amount: number): void;
+  /** Meta currencies for testing the Ember Tree and Nix. */
+  giveMeta(ember: number, dust: number): void;
   fillUltimate(): void;
   refillCast(): void;
   giveEvolution(id: string): void;
@@ -141,6 +143,7 @@ export class DebugMenu {
         el('div', { className: 'rb-debug-row' }, [
           ...relicIds.map((id) => this.button(id, () => this.hooks.giveRelic(id))),
           this.button('+100 shards', () => this.hooks.giveShards(100)),
+          this.button('+200 Glut +5 dust', () => this.hooks.giveMeta(200, 5)),
         ]),
       ]),
       this.section('Cast, ultimate & evolutions', false, [

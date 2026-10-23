@@ -5,6 +5,7 @@ import { ROOMS } from '../../content/rooms';
 import type { Rarity, RoomTemplateDef } from '../../content/schema';
 import { TUNING } from '../../content/tuning';
 import type { OwnedBoon, OwnedRelic } from '../effects/build';
+import { emptyRunMeta, type RunMeta } from '../meta/profile';
 import { createRng, hashString, nextInt } from '../rng/rng';
 import { clearBonusShards, heal, nodeReward, runStats } from './economy';
 import { buildEncounter, type Encounter } from './encounter';
@@ -43,6 +44,20 @@ export interface RunState {
   evolutions: string[];
   /** Ultimate meter 0..1, carried from room to room. */
   ultCharge: number;
+  /** Ember Tree bonuses, snapshotted at the start of the run (GDD §8.2). */
+  meta: RunMeta;
+  /** Relics not yet unlocked at Nix; never offered in this run. */
+  lockedRelics: string[];
+  /** Last Spark charges and boon rerolls left in this run. */
+  lastSparks: number;
+  rerolls: number;
+  /** Increments with each reroll so the rerolled offer is reproducible after a reload. */
+  rerollSalt: number;
+  /** Cleared rooms by kind, for the meta payout. */
+  clearedCombat: number;
+  clearedElite: number;
+  clearedBoss: number;
+  reachedBoss: boolean;
 }
 
 export interface RoomSetup {
@@ -55,9 +70,19 @@ export interface RoomSetup {
   shards: number;
   evolutions: string[];
   ultCharge: number;
+  /** Ember Tree bonuses applied inside the room. */
+  bonusAllDamage: number;
+  bonusStaminaRegen: number;
+  staminaBonus: number;
+  lastSparks: number;
+  lastSparkHeal: number;
 }
 
-export function createRun(seed: number): RunState {
+export function createRun(
+  seed: number,
+  meta: RunMeta = emptyRunMeta(),
+  lockedRelics: readonly string[] = [],
+): RunState {
   const s = seed >>> 0;
   const map = generateMap(createRng(hashString(`${s}:map`)), EMBER_WASTES);
   return {
@@ -67,18 +92,27 @@ export function createRun(seed: number): RunState {
     currentNodeId: -1,
     visited: [],
     status: 'map',
-    hp: TUNING.playerMaxHp,
-    maxHp: TUNING.playerMaxHp,
+    hp: TUNING.playerMaxHp + meta.maxHp,
+    maxHp: TUNING.playerMaxHp + meta.maxHp,
     kills: 0,
     roomsCleared: 0,
     playTimeSec: 0,
     boons: [],
     relics: [],
-    shards: 0,
+    shards: meta.startShards,
     shopBought: [],
     maxHpBonus: 0,
     evolutions: [],
     ultCharge: 0,
+    meta: { ...meta },
+    lockedRelics: [...lockedRelics],
+    lastSparks: meta.lastSparks,
+    rerolls: meta.rerolls,
+    rerollSalt: 0,
+    clearedCombat: 0,
+    clearedElite: 0,
+    clearedBoss: 0,
+    reachedBoss: false,
   };
 }
 
@@ -97,7 +131,9 @@ export function enterNode(run: RunState, nodeId: number): MapNode {
   run.currentNodeId = node.id;
   run.visited.push(node.id);
   run.shopBought = [];
+  run.rerollSalt = 0;
   run.status = 'room';
+  if (node.type === 'boss') run.reachedBoss = true;
   return node;
 }
 
@@ -120,6 +156,11 @@ export function roomSetupFor(run: RunState, node: MapNode): RoomSetup {
     shards: run.shards,
     evolutions: run.evolutions,
     ultCharge: run.ultCharge,
+    bonusAllDamage: run.meta.allDamage,
+    bonusStaminaRegen: run.meta.staminaRegen,
+    staminaBonus: run.meta.staminaBonus,
+    lastSparks: run.lastSparks,
+    lastSparkHeal: run.meta.lastSparkHeal,
   };
 }
 
@@ -130,6 +171,7 @@ export interface RoomResult {
   /** Absolute shard count at the end of the room (the room starts with the run's shards). */
   shards: number;
   ultCharge: number;
+  lastSparks: number;
 }
 
 export function completeRoom(run: RunState, result: RoomResult): void {
@@ -137,8 +179,14 @@ export function completeRoom(run: RunState, result: RoomResult): void {
   run.kills += result.kills;
   run.playTimeSec += result.timeSec;
   run.ultCharge = result.ultCharge;
+  run.lastSparks = result.lastSparks;
   run.roomsCleared++;
   const node = run.map.nodes[run.currentNodeId];
+  if (node?.type === 'elite') run.clearedElite++;
+  else if (node?.type === 'boss') run.clearedBoss++;
+  else run.clearedCombat++;
+  // Glutheilung (Ember Tree): a little health after every fight.
+  if (run.meta.roomHeal > 0) heal(run, run.meta.roomHeal);
   const bonus = node ? clearBonusShards(node.type) : 0;
   run.shards = result.shards + Math.round(bonus * (1 + runStats(run).shardGain));
   run.status = node?.type === 'boss' ? 'won' : 'map';
@@ -164,12 +212,12 @@ export function offerFor(run: RunState, node: MapNode): BoonOffer | null {
   if (reward?.kind !== 'boon') return null;
   const bonus = rewardRarityBonus(node.type) ?? 0;
   const being = reward.being;
-  const offer = rollBoonOffer(run.seed, node.id, being, run.boons, bonus);
+  const offer = rollBoonOffer(run.seed, node.id, being, run.boons, bonus, run.rerollSalt);
   if (offer.options.length > 0) return offer;
   // This being has nothing left to give: another one steps in, or there is no reward.
   for (const other of BEING_IDS) {
     if (other === being) continue;
-    const fallback = rollBoonOffer(run.seed, node.id, other, run.boons, bonus);
+    const fallback = rollBoonOffer(run.seed, node.id, other, run.boons, bonus, run.rerollSalt);
     if (fallback.options.length > 0) return fallback;
   }
   return null;
@@ -196,6 +244,14 @@ export function restEvolve(run: RunState, id: string): void {
   evolve(run, id);
   run.roomsCleared++;
   run.status = 'map';
+}
+
+/** Second Choice (Ember Tree): spends a reroll; the next `offerFor` rolls a fresh offer. */
+export function rerollOffer(run: RunState): boolean {
+  if (run.rerolls <= 0) return false;
+  run.rerolls--;
+  run.rerollSalt++;
+  return true;
 }
 
 export function pickBoon(run: RunState, pick: { id: string; rarity: Rarity }): void {

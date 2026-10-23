@@ -199,7 +199,7 @@ function run(state: SimState, eff: CompiledEffect, ctx: TriggerContext): void {
       break;
     }
     case 'refundStamina':
-      state.player.stamina = Math.min(TUNING.staminaMax, state.player.stamina + a.amount);
+      state.player.stamina = Math.min(state.staminaMax, state.player.stamina + a.amount);
       break;
   }
 }

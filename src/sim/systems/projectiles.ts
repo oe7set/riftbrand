@@ -113,6 +113,13 @@ export function projectileSystem(state: SimState): void {
     const reach = r + pr;
     if (dx * dx + dy * dy > reach * reach) continue;
     // Dodged or invulnerable shots fly on; only a real hit consumes the projectile.
-    if (damagePlayer(state, c.projDamage[eid] as number, x, y) === 'hit') expire(state, eid);
+    const result = damagePlayer(
+      state,
+      c.projDamage[eid] as number,
+      x,
+      y,
+      c.enemyType[eid] as number,
+    );
+    if (result === 'hit') expire(state, eid);
   }
 }

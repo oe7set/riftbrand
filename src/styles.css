@@ -864,3 +864,169 @@ body {
   max-width: min(420px, 88vw);
   font-size: 14px;
 }
+
+/* ── M2.6: refuge, Ember Tree, results ─────────────────────────────── */
+
+.rb-currencies {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  font:
+    15px ui-monospace,
+    monospace;
+}
+
+.rb-ember {
+  color: #ffb347;
+}
+
+.rb-dust {
+  color: #c9a6ff;
+}
+
+.rb-speeches {
+  display: grid;
+  gap: 10px;
+  width: min(560px, 90vw);
+  margin-top: 6px;
+}
+
+.rb-speech {
+  padding: 10px 14px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 3px solid var(--speaker);
+  border-radius: 8px;
+}
+
+.rb-speech.speaker-maren {
+  --speaker: #ffb347;
+}
+
+.rb-speech.speaker-nix {
+  --speaker: #c46bff;
+}
+
+.rb-speech-name {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--speaker);
+}
+
+.rb-speech-text {
+  margin-top: 4px;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.rb-hub .rb-version {
+  position: static;
+  margin-top: 8px;
+}
+
+.rb-button.rb-maren {
+  border-color: #ffb347;
+}
+
+.rb-button.rb-nix {
+  border-color: #c46bff;
+}
+
+.rb-button.rb-danger {
+  border-color: #ff4d6d;
+  color: #ffb3c1;
+  font-size: 15px;
+}
+
+.rb-button.rb-reroll {
+  margin-top: 14px;
+  font-size: 15px;
+}
+
+.rb-tree-node.is-maxed {
+  opacity: 0.7;
+}
+
+.rb-pips {
+  display: flex;
+  gap: 6px;
+}
+
+.rb-pips span {
+  width: 18px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.rb-pips span.is-on {
+  background: var(--being);
+  box-shadow: 0 0 6px var(--being);
+}
+
+.rb-menu-wide {
+  width: min(520px, 90vw);
+}
+
+.rb-field-label {
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.8;
+  text-align: left;
+}
+
+.rb-code {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px;
+  font:
+    12px ui-monospace,
+    monospace;
+  color: var(--rb-fg);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  resize: vertical;
+  word-break: break-all;
+}
+
+.rb-result.is-won .rb-overlay-title {
+  color: #ffd36b;
+}
+
+.rb-result.is-lost .rb-overlay-title {
+  color: #ff8a9d;
+}
+
+.rb-earned {
+  margin-top: 10px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffb347;
+}
+
+.rb-goal {
+  width: min(420px, 85vw);
+  margin: 14px 0;
+}
+
+.rb-goal-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.rb-goal-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff8a3d, #ffd36b);
+  box-shadow: 0 0 10px #ff8a3d;
+}
+
+.rb-goal-text {
+  margin-top: 6px;
+  font-size: 14px;
+  opacity: 0.9;
+}
