@@ -96,6 +96,7 @@ export class FeedbackDirector {
     this.afterimageTimer -= dtSec;
     if (this.afterimageTimer > 0) return;
     this.afterimageTimer = AFTERIMAGE_INTERVAL_SEC;
+    if (this.view.entities.rigAfterimage(sim)) return;
     const eid = sim.playerEid;
     this.view.effects.afterimage(
       sim.c.posX[eid] ?? 0,
@@ -196,6 +197,7 @@ export class FeedbackDirector {
         break;
       }
       case Ev.Kill: {
+        this.view.entities.shatter(e.eid, e.dirX, e.dirY);
         const def = ENEMIES[e.value];
         const elite = eliteOf(e.flags);
         fx.killBurst(
@@ -597,6 +599,7 @@ export class FeedbackDirector {
         });
         break;
       case Ev.PlayerDied:
+        this.view.entities.shatter(e.eid, 0, -0.5);
         fx.playerDeath(e.x, e.y);
         shake.add(1);
         this.audio.play('death', { pitchVariation: 0 });

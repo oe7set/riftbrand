@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ENEMIES, ENEMY_TYPE } from './enemies';
-import { enemySchema, weaponSchema } from './schema';
+import { ENEMY_RIGS, PLAYER_RIG_ID, RIGS, rigIndex } from './rigs';
+import { enemySchema, rigSchema, weaponSchema } from './schema';
 import { exportTunablesDiff, resetTunables, tunableGroups } from './tunables';
 import { BRAND_BLADE } from './weapons/brand-blade';
 
@@ -20,6 +21,22 @@ describe('content', () => {
     const tooFast = structuredClone(ENEMIES[ENEMY_TYPE.slag]);
     if (tooFast) tooFast.attack.windupSec = 0.2;
     expect(() => enemySchema.parse(tooFast)).toThrow();
+  });
+
+  it('has valid rigs within the part budgets (ROADMAP M4)', () => {
+    const ids = RIGS.map((r) => r.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const rig of RIGS) expect(() => rigSchema.parse(rig)).not.toThrow();
+    expect(rigIndex(PLAYER_RIG_ID)).toBeGreaterThanOrEqual(0);
+    for (const [enemyId, rigId] of Object.entries(ENEMY_RIGS)) {
+      const enemy = ENEMIES.find((e) => e.id === enemyId);
+      expect(enemy, enemyId).toBeDefined();
+      const rig = RIGS[rigIndex(rigId)];
+      expect(rig, rigId).toBeDefined();
+      // At most 8 parts for standard enemies, 20 for bosses and champions.
+      const budget = enemy?.role === 'boss' || enemy?.role === 'champion' ? 20 : 8;
+      expect(rig?.parts.length ?? 99).toBeLessThanOrEqual(budget);
+    }
   });
 
   it('exports tunable changes as code and resets them', () => {

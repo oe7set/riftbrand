@@ -190,6 +190,13 @@ export interface RiftbrandDebugHandle {
   enemyPositions(): Array<{ x: number; y: number; type: number }>;
   roomsCleared(): number;
   stateHash(): number;
+  /** Look comparison and stress tests (ROADMAP M4.1 performance check). */
+  setRigLook(enabled: boolean): void;
+  spawnEnemy(code: number): void;
+  setGodMode(enabled: boolean): void;
+  setTimeScale(scale: number): void;
+  /** Smoothed render time per frame (ms), for look comparisons. */
+  renderMs(): number;
 }
 
 declare global {
@@ -290,6 +297,9 @@ export class Game {
         },
         setHitboxes: (on) => {
           this.view.debugDraw.enabled = on;
+        },
+        setRigLook: (on) => {
+          this.view.entities.look = on ? 'rig' : 'classic';
         },
         giveBoon: (id) => {
           const boons = addBoon(this.sim.boons, { id, rarity: 'rare' });
@@ -1142,6 +1152,17 @@ export class Game {
       },
       roomsCleared: () => this.run?.roomsCleared ?? 0,
       stateHash: () => hashSim(sim()),
+      setRigLook: (on) => {
+        this.view.entities.look = on ? 'rig' : 'classic';
+      },
+      spawnEnemy: (code) => debugSpawnEnemy(sim(), code),
+      setGodMode: (on) => {
+        sim().debug.godMode = on;
+      },
+      setTimeScale: (scale) => {
+        this.debugTimeScale = scale;
+      },
+      renderMs: () => this.stats.renderMsAvg,
     };
   }
 

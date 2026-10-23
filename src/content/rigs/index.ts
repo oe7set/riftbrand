@@ -1,0 +1,43 @@
+import type { RigDef } from '../schema';
+import { registerTunables } from '../tunables';
+import { SLAG_RIG } from './slag';
+import { VESPER_RIG } from './vesper';
+
+/**
+ * Rigs (ROADMAP M4): bodies made of parts for the new look. Entities without a rig keep the
+ * classic shape. The index is the view's rig id.
+ */
+export const RIGS: readonly RigDef[] = [VESPER_RIG, SLAG_RIG];
+
+export const PLAYER_RIG_ID = 'vesper';
+
+/** Enemy id → rig id. */
+export const ENEMY_RIGS: Readonly<Record<string, string>> = { slag: 'slag' };
+
+export function rigIndex(id: string): number {
+  return RIGS.findIndex((r) => r.id === id);
+}
+
+/** View-side animation feel shared by all rigs. */
+export const RIG_TUNING = {
+  /** How long a dash afterimage of a rigged body lingers. */
+  afterimageLifeSec: 0.22,
+  /** Recoil of the body away from a hit, decaying with the hit squash. */
+  twitchDeg: 16,
+  /** One breath in and out while idle. */
+  breathSec: 2.4,
+  /** How fast parts fly apart on death. */
+  shatterSpeedPxPerSec: 240,
+  shatterLifeSec: 0.65,
+  /** How quickly the walk blend follows the speed (per second). */
+  moveBlendPerSec: 10,
+};
+
+registerTunables('rigs (look)', 'src/content/rigs/index.ts', RIG_TUNING);
+for (const rig of RIGS) {
+  registerTunables(`rig: ${rig.id}`, `src/content/rigs/${rig.id}.ts`, rig, {}, [
+    'strideUnits',
+    'bobUnits',
+    'leanDeg',
+  ]);
+}

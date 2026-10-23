@@ -513,7 +513,23 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Run-Start:** `createRun(seed, meta, lockedRelics, spells)` kopiert die Zauber-Slots aus `startSpellsFor(profile)`. Nicht (mehr) freigeschaltete Ausrüstung fällt auf die Start-Zauber zurück.
 - **Oberfläche:** Screen `spells` (`SpellTowerScreen` in `view/ui/meta-screens.tsx`), erreichbar über den Hub.
 
-## 34. Risiken und Gegenmaßnahmen
+## 34. Stand nach M4.1 (Rig-Prototyp)
+- **ADR 0005:** Rig-Animation mit Teile-Sprites.
+- **Content:** `content/rigs/` (`VESPER_RIG`, `SLAG_RIG`, `RIGS`, `ENEMY_RIGS`, `RIG_TUNING`). Schema `rigSchema` in `content/schema.ts`. Rig-Werte (Schrittlänge, Wippen, Neigung) und `RIG_TUNING` sind im Debug-Menü tunbar.
+- **Ansicht (`view/render/rig/`):**
+  - `bake-rig.ts` backt Teile, Blitz-Silhouetten und die Nachbild-Silhouette.
+  - `animate.ts` mit `poseRig()`: rein, allokationsfrei, getestet.
+  - `rig-instance.ts`: ein Container pro Gegner-Slot mit vorab angelegten Sprites, Glow und Bodenschatten.
+- **`EntityView`:**
+  - `look` ('rig' | 'classic') wird im Debug-Menü umgeschaltet.
+  - Pro Entität: Laufzyklus aus dem Tempo, Spiegelung mit Hysterese, Angriffsphasen aus `PlayerState` bzw. `aiState`.
+  - Status-Glows, Lebensleisten und Status-Symbole sitzen bei Rigs über dem Kopf (`heightUnits`, `centerUnits`, `visualScale`).
+- **Feedback:**
+  - `Ev.Kill` und `Ev.PlayerDied` lassen den Körper in seine Teile zerfallen (`EntityView.shatter`, Partikel mit den Teile-Texturen).
+  - Das Dash-Nachbild nutzt die Rig-Silhouette (`EntityView.rigAfterimage`).
+- **Debug-Handle:** `setRigLook`, `spawnEnemy`, `setGodMode`, `setTimeScale` und `renderMs` für Look-Vergleich und Leistungsmessung.
+
+## 35. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |
