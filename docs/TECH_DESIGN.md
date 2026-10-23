@@ -225,7 +225,7 @@ Alle Content-Typen sind in `content/schema/` als **Zod-Schemas** definiert. Die 
 - **Profil** (Meta-Fortschritt), **Einstellungen** und **laufender Run** werden getrennt gespeichert.
 - **Schema-Version** plus **Migrationsfunktionen** `vN → vN+1` mit Tests. Kein Update darf Spielstände zerstören.
 - **Run-Zwischenstand:** Beim Betreten jedes Map-Knotens wird der `RunState` serialisiert (Seed, RNG-Zustände, Map, Build, Leben, Währung). Es wird **nicht** die gesamte ECS-Welt gespeichert.
-- **Export/Import:** JSON → komprimiert (CompressionStream/deflate) → Base64-Code bzw. Datei, mit Prüfsumme.
+- **Export/Import:** JSON → komprimiert (CompressionStream/deflate) → Base64-Code bzw. Datei, mit Prüfsumme. _(M2.6: als Code zum Kopieren und Einfügen, siehe ADR 0003.)_
 - **Speichervorgang:** Schreiben mit Zwischenstand und Umbenennung (zuerst `slot.tmp`, dann ersetzen), zusätzlich ein Backup des letzten guten Stands.
 - `navigator.storage.persist()` wird angefragt, damit der Browser die Daten nicht verwirft.
 
@@ -416,7 +416,19 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Biom:** `boss` (Gegnertyp am Boss-Knoten), `elitesPerRoom`; `bossBudget` ist jetzt eine optionale Zusatz-Welle (0 = Boss allein). Hordes enthalten keine Brecher, Stützer und Bosse.
 - **Neue Events:** `HazardPlaced`, `HazardBlast`, `ShieldBlock`, `EnemyMend`, `BossPhase`, `BossDefeated`. `Telegraph`/`EnemyAttack` tragen Muster (`amount`) und Phase (`flags`).
 
-## 25. Risiken und Gegenmaßnahmen
+## 25. Stand nach M2.6 (Meta)
+- **Profil** (`sim/meta/profile.ts`, rein): Glut, Rissstaub, Glutbaum-Stufen, freigeschaltete Relikte, Statistiken, gesehene Dialogzeilen, Story-Flags und `lastRun` (Ergebnis, Räume, Kills, Zeit, Todesursache, dominantes Wesen, Boss erreicht, Einnahmen). Funktionen: `buyRank`, `respec` (volle Erstattung), `unlockRelic`, `runMetaFor`, `settleRun`, `nextGoal`.
+- **Glutbaum** (`content/meta/ember-tree.ts`): Knoten mit Stufenkosten (Glut und Staub), optionaler Voraussetzung und einem Effekt (`stat`, `startShards`, `roomHeal`, `lastSpark`, `boonReroll`, `staminaSegment`).
+- **Run-Snapshot:** `createRun(seed, runMetaFor(profile), lockedRelics(profile))` hält Boni und gesperrte Relikte im `RunState` fest (Speicherstand v5). `RoomSetup` reicht Schadens- und Regenerationsbonus, Ausdauer-Segmente und Letzter-Funke-Ladungen an die Sim weiter. Die Sim kennt damit `staminaMax`, `lastSparks` und `killedBy`.
+- **Letzter Funke:** `damagePlayer` fängt einen tödlichen Treffer ab, setzt das Leben auf den Heilanteil (mindestens 1) und gibt 2 s Unverwundbarkeit (Event `LastSpark`).
+- **Todesursache:** `damagePlayer` bekommt den Gegnertyp der Quelle. Geschosse und Gefahrenzonen tragen dafür `enemyType` ihres Verursachers.
+- **Neu würfeln:** `rollBoonOffer` nimmt einen Salt. `rerollOffer` verbraucht eine Ladung und erhöht `RunState.rerollSalt`, damit das neue Angebot auch nach dem Neuladen gleich bleibt.
+- **Relikt-Pool:** Relikte mit `unlockCost` sind gesperrt, bis Nix sie verkauft. `rollRelic` filtert `run.lockedRelics` (Angebote, Shop, Ereignisse).
+- **Dialoge** (`content/dialogue/`, `sim/meta/dialogue.ts`): Zeilen mit Sprecher, Priorität, `once` und Bedingungen (Runs, Siege, letztes Ergebnis, Todesursache, dominantes Wesen, Boss erreicht, Flags). Es gewinnt die höchste ungesehene passende Zeile; Füllzeilen rotieren nach Run-Zahl.
+- **Speicherung:** siehe ADR 0003 (IndexedDB, Backup-Slot, Export-Code).
+- **Oberfläche:** `view/ui/meta-screens.tsx` mit Zuflucht, Glutbaum, Nix' Waren, Speichern/Übertragen und Ergebnis. Textfelder sind von der WASD-Menünavigation ausgenommen.
+
+## 26. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

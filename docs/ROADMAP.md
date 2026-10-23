@@ -82,9 +82,9 @@ _Hinweis: Wurf- und Ultimate-Button sind sichtbar, aber erst ab M2 belegt._
 - [x] **2 Wesen** (Ignara, Vaelis) mit je ca. 8 Segen, 1 Duo-Segen _(je 9 Segen inkl. Wurf-Segen, Duo „Dampfbruch“)_
 - [x] **12 Relikte** (darunter 2 Fluch-Relikte), Stapeln, Tags
 - [x] **1 Evolution** (Phönixklinge), Riss-Geschoss (Wurf), Brandausbruch (Ultimate)
-- [ ] Meta: Glut und Rissstaub, Glutbaum (ca. 8 Knoten), Zuflucht als einfacher Hub mit 2 Figuren und Dialogsystem (ca. 30 Zeilen)
-- [ ] **Speichern:** Profil, Einstellungen, Run-Zwischenstand, Migrationen, Export/Import _(bisher: Run-Zwischenstand v4 mit Migrationskette)_
-- [ ] **i18n** EN/DE, Menü-Oberfläche (Preact): Titel, Hub, Belohnungs-Auswahl, Pause mit Build-Übersicht, Ergebnis bzw. Tod mit Fortschrittsbalken _(bisher: Titel, Map, Rast, Sieg, Segen- und Relikt-Auswahl, Shop, Ereignisse, Evolution, Build-Übersicht im Pause-Menü)_
+- [x] Meta: Glut und Rissstaub, Glutbaum (ca. 8 Knoten), Zuflucht als einfacher Hub mit 2 Figuren und Dialogsystem (ca. 30 Zeilen)
+- [x] **Speichern:** Profil, Einstellungen, Run-Zwischenstand, Migrationen, Export/Import
+- [x] **i18n** EN/DE, Menü-Oberfläche (Preact): Titel, Hub, Belohnungs-Auswahl, Pause mit Build-Übersicht, Ergebnis bzw. Tod mit Fortschrittsbalken
 - [ ] Musik: 2 Tracks mit Schichten (Erkundung bzw. Kampf, Boss)
 - [ ] Headless-Simulator v1 mit Bot und Balancing-Bericht
 - [ ] Lokales Run-Log mit Export
@@ -97,7 +97,7 @@ _Hinweis: Wurf- und Ultimate-Button sind sichtbar, aber erst ab M2 belegt._
 3. ✅ **M2.3 Relikte, Shop, Ereignisse:** 12 Relikte (2 Fluch), Scherben, Shop, 2–3 Ereignisse, Build-Übersicht im Pause-Menü
 4. ✅ **M2.4 Neue Aktionen:** Riss-Geschoss, Brandausbruch, Duo-Segen, Evolution Phönixklinge
 5. ✅ **M2.5 Gegner und Boss:** 3 weitere Gegner, 3 Elite-Modifikatoren, Boss „Der Glutwächter“ (2 Phasen)
-6. **M2.6 Meta:** Zuflucht (Hub), Glut und Rissstaub, Glutbaum, Dialoge, Profil-Speicherstand, Export/Import
+6. ✅ **M2.6 Meta:** Zuflucht (Hub), Glut und Rissstaub, Glutbaum, Dialoge, Profil-Speicherstand, Export/Import
 7. **M2.7 Abrundung:** Musik, Headless-Simulator v1, Run-Log, Touch-Layout-Editor, itch.io
 
 **Abnahme:** Ein Run durch Biom 1 dauert 6–8 Minuten und macht Spaß. Ein Tod motiviert zum nächsten Run. Mindestens 3 externe Tester spielen 3 oder mehr Runs freiwillig. Der Simulator zeigt keine offensichtlichen Ausreißer.

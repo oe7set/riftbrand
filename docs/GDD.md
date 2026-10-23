@@ -56,6 +56,8 @@ Ein kleines Fragment am Rand des Risses mit einer Handvoll Überlebender. Die Zu
 | **Nix, die Händlerin** | Zwielichtig und charmant, taucht auch in Runs auf | Kosmetik, Relikt-Pool-Freischaltungen, Shop-Räume |
 | **???** | Wird später enthüllt | Treiber der Story und des wahren Endes |
 
+**Umgesetzt (M2.6):** Die Zuflucht ist ein Hub-Bildschirm mit **Maren** (Glutbaum) und **Nix** (schaltet Relikte gegen Rissstaub für den Pool frei: Henkersmal, Zweiter Atem, Atemstein und der Fluch Glasknochen sind anfangs gesperrt). Beide sprechen bei jedem Besuch eine Zeile (ca. 28 Zeilen insgesamt). Die Zuflucht wächst noch nicht sichtbar.
+
 ### 2.4 Die fünf Riss-Wesen (Segen-Fraktionen)
 Die Wesen jenseits des Risses wollen, dass die Gebrandmarkte das Herz erreicht. Jedes hat dafür eigene Gründe. Sie sprechen in kurzen Zeilen, wenn sie Segen anbieten, und kommentieren Kombinationen mit anderen Wesen.
 
@@ -359,6 +361,23 @@ Fluch-Relikte gibt es nur im Shop (günstig) und bei Ereignissen, nie als normal
 - **Obergrenze:** Nach ca. 15–20 Runs ist der Baum ausgeschöpft. Ab dann entsteht Macht nur noch aus Freischaltungen und Können.
 - **Respec** jederzeit kostenlos. Experimentieren soll nie bestraft werden.
 
+**Umgesetzt (M2.6):**
+
+| Knoten | Wirkung | Stufen und Kosten |
+|---|---|---|
+| Lebenskraft | +10 maximales Leben pro Stufe | 30 / 60 / 100 Glut |
+| Geschärfte Klinge | +6 % Schaden pro Stufe | 40 / 80 / 130 Glut |
+| Glutheilung | 4 Leben nach jedem Kampf pro Stufe | 40 / 90 Glut |
+| Notgroschen | +30 Start-Scherben pro Stufe | 35 / 70 Glut |
+| Tiefer Atem | +12 % Ausdauer-Regeneration pro Stufe | 50 / 100 Glut |
+| Letzter Funke (benötigt Lebenskraft) | einmal pro Run einen tödlichen Treffer überleben; Stufe 2 mit 40 % Leben | 120 Glut + 2 Staub / 200 Glut + 4 Staub |
+| Zweite Wahl | ein Segen-Angebot pro Run neu würfeln | 80 Glut + 1 Staub |
+| Viertes Segment (benötigt Tiefer Atem) | +1 Ausdauer-Segment | 250 Glut + 5 Staub |
+
+Der ganze Baum kostet etwa 1500 Glut, also rund 20–30 typische Runs. Die Boni werden beim Run-Start festgehalten, Käufe wirken ab dem nächsten Run.
+
+**Einnahmen (M2.6):** 5 Glut pro geschafftem Kampf-, Horde- bzw. Platzhalter-Raum, 8 Glut und 1 Rissstaub pro Elite, 25 Glut und 3 Rissstaub für den Boss, 1 Glut pro 8 Kills und 30 Glut Sieg-Bonus. Glut gibt es auch beim Tod und beim Aufgeben eines Runs.
+
 ### 8.3 Freischaltungs-Fahrplan (grob)
 - **Runs 1–3:** Glutbaum-Grundlagen, Rast, Shop, zweites Wesen sichtbar
 - **Runs 3–8:** zweite und dritte Waffe, Codex, Prophezeiungen, erste Aspekte
@@ -457,7 +476,7 @@ Die zuletzt verwendete Eingabemethode bestimmt die angezeigten Hinweise und die 
   - Scherben
   - Mini-Indikator für den Raumfortschritt
   - aktive Prophezeiung (optional)
-- **Bildschirmfluss:** Titel → Zuflucht (Hub) → Waffenwahl → Run (Map ⇄ Raum) → Ergebnis bzw. Tod → Zuflucht
+- **Bildschirmfluss:** Titel → Zuflucht (Hub) → Waffenwahl → Run (Map ⇄ Raum) → Ergebnis bzw. Tod → Zuflucht. _(M2.6: ohne Waffenwahl, es gibt erst eine Waffe. Der Ergebnis-Bildschirm zeigt Räume, Kills, Zeit, Todesursache, Einnahmen und den Fortschrittsbalken zum nächsten Glutbaum-Knoten.)_
 - **Belohnungs-Auswahl:** große Karten, auch mit Daumen gut bedienbar. Tags und Synergien werden hervorgehoben, z. B. „Passt zu: Brennen“.
 - **Pause-Menü:** Build-Übersicht mit allen Segen und Relikten inklusive Tags, Map, Einstellungen.
 - Die gesamte Oberfläche ist mit Touch, Gamepad (Fokus-Navigation) und Maus bedienbar.
