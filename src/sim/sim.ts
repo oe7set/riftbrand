@@ -72,6 +72,8 @@ export interface SimState {
   lastSparkHeal: number;
   /** Enemy type that dealt the final blow (-1 = unknown), for hub dialogue. */
   killedBy: number;
+  /** Damage taken per enemy type (index 255 = unknown source), for the run log. */
+  readonly damageBySource: Float64Array;
   /** Run currency carried into the room plus everything picked up here. */
   shards: number;
   /** Nesting depth of effects triggering effects, and the per-tick budget used. */
@@ -123,6 +125,7 @@ export function createSim(seed: number, setup?: RoomSetup): SimState {
     lastSparks: 0,
     lastSparkHeal: 0,
     killedBy: -1,
+    damageBySource: new Float64Array(256),
     shards: 0,
     effectDepth: 0,
     effectsThisTick: 0,

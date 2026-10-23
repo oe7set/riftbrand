@@ -303,6 +303,8 @@ export function damagePlayer(
   }
   const hp = (c.hp[eid] as number) - amount;
   c.hp[eid] = hp;
+  const tally = sourceType >= 0 && sourceType < 255 ? sourceType : 255;
+  state.damageBySource[tally] = (state.damageBySource[tally] as number) + amount;
   p.invulnTicks = secondsToTicks(TUNING.playerHitInvulnSec);
   gainUltCharge(state, amount / BRAND_BURST.chargeDamageTaken);
   c.kbX[eid] = dx * TUNING.playerHitKnockback;
