@@ -75,9 +75,9 @@ _Hinweis: Wurf- und Ultimate-Button sind sichtbar, aber erst ab M2 belegt._
 **Ziel:** Ein vollständiger Run durch **ein Biom**, inklusive Hub, Meta-Schleife und Speichern. Die Qualität entspricht dem Endprodukt.
 
 - [x] **Map-Generierung** (Slay-the-Spire-Stil) für die Aschefelder, Map-Ansicht, Pfadwahl
-- [ ] Raumtypen: Kampf, Elite, Altar, Horde, Shop, Rast, Ereignis (2–3 Ereignisse), Boss _(bisher: Kampf, Elite, Horde, Rast, Altar, Shop, Ereignis (3), Platzhalter-Boss)_
-- [ ] 6 Gegnertypen und 3 Elite-Modifikatoren, Raumvorlagen (ca. 8) _(M2.1: 8 Raumvorlagen)_
-- [ ] **Boss: Der Glutwächter** (2 Phasen)
+- [x] Raumtypen: Kampf, Elite, Altar, Horde, Shop, Rast, Ereignis (2–3 Ereignisse), Boss
+- [x] 6 Gegnertypen und 3 Elite-Modifikatoren, Raumvorlagen (ca. 8)
+- [x] **Boss: Der Glutwächter** (2 Phasen plus Zorn unter 30 %)
 - [x] **Effekt-System** (deklarativ) mit Triggern und Aktionen, plus Tests
 - [x] **2 Wesen** (Ignara, Vaelis) mit je ca. 8 Segen, 1 Duo-Segen _(je 9 Segen inkl. Wurf-Segen, Duo „Dampfbruch“)_
 - [x] **12 Relikte** (darunter 2 Fluch-Relikte), Stapeln, Tags
@@ -96,7 +96,7 @@ _Hinweis: Wurf- und Ultimate-Button sind sichtbar, aber erst ab M2 belegt._
 2. ✅ **M2.2 Effekt-System und Segen:** deklarative Effekte, Ignara und Vaelis (je ~8 Segen), Altar-Raum, Belohnungs-Auswahl
 3. ✅ **M2.3 Relikte, Shop, Ereignisse:** 12 Relikte (2 Fluch), Scherben, Shop, 2–3 Ereignisse, Build-Übersicht im Pause-Menü
 4. ✅ **M2.4 Neue Aktionen:** Riss-Geschoss, Brandausbruch, Duo-Segen, Evolution Phönixklinge
-5. **M2.5 Gegner und Boss:** 3 weitere Gegner, 3 Elite-Modifikatoren, Boss „Der Glutwächter“ (2 Phasen)
+5. ✅ **M2.5 Gegner und Boss:** 3 weitere Gegner, 3 Elite-Modifikatoren, Boss „Der Glutwächter“ (2 Phasen)
 6. **M2.6 Meta:** Zuflucht (Hub), Glut und Rissstaub, Glutbaum, Dialoge, Profil-Speicherstand, Export/Import
 7. **M2.7 Abrundung:** Musik, Headless-Simulator v1, Run-Log, Touch-Layout-Editor, itch.io
 
