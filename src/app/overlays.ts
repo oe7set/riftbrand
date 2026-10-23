@@ -44,6 +44,9 @@ export class PauseOverlay {
   private readonly resume = document.createElement('button');
   private readonly toTitle = document.createElement('button');
   private readonly debug = document.createElement('button');
+  /** Kept so a language change can redraw the open pause screen. */
+  private lastDevice: InputDevice = 'keyboardMouse';
+  private lastBuild: BuildSummary | null = null;
 
   constructor(
     parent: HTMLElement,
@@ -78,6 +81,26 @@ export class PauseOverlay {
     const s = this.settings;
     const box = this.settingsBox;
     box.replaceChildren(div('rb-settings-title', t('settings.title')));
+    const language = document.createElement('select');
+    for (const value of ['auto', 'en', 'de'] as const) {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = t(`settings.language_${value}`);
+      language.append(option);
+    }
+    language.value = s.language;
+    language.addEventListener('change', () => {
+      s.language = language.value === 'en' || language.value === 'de' ? language.value : 'auto';
+      this.onSettingsChange(s);
+      // Redraw every label in the new language and keep the focus on the picker.
+      if (this.lastBuild) this.render(this.lastDevice, this.lastBuild);
+      this.settingsBox.querySelector<HTMLSelectElement>('select')?.focus({ preventScroll: true });
+    });
+    const languageRow = document.createElement('label');
+    languageRow.className = 'rb-setting';
+    languageRow.append(div('rb-setting-label', t('settings.language')), language);
+    box.append(languageRow);
+
     const slider = (
       label: string,
       key: 'masterVolume' | 'sfxVolume' | 'musicVolume' | 'shake' | 'flashes' | 'vibration',
@@ -258,6 +281,14 @@ export class PauseOverlay {
   }
 
   show(device: InputDevice, build: BuildSummary): void {
+    this.render(device, build);
+    this.root.hidden = false;
+    this.resume.focus({ preventScroll: true });
+  }
+
+  private render(device: InputDevice, build: BuildSummary): void {
+    this.lastDevice = device;
+    this.lastBuild = build;
     this.buildOverview(build);
     this.title.textContent = t('pause.title');
     this.resume.textContent = t('pause.resume');
@@ -270,8 +301,6 @@ export class PauseOverlay {
           ? t('pause.resume_gamepad')
           : t('pause.resume_keyboard');
     this.buildSettings();
-    this.root.hidden = false;
-    this.resume.focus({ preventScroll: true });
   }
 
   get visible(): boolean {

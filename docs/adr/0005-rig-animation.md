@@ -1,6 +1,6 @@
 # ADR 0005: Rig-Animation mit Teile-Sprites statt Sprite-Sheets
 
-- **Status:** vorgeschlagen (Prototyp M4.1, wartet auf die PO-Entscheidung)
+- **Status:** angenommen (Prototyp M4.1 vom PO abgenommen)
 - **Datum:** 2026-10-23
 - **Kontext:** ROADMAP M4 (E8), TECH_DESIGN §8 und §16
 

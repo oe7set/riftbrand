@@ -603,7 +603,7 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
    - pro Gegner ein Container mit vorab angelegten Sprites aus einem Pool
    - Budgets aus TECH_DESIGN §16 einhalten
 
-### M4.1 Prototyp: Vesper und Schlacke (vorher/nachher) 🧪
+### M4.1 Prototyp: Vesper und Schlacke (vorher/nachher) ✅
 **Ziel:** Der PO kann den neuen Look an zwei Figuren beurteilen, bevor er in die Breite geht.
 
 **Umfang:**
@@ -632,7 +632,7 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
 
 **Abhängig von:** M3 abgenommen
 
-**Umgesetzt (wartet auf die PO-Entscheidung):**
+**Umgesetzt (vom PO am 2026-10-23 abgenommen: „Look passt“):**
 - **Seitenansicht:** Figuren stehen aufrecht und werden je nach Blickrichtung gespiegelt. Die Klinge folgt Zielrichtung und Combo: Hieb von oben, Hieb von unten, Stoß; beim Spezialangriff wirbelt sie einmal herum.
 - **Größe:** Vesper wird 1,4-fach, Schlacke 1,2-fach des Kollisionsradius gezeichnet, damit die Körper am Handy lesbar sind. Die Hitboxen bleiben unverändert. Ein weicher Glow hält Vesper als hellstes Element.
 - **Tod:** Der Körper zerfällt in seine Teile, die mit Glut davonfliegen. Gilt für Gegner und für Vesper.
@@ -1022,6 +1022,7 @@ Richtwerte. Wenn sich die Reihenfolge der Pakete ändert, verschieben sich die N
 | M3.5 | | | **v8** | Knotentyp `duel` in der Map |
 | M3.6 | | **v2** | | freigeschaltete und entdeckte Zauber, Ausrüstung |
 | nach M3 ✅ | **v5** | | | Einstellung „Aura-Ring um Vesper anzeigen“ (Standard: aus) |
+| nach M4.1 ✅ | **v6** | | | Sprachauswahl in den Einstellungen (Automatisch, English, Deutsch) |
 | M5.2 | | **v3** | **v9** | Welt-Fortschritt, `worldId` |
 | M5.3 | | **v4** | | Materialien, Gebäude-Stufen |
 | M5.4 | | **v5** | | Rüstungen |
