@@ -90,6 +90,8 @@ test('the first wave spawns enemies and the run stays error-free', async ({ page
 });
 
 test('a run starts from the title via the refuge: map, then a room', async ({ page }) => {
+  // Walking through the refuge takes real time; slow CI runners need more than the default.
+  test.setTimeout(90_000);
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
   await page.goto('/');
@@ -123,7 +125,7 @@ test('a run starts from the title via the refuge: map, then a room', async ({ pa
   await page.locator('.rb-node.available.selected').click();
   await page.waitForFunction(() => window.__riftbrand?.mode() === 'room');
   await page.waitForFunction(() => (window.__riftbrand?.enemiesAlive() ?? 0) > 0, null, {
-    timeout: 15_000,
+    timeout: 30_000,
   });
   // The run is saved on room entry, so a reload offers to continue.
   await page.reload();

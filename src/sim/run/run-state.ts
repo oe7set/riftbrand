@@ -10,7 +10,7 @@ import type { OwnedBoon, OwnedRelic } from '../effects/build';
 import { enemyTypeFromCode } from '../enemy-code';
 import { emptyRunMeta, type RunMeta } from '../meta/profile';
 import { createRng, hashString, nextInt } from '../rng/rng';
-import { clearBonusShards, heal, nodeReward, runStats } from './economy';
+import { clearBonusShards, heal, nodeReward, rollRoomMaterials, runStats } from './economy';
 import { buildEncounter, type Encounter } from './encounter';
 import { generateMap, type MapNode, type RunMap } from './map';
 import { addBoon, type BoonOffer, rewardRarityBonus, rollBoonOffer } from './rewards';
@@ -86,6 +86,8 @@ export interface RunState {
   cast: UpgradeState;
   /** Mini-bosses (duel champions, by enemy id) beaten in this run, for the world map. */
   duelsWon: string[];
+  /** Materials found so far (ROADMAP M5.3); they go to the stash even if the run is lost. */
+  materials: Record<string, number>;
 }
 
 export interface RoomSetup {
@@ -151,6 +153,7 @@ export function createRun(
     },
     cast: { level: 1, branches: [] },
     duelsWon: [],
+    materials: {},
   };
 }
 
@@ -224,9 +227,15 @@ export function completeRoom(run: RunState, result: RoomResult): void {
   const node = run.map.nodes[run.currentNodeId];
   // Duels pay out like elite rooms (Glut and Rissstaub, ROADMAP M3.5).
   if (node?.type === 'elite' || node?.type === 'duel') run.clearedElite++;
-  if (node?.type === 'duel') recordDuel(run, node);
   else if (node?.type === 'boss') run.clearedBoss++;
   else run.clearedCombat++;
+  if (node?.type === 'duel') recordDuel(run, node);
+  if (node) {
+    const rng = createRng(roomSeed(run, node.id) ^ 0x6a7e);
+    for (const [id, n] of Object.entries(rollRoomMaterials(rng, run.worldId, node.type))) {
+      run.materials[id] = (run.materials[id] ?? 0) + n;
+    }
+  }
   // Glutheilung (Ember Tree): a little health after every fight.
   if (run.meta.roomHeal > 0) heal(run, run.meta.roomHeal);
   const bonus = node ? clearBonusShards(node.type) : 0;

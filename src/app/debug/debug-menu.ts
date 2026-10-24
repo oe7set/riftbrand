@@ -33,6 +33,7 @@ export interface DebugHooks {
   giveShards(amount: number): void;
   /** Meta currencies for testing the Ember Tree and Nix. */
   giveMeta(ember: number, dust: number): void;
+  giveMaterials(each: number): void;
   /** Downloads the local run log (last 50 runs) as JSON. */
   exportRunLog(): void;
   fillUltimate(): void;
@@ -166,6 +167,7 @@ export class DebugMenu {
           ...relicIds.map((id) => this.button(id, () => this.hooks.giveRelic(id))),
           this.button('+100 shards', () => this.hooks.giveShards(100)),
           this.button('+200 Glut +5 dust', () => this.hooks.giveMeta(200, 5)),
+          this.button('+10 each material +5 dust', () => this.hooks.giveMaterials(10)),
         ]),
       ]),
       this.section('Spells', false, [

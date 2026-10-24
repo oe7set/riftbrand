@@ -870,9 +870,9 @@ Zuflucht (begehbar)
 - **Bestzeit:** Sie zählt nur für gewonnene Runs. Siege vor dem Update haben keine Zeit.
 - **Biom-Daten** bleiben unter `content/biomes/`, Welten verweisen darauf (keine Umbenennung, kleinerer Diff).
 
-### M5.3 Wiederaufbau der Zuflucht ⬜
+### M5.3 Wiederaufbau der Zuflucht ✅
 **Umfang:**
-- [ ] **Materialien pro Welt:**
+- [x] **Materialien pro Welt:**
 
   | Welt | Materialien |
   |---|---|
@@ -883,20 +883,20 @@ Zuflucht (begehbar)
 
   - Sie fallen in Räumen, bei Elites, in Duellen und bei Bossen.
   - Sie bleiben auch beim Tod erhalten.
-- [ ] **Bauplätze mit Stufen** (Ruine → aufgebaut → ausgebaut), bezahlt mit Materialien und Rissstaub:
+- [x] **Bauplätze mit Stufen** (Ruine → aufgebaut → ausgebaut), bezahlt mit Materialien und Rissstaub:
   - Schmiede (Toll)
   - Markt (Nix)
   - Runenturm (Sel)
   - Kartentisch (Iskra)
   - Archiv (Archivar)
   - Lagerfeuer-Platz (Maren)
-- [ ] **Gebäude schalten Funktionen frei**, zum Beispiel:
+- [x] **Gebäude schalten Funktionen frei**, zum Beispiel:
   - Schmiede → Rüstungen
   - Kartentisch → Welt-Infos und später tägliche Seeds
   - Archiv → Codex
-- [ ] **Sichtbares Wachstum** (GDD §2.3): Licht kehrt zurück, Pflanzen wachsen, Figuren ziehen ein.
-- [ ] **Dekorationen** als Belohnung. Sie sind reine Kosmetik und geben keine Macht.
-- [ ] Kein Anhänger-Management (A2, bestätigt).
+- [x] **Sichtbares Wachstum** (GDD §2.3): Licht kehrt zurück, Pflanzen wachsen, Figuren ziehen ein.
+- [x] **Dekorationen** als Belohnung. Sie sind reine Kosmetik und geben keine Macht.
+- [x] Kein Anhänger-Management (A2, bestätigt).
 
 **Technik:**
 - Gebäude, Stufen und Kosten als Content in `src/content/hub/buildings.ts`.
@@ -905,6 +905,30 @@ Zuflucht (begehbar)
 **Tests:** Kosten, Freischaltungen, Migration.
 
 **Abhängig von:** M5.2
+
+**Umgesetzt (Abweichungen vom Plan):**
+- **Materialien** (`content/materials.ts`):
+  - Kampf- und Horde-Räume droppen mit 40 % ein Material.
+  - Elites 1–2, Duelle 2–3, Bosse 3–4.
+  - Glutkern ist dreimal seltener als Schlackeeisen.
+  - Der Drop ist an den Raum-Seed gebunden; ein Neuladen ändert ihn nicht.
+  - Ein gewonnener Run bringt etwa 8–12 Materialien.
+  - Die Karte zeigt die Funde des Runs, der Ergebnis-Bildschirm die Ausbeute.
+- **Bauplätze:**
+  - Schmiede, Kartentisch und Archiv starten als Ruine; ihre Figur (Toll, Iskra, Archivar) zieht beim Aufbau ein.
+  - Markt, Runenturm und Lagerfeuer funktionieren schon, die Ausbaustufen sind dort sichtbares Wachstum (Lichterketten, Runenring, Bänke und Laternen).
+- **Freischaltungen:**
+  - Lagerfeuer 1 → Dekorationen
+  - Kartentisch 1 → Kreaturen der Welt auf der Weltkarte
+  - Schmiede 1 → Rüstungen (Inhalt mit M5.4)
+  - Archiv 1 → Codex (später)
+  - Stufe 2 von Kartentisch und Archiv ist vorbereitet (tägliche Routen, Lore) und bisher nur sichtbar.
+- **Wachstum:** Pflanzen sprießen mit dem Gesamt-Ausbau, über jedem gebauten Platz liegt Licht, das Lagerfeuer brennt heller.
+- **Dekorationen:** 4 Stück (Laterne, Glutblumen, Banner, Runenkristall), gekauft am Lagerfeuer.
+- **Kosten** (Richtwerte): Stufe 1 kostet 3–5 Materialien und 1–3 Rissstaub, Stufe 2 kostet 6–12 Materialien und 4–6 Rissstaub. Alles auszubauen dauert etwa 8–10 Runs.
+- **Debug-Menü:** „+10 each material +5 dust“.
+- **Run-Save v10** (`materials` im Run), zusätzlich zu Profil v4.
+- **Fehler aus M5.2 behoben:** Elite- und Duell-Räume zählten zusätzlich als Kampfraum und brachten dadurch 7 Glut zu viel.
 
 ### M5.4 Schmied Toll und Rüstungen ⬜
 **Umfang:**
@@ -1114,7 +1138,7 @@ Richtwerte. Wenn sich die Reihenfolge der Pakete ändert, verschieben sich die N
 | nach M4.1 ✅ | **v6** | | | Sprachauswahl in den Einstellungen (Automatisch, English, Deutsch) |
 | M4.2 ✅ | **v7** | | | „Einfache Grafik“ (klassische Formen) |
 | M5.2 ✅ | | **v3** | **v9** | Welt-Fortschritt, `worldId` |
-| M5.3 | | **v4** | | Materialien, Gebäude-Stufen |
+| M5.3 ✅ | | **v4** | **v10** | Materialien, Gebäude-Stufen, Dekorationen |
 | M5.4 | | **v5** | | Rüstungen |
 | M5.6 | | **v6** | | Quest-Zustand |
 

@@ -6,6 +6,7 @@ import { START_SPELLS, spellById } from '../../content/spells';
 import { dominantBeing } from '../effects/build';
 import type { RunState, SpellSlots } from '../run/run-state';
 import { MAX_UPGRADE_LEVEL } from '../run/upgrades';
+import { addMaterials } from './refuge';
 import { recordWorldRun, type WorldProgress } from './worlds';
 
 /** How the last run ended; drives hub dialogue (GDD §2.6) and the result screen. */
@@ -24,6 +25,8 @@ export interface LastRun {
   worldId: string;
   /** Worlds this run opened on the world map (first boss kill). */
   unlockedWorlds: string[];
+  /** Materials found in this run (ROADMAP M5.3), kept even on death. */
+  materials: Record<string, number>;
 }
 
 /**
@@ -51,6 +54,12 @@ export interface Profile {
   loadout: { active: string; aura: string };
   /** Progress per world id (ROADMAP M5.2); worlds never entered have no entry. */
   worlds: Record<string, WorldProgress>;
+  /** Crafting materials in the stash (ROADMAP M5.3). */
+  materials: Record<string, number>;
+  /** Building levels by building id; missing means 0 (ruin or plain). */
+  buildings: Record<string, number>;
+  /** Decorations bought for the refuge (cosmetic). */
+  decorations: string[];
 }
 
 export function createProfile(): Profile {
@@ -69,6 +78,9 @@ export function createProfile(): Profile {
     spellsDiscovered: [],
     loadout: { active: START_SPELLS.active, aura: START_SPELLS.aura },
     worlds: {},
+    materials: {},
+    buildings: {},
+    decorations: [],
   };
 }
 
@@ -320,8 +332,10 @@ export function settleRun(
     dust: earned.dust,
     worldId: run.worldId,
     unlockedWorlds: recordWorldRun(profile, run, result),
+    materials: { ...run.materials },
   };
   recordRun(profile, last);
+  addMaterials(profile, run.materials);
   discoverRunSpells(profile, run);
   return last;
 }

@@ -19,7 +19,10 @@ import { boonIcon, relicIcon, spellIcon, upgradeIcon } from '../render/icons/spe
 import { CardTitle, Icon, NodeIcon } from './icons';
 import { LayoutEditor, type LayoutEditorScreen } from './layout-editor';
 import {
+  BuildScreen,
+  DecorationsScreen,
   HubWalkScreen,
+  MaterialChips,
   type MetaScreen,
   ProfileScreen,
   ResultScreen,
@@ -203,6 +206,11 @@ function MapScreen({ run, onEnter }: Extract<Screen, { kind: 'map' }>) {
       <header class="rb-map-header">
         <div class="rb-map-title">{t(`world.${run.worldId}.name` as TranslationKey)}</div>
         <div class="rb-shards">◆ {t('map.shards', { n: run.shards })}</div>
+        {Object.keys(run.materials).length > 0 && (
+          <div class="rb-map-materials">
+            <MaterialChips materials={run.materials} />
+          </div>
+        )}
         <div class="rb-map-hp">
           <div class="rb-hpbar">
             <div class="rb-hpbar-fill" style={{ width: `${(run.hp / run.maxHp) * 100}%` }} />
@@ -921,6 +929,10 @@ export function UiRoot({ screen }: { screen: Screen }) {
       return <StationScreen {...screen} />;
     case 'worldMap':
       return <WorldMapScreen {...screen} />;
+    case 'build':
+      return <BuildScreen {...screen} />;
+    case 'decorations':
+      return <DecorationsScreen {...screen} />;
     case 'tree':
       return <TreeScreen {...screen} />;
     case 'wares':

@@ -61,6 +61,14 @@ Ein kleines Fragment am Rand des Risses mit einer Handvoll Überlebender. Die Zu
 
 **Umgesetzt (M3.6):** **Sel, die Runenweberin** (ruhig, spricht in Mustern und Schrift) zieht in den Runenturm. Bei ihr schaltet man Zauber dauerhaft gegen Glut und Rissstaub frei und wählt die Ausrüstung (1 aktiver Zauber, 1 Aura) für die nächsten Runs. Zauber, die man im Run gefunden hat, gelten danach als „entdeckt“ und kosten bei ihr die Hälfte.
 
+**Umgesetzt (M5.3), Wiederaufbau:**
+- **Materialien:** Jede Welt hat eigene Materialien (Aschefelder: Schlackeeisen und der seltenere Glutkern). Sie fallen in Räumen, bei Elites, in Duellen und bei Bossen und bleiben auch beim Tod erhalten.
+- **Bauplätze:** Mit Materialien und Rissstaub baut man sechs Plätze in zwei Stufen aus.
+  - Schmiede, Kartentisch und Archiv sind zuerst Ruinen. Beim Wiederaufbau ziehen Toll, Iskra und der Archivar ein.
+  - Markt, Runenturm und Lagerfeuer wachsen sichtbar: Lichter, Runenring, Bänke und Laternen.
+- **Sichtbares Wachstum:** Mit jedem Ausbau sprießen Pflanzen, und über gebauten Plätzen liegt Licht.
+- **Dekorationen** am Lagerfeuer sind reine Kosmetik.
+
 **Umgesetzt (M5.1):** Die Zuflucht ist begehbar. Man kommt am Lagerfeuer an, läuft mit Bewegung und Dash wie im Kampf zu Maren (Glutbaum), Nix (Stand) und Sel (Runenturm) und spricht sie an (E, Angriff oder der Sprechen-Knopf am Handy). Durch die Portalhalle im Norden bricht man zum Run auf. Am Lagerfeuer findet man Profil, Titelbildschirm und Statistik.
 
 ### 2.4 Die fünf Riss-Wesen (Segen-Fraktionen)

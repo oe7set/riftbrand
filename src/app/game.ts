@@ -5,6 +5,7 @@ import { ELITES } from '../content/elites';
 import { ENEMIES, ENEMY_TYPE } from '../content/enemies';
 import { EVOLUTIONS } from '../content/evolutions';
 import { REFUGE } from '../content/hub/layout';
+import { MATERIALS } from '../content/materials';
 import { RELICS } from '../content/relics';
 import type { Speaker, StationId } from '../content/schema';
 import { statusIdSchema } from '../content/schema';
@@ -81,6 +82,16 @@ import {
   unlockRelic,
   unlockSpell,
 } from '../sim/meta/profile';
+import {
+  addMaterials,
+  buildingInhabited,
+  buildingLevel,
+  buyDecoration,
+  hasUnlock,
+  MAX_BUILDING_LEVEL,
+  refugeGrowth,
+  upgradeBuilding,
+} from '../sim/meta/refuge';
 import { defaultWorld, isWorldPlayable } from '../sim/meta/worlds';
 import {
   addRelic,
@@ -132,7 +143,9 @@ import {
 } from '../sim/sim';
 import { TICK_DT_SEC, TICK_RATE_HZ } from '../sim/time';
 import { GameView } from '../view/game-view';
+import type { RefugeLook } from '../view/hub/hub-view';
 import { worldToScreen } from '../view/render/camera';
+import type { StationAction } from '../view/ui/meta-screens';
 import { type NavDirection, navigate } from '../view/ui/spatial-nav';
 import { Ui } from '../view/ui/ui';
 import { DebugMenu, type DebugStats } from './debug/debug-menu';
@@ -210,6 +223,8 @@ export interface RiftbrandDebugHandle {
   renderMs(): number;
   /** CSS pixel position of a world point (screenshots of single creatures). */
   screenOf(x: number, y: number): { x: number; y: number };
+  /** Fills the stash with every material plus Rissstaub (refuge tests, ROADMAP M5.3). */
+  giveMaterials(each: number, dust: number): void;
 }
 
 declare global {
@@ -226,9 +241,11 @@ export class Game {
   private profile: Profile;
   private profileRaw: string | null;
   /** Hub dialogue for the current visit; cleared when a run ends so the next visit reacts. */
-  private hubLines: { maren: string | null; nix: string | null; sel: string | null } | null = null;
+  private hubLines: Partial<Record<Speaker, string>> | null = null;
   /** Figures with an unheard line this visit (speech bubble in the refuge). */
-  private hubFresh: Record<Speaker, boolean> = { maren: false, nix: false, sel: false };
+  private hubFresh: Partial<Record<Speaker, boolean>> = {};
+  /** What the refuge view draws of the rebuild (ROADMAP M5.3); replaced whenever it changes. */
+  private refugeLook: RefugeLook = { version: 0, levels: {}, decorations: [], growth: 0 };
   /** The refuge's room simulation, while it is loaded. */
   private hubSim: SimState | null = null;
   /** Station in reach (index into REFUGE.stations), -1 = none. */
@@ -349,6 +366,7 @@ export class Game {
         exportRunLog: () => {
           downloadText('riftbrand-runlog.json', JSON.stringify(loadRunLog(this.store), null, 2));
         },
+        giveMaterials: (each) => this.giveMaterials(each, 5),
         giveMeta: (ember, dust) => {
           this.profile.ember += ember;
           this.profile.dust += dust;
@@ -548,6 +566,7 @@ export class Game {
       this.setMode('hub');
       this.hubActive = -1;
       this.pickHubLines();
+      this.refreshRefuge();
     }
     this.hubMenu = false;
     this.input.releaseAll();
@@ -559,11 +578,29 @@ export class Game {
   /** One dialogue line per figure and visit; it counts as heard once you talk to them. */
   private pickHubLines(): void {
     if (this.hubLines) return;
-    const maren = pickLine(this.profile, 'maren');
-    const nix = pickLine(this.profile, 'nix');
-    const sel = pickLine(this.profile, 'sel');
-    this.hubLines = { maren: maren?.id ?? null, nix: nix?.id ?? null, sel: sel?.id ?? null };
-    this.hubFresh = { maren: maren !== null, nix: nix !== null, sel: sel !== null };
+    this.hubLines = {};
+    this.hubFresh = {};
+    for (const station of REFUGE.stations) {
+      const speaker = station.npc?.speaker;
+      // Figures of unbuilt ruins haven't moved in yet.
+      if (!speaker || (station.building && !buildingInhabited(this.profile, station.building))) {
+        continue;
+      }
+      const line = pickLine(this.profile, speaker);
+      if (!line) continue;
+      this.hubLines[speaker] = line.id;
+      this.hubFresh[speaker] = true;
+    }
+  }
+
+  /** New look for the refuge view after anything was built or bought. */
+  private refreshRefuge(): void {
+    this.refugeLook = {
+      version: this.refugeLook.version + 1,
+      levels: { ...this.profile.buildings },
+      decorations: [...this.profile.decorations],
+      growth: refugeGrowth(this.profile),
+    };
   }
 
   private hubPrompt(): string | null {
@@ -588,46 +625,109 @@ export class Game {
     this.hubMenu = true;
     this.input.releaseAll();
     this.input.setGameplayEnabled(false);
-    const lines = this.hubLines ?? { maren: null, nix: null, sel: null };
-    const base = { kind: 'station' as const, profile: this.profile, onBack: () => this.showHub() };
-    if (id === 'maren' || id === 'nix' || id === 'sel') {
-      const line = lines[id];
-      if (line) {
-        const def = DIALOGUE.find((d) => d.id === line);
-        if (def && this.hubFresh[id]) markSeen(this.profile, def);
-        this.persistProfile();
-      }
-      this.hubFresh[id] = false;
-      const action =
-        id === 'maren'
-          ? { label: t('hub.tree'), onClick: () => this.showTree(), primary: true }
-          : id === 'nix'
-            ? { label: t('hub.wares'), onClick: () => this.showWares(), primary: true }
-            : { label: t('hub.spells'), onClick: () => this.showSpells(), primary: true };
-      this.ui.show({
-        ...base,
-        title: t(`speaker.${id}` as TranslationKey),
-        speaker: id,
-        line,
-        actions: [action],
-      });
-      return;
-    }
     if (id === 'portal') {
       this.showWorldMap();
       return;
     }
+    const station = REFUGE.stations.find((s) => s.id === id);
+    const building = station?.building ?? null;
+    // A ruin has nobody to talk to yet: its site opens the build menu.
+    if (building && !buildingInhabited(this.profile, building)) {
+      this.showBuild(building);
+      return;
+    }
+    const actions: StationAction[] = [];
+    const speaker = station?.npc?.speaker ?? null;
+    let line: string | null = null;
+    if (speaker) {
+      line = this.hubLines?.[speaker] ?? null;
+      const def = line ? DIALOGUE.find((d) => d.id === line) : undefined;
+      if (def && this.hubFresh[speaker]) {
+        markSeen(this.profile, def);
+        this.persistProfile();
+      }
+      this.hubFresh[speaker] = false;
+    }
+    if (id === 'maren')
+      actions.push({ label: t('hub.tree'), onClick: () => this.showTree(), primary: true });
+    if (id === 'nix')
+      actions.push({ label: t('hub.wares'), onClick: () => this.showWares(), primary: true });
+    if (id === 'sel')
+      actions.push({ label: t('hub.spells'), onClick: () => this.showSpells(), primary: true });
+    if (id === 'map_table') {
+      actions.push({
+        label: t('hub.world_map'),
+        onClick: () => this.showWorldMap(),
+        primary: true,
+      });
+    }
+    if (id === 'campfire') {
+      if (hasUnlock(this.profile, 'decorations')) {
+        actions.push({ label: t('hub.decorations'), onClick: () => this.showDecorations() });
+      }
+      actions.push({ label: t('hub.profile'), onClick: () => this.showProfile(null) });
+      actions.push({ label: t('hub.to_title'), onClick: () => this.showTitle() });
+    }
+    if (building && buildingLevel(this.profile, building) < MAX_BUILDING_LEVEL) {
+      actions.push({
+        label: t('hub.build', { name: t(`building.${building}.name` as TranslationKey) }),
+        onClick: () => this.showBuild(building),
+        primary: actions.length === 0,
+      });
+    }
     const p = this.profile;
     this.ui.show({
-      ...base,
-      title: t('station.campfire.title'),
-      speaker: null,
-      line: null,
-      actions: [
-        { label: t('hub.profile'), onClick: () => this.showProfile(null) },
-        { label: t('hub.to_title'), onClick: () => this.showTitle() },
-      ],
-      footer: t('hub.stats', { runs: p.runs, wins: p.wins, rooms: p.bestRooms }),
+      kind: 'station',
+      profile: p,
+      onBack: () => this.showHub(),
+      title: speaker
+        ? t(`speaker.${speaker}` as TranslationKey)
+        : t(`station.${id}.title` as TranslationKey),
+      speaker,
+      line,
+      actions,
+      footer:
+        id === 'campfire'
+          ? t('hub.stats', { runs: p.runs, wins: p.wins, rooms: p.bestRooms })
+          : id === 'forge' || id === 'archive'
+            ? t(`hub.soon.${id}`)
+            : undefined,
+    });
+  }
+
+  /** A building site (ROADMAP M5.3): what the next level costs and brings. */
+  private showBuild(building: string): void {
+    this.ui.show({
+      kind: 'build',
+      profile: this.profile,
+      building,
+      onBuild: () => {
+        if (!upgradeBuilding(this.profile, building)) return;
+        this.persistProfile();
+        this.refreshRefuge();
+        // A figure moving into a rebuilt ruin may have something to say.
+        this.hubLines = null;
+        this.pickHubLines();
+        this.audio.play('evolve', { pitch: 0.9, pitchVariation: 0, volume: 0.8 });
+        this.showBuild(building);
+      },
+      onBack: () => this.showHub(),
+    });
+  }
+
+  /** Cosmetic decorations at the campfire (ROADMAP M5.3). */
+  private showDecorations(): void {
+    this.ui.show({
+      kind: 'decorations',
+      profile: this.profile,
+      onBuy: (id) => {
+        if (!buyDecoration(this.profile, id)) return;
+        this.persistProfile();
+        this.refreshRefuge();
+        this.audio.play('evolve', { pitch: 1.2, pitchVariation: 0, volume: 0.6 });
+        this.showDecorations();
+      },
+      onBack: () => this.showHub(),
     });
   }
 
@@ -1290,7 +1390,15 @@ export class Game {
       },
       renderMs: () => this.stats.renderMsAvg,
       screenOf: (x, y) => worldToScreen(this.view.camera, x, y, { x: 0, y: 0 }),
+      giveMaterials: (each, dust) => this.giveMaterials(each, dust),
     };
+  }
+
+  private giveMaterials(each: number, dust: number): void {
+    addMaterials(this.profile, Object.fromEntries(MATERIALS.map((m) => [m.id, each])));
+    this.profile.dust += dust;
+    this.persistProfile();
+    if (this.ui.kind === 'hubWalk') this.showHubWalk();
   }
 
   private slowMo(req: SlowMoRequest): void {
@@ -1426,7 +1534,12 @@ export class Game {
       this.input.lastDevice,
       playing,
       this.mode === 'hub'
-        ? { active: this.hubMenu ? -1 : this.hubActive, fresh: this.hubFresh, locale: getLocale() }
+        ? {
+            active: this.hubMenu ? -1 : this.hubActive,
+            fresh: this.hubFresh,
+            locale: getLocale(),
+            refuge: this.refugeLook,
+          }
         : null,
     );
     const renderMs = nowMs() - renderStart;

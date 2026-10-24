@@ -912,7 +912,7 @@ export function defineTreeNode(def: TreeNodeDef): TreeNodeDef {
   return node;
 }
 
-export const speakerSchema = z.enum(['maren', 'nix', 'sel']);
+export const speakerSchema = z.enum(['maren', 'nix', 'sel', 'toll', 'iskra', 'archivist']);
 
 /** Hades-style dialogue (GDD §2.6): the best-matching unseen line wins, fillers repeat. */
 export const dialogueLineSchema = z.object({
@@ -1101,7 +1101,16 @@ export function defineRig(def: z.input<typeof rigSchema>): RigDef {
 
 // ── Walkable refuge (ROADMAP M5.1) ──────────────────────────────────────────
 
-export const stationIdSchema = z.enum(['maren', 'nix', 'sel', 'portal', 'campfire']);
+export const stationIdSchema = z.enum([
+  'maren',
+  'nix',
+  'sel',
+  'portal',
+  'campfire',
+  'forge',
+  'map_table',
+  'archive',
+]);
 
 const stationSchema = z.object({
   id: stationIdSchema,
@@ -1111,6 +1120,8 @@ const stationSchema = z.object({
   radiusPx: z.number().positive().max(300),
   /** A figure standing here, drawn with its rig; speaks dialogue lines. */
   npc: z.object({ rig: id, speaker: speakerSchema }).optional(),
+  /** Building site at this station (ROADMAP M5.3); upgrades are bought here. */
+  building: id.optional(),
 });
 
 export const hubLayoutSchema = z.object({
@@ -1163,4 +1174,66 @@ export type WorldUnlock = z.infer<typeof worldUnlockSchema>;
 
 export function defineWorld(def: WorldDef): WorldDef {
   return worldSchema.parse(def);
+}
+
+// ── Rebuilding the refuge (ROADMAP M5.3) ──────────────────────────────────
+
+/** Crafting materials; each world drops its own (kept on death, unlike shards). */
+export const materialSchema = z.object({
+  id,
+  world: id,
+  /** Relative drop weight among the world's materials (rarer ones are lower). */
+  weight: z.number().positive(),
+  color: z.number().int().min(0).max(0xffffff),
+});
+
+export type MaterialDef = z.infer<typeof materialSchema>;
+
+export function defineMaterial(def: MaterialDef): MaterialDef {
+  return materialSchema.parse(def);
+}
+
+const costSchema = z.object({
+  dust: z.number().int().min(0),
+  /** Material id → amount. */
+  materials: z.record(id, z.number().int().positive()),
+});
+
+export const buildingSchema = z.object({
+  id,
+  /** Ruins have nothing at level 0 and their figure moves in at level 1; the others work from the start. */
+  ruin: z.boolean(),
+  /** Level 1 (built) and level 2 (expanded). */
+  levels: z
+    .array(
+      z.object({
+        cost: costSchema,
+        /** Feature flags this level opens, e.g. `armor` (M5.4) or `world_intel`. */
+        unlocks: z.array(id),
+      }),
+    )
+    .length(2),
+});
+
+export type BuildingDef = z.infer<typeof buildingSchema>;
+export type CostDef = z.infer<typeof costSchema>;
+
+export function defineBuilding(def: BuildingDef): BuildingDef {
+  return buildingSchema.parse(def);
+}
+
+/** Pure cosmetics for the refuge (GDD §2.3): no power, only a sign of progress. */
+export const decorationSchema = z.object({
+  id,
+  kind: z.enum(['lantern', 'flowers', 'banner', 'crystal']),
+  x: px,
+  y: px,
+  cost: costSchema,
+  color: z.number().int().min(0).max(0xffffff),
+});
+
+export type DecorationDef = z.infer<typeof decorationSchema>;
+
+export function defineDecoration(def: DecorationDef): DecorationDef {
+  return decorationSchema.parse(def);
 }

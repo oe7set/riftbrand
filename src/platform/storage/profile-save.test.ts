@@ -77,6 +77,16 @@ describe('profile save', () => {
     expect(p?.lastRun?.unlockedWorlds).toEqual([]);
   });
 
+  it('migrates a v3 profile: empty stash, every building at its start (M5.3)', () => {
+    const { materials: _m, buildings: _b, decorations: _d, ...v3 } = createProfile();
+    v3.dust = 9;
+    const p = migrateProfile({ version: 3, profile: v3 });
+    expect(p?.dust).toBe(9);
+    expect(p?.materials).toEqual({});
+    expect(p?.buildings).toEqual({});
+    expect(p?.decorations).toEqual([]);
+  });
+
   it('migrates a fresh v2 profile without world entries', () => {
     const { worlds: _w, ...v2 } = createProfile();
     expect(migrateProfile({ version: 2, profile: v2 })?.worlds).toEqual({});

@@ -81,6 +81,55 @@ describe('world unlocks (ROADMAP M5.2)', () => {
   });
 });
 
+describe('room clears', () => {
+  it('an elite counts once, as elite (no extra combat payout)', () => {
+    for (let seed = 1; seed < 80; seed++) {
+      const run = createRun(seed);
+      const first = availableNodes(run)[0];
+      if (!first) continue;
+      enterNode(run, first.id);
+      const node = run.map.nodes[first.id];
+      if (!node) continue;
+      node.type = 'elite';
+      completeRoom(run, {
+        hp: run.hp,
+        kills: 0,
+        timeSec: 1,
+        shards: 0,
+        ultCharge: 0,
+        lastSparks: 0,
+      });
+      expect(run.clearedElite).toBe(1);
+      expect(run.clearedCombat).toBe(0);
+      return;
+    }
+  });
+
+  it('materials drop deterministically, and always from the boss', () => {
+    const a = createRun(31);
+    const b = createRun(31);
+    for (const run of [a, b]) {
+      const first = availableNodes(run)[0];
+      if (!first) throw new Error('no start node');
+      enterNode(run, first.id);
+      const node = run.map.nodes[first.id];
+      if (node) node.type = 'boss';
+      completeRoom(run, {
+        hp: run.hp,
+        kills: 0,
+        timeSec: 1,
+        shards: 0,
+        ultCharge: 0,
+        lastSparks: 0,
+      });
+    }
+    expect(a.materials).toEqual(b.materials);
+    const total = Object.values(a.materials).reduce((s, n) => s + n, 0);
+    expect(total).toBeGreaterThanOrEqual(3);
+    for (const id of Object.keys(a.materials)) expect(['slag_iron', 'ember_core']).toContain(id);
+  });
+});
+
 describe('duels in the run', () => {
   it('clearing a duel books its champion', () => {
     for (let seed = 1; seed < 60; seed++) {
