@@ -60,3 +60,15 @@ export function preferredLanguages(): readonly string[] {
 export function nowMs(): number {
   return performance.now();
 }
+
+/** Restarts the app (art style switch: everything is baked once at startup). */
+export function reloadApp(): void {
+  window.location.reload();
+}
+
+/** Applies the menu look of an art style: CSS variables and a data attribute on <html>. */
+export function applyUiTheme(id: string, vars: Readonly<Record<string, string>>): void {
+  const rootEl = document.documentElement;
+  rootEl.dataset.style = id;
+  for (const [name, value] of Object.entries(vars)) rootEl.style.setProperty(name, value);
+}

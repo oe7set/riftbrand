@@ -4,7 +4,10 @@
   --rb-fg: #e9e6ff;
   --rb-accent: #7ff6ff;
   --rb-panel: rgba(14, 12, 26, 0.92);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --rb-title: #7ff6ff;
+  --rb-radius: 10px;
+  --rb-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--rb-font);
 }
 
 html,
@@ -63,8 +66,8 @@ body {
   letter-spacing: 0.2em;
   text-transform: uppercase;
   text-align: center;
-  color: var(--rb-accent);
-  text-shadow: 0 0 18px rgba(127, 246, 255, 0.6);
+  color: var(--rb-title);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--rb-title) 60%, transparent);
 }
 
 .rb-death .rb-overlay-title {
@@ -88,16 +91,16 @@ body {
   font-weight: 700;
   color: var(--rb-fg);
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(127, 246, 255, 0.5);
-  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--rb-accent) 50%, transparent);
+  border-radius: var(--rb-radius);
   padding: 12px 32px;
   min-height: 48px;
   cursor: pointer;
 }
 
 .rb-primary {
-  background: rgba(127, 246, 255, 0.15);
-  box-shadow: 0 0 18px rgba(127, 246, 255, 0.25);
+  background: color-mix(in srgb, var(--rb-accent) 15%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--rb-accent) 25%, transparent);
 }
 
 .rb-settings {
@@ -657,7 +660,7 @@ body {
   color: var(--rb-fg);
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
   border: 2px solid var(--being);
-  border-radius: 12px;
+  border-radius: calc(var(--rb-radius) + 2px);
   cursor: pointer;
   box-shadow: 0 0 16px color-mix(in srgb, var(--being) 30%, transparent);
   transition: transform 0.12s ease;
@@ -1468,4 +1471,77 @@ body {
 .rb-armor .rb-button:disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+.rb-hub-walk .rb-currencies {
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rb-panel) 80%, transparent);
+}
+
+/* ── Style prototype (ROADMAP M4.5): friendlier menus per art direction ───────────── */
+
+/* A · Glühwürmchen-Abend: soft, warm, rounded; light instead of neon. */
+:root[data-style="firefly"] .rb-button {
+  border-width: 2px;
+  background: rgba(255, 220, 180, 0.08);
+}
+
+:root[data-style="firefly"] .rb-logo {
+  color: #fff3e0;
+  text-shadow:
+    0 0 14px rgba(255, 196, 138, 0.8),
+    0 0 46px rgba(255, 150, 120, 0.45);
+}
+
+/* B · Bilderbuch: thick ink outlines, offset shadows instead of glow, chunky type. */
+:root[data-style="storybook"] .rb-button,
+:root[data-style="storybook"] .rb-card {
+  border: 3px solid #1d1418;
+  box-shadow: 0 4px 0 #1d1418;
+}
+
+:root[data-style="storybook"] .rb-button {
+  background: #5a3e30;
+}
+
+:root[data-style="storybook"] .rb-primary {
+  background: #d9604a;
+  color: #fff6e6;
+}
+
+:root[data-style="storybook"] .rb-button:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #1d1418;
+}
+
+:root[data-style="storybook"] .rb-overlay-title,
+:root[data-style="storybook"] .rb-logo {
+  letter-spacing: 0.06em;
+  text-shadow:
+    3px 3px 0 #1d1418,
+    -1px -1px 0 #1d1418;
+}
+
+:root[data-style="storybook"] .rb-logo {
+  color: #ffe0a3;
+}
+
+/* C · Mond-Aquarell: airy, thin lines, a soft wash behind titles. */
+:root[data-style="moon"] .rb-button {
+  border-color: rgba(169, 196, 255, 0.45);
+  background: rgba(169, 196, 255, 0.07);
+}
+
+:root[data-style="moon"] .rb-overlay-title,
+:root[data-style="moon"] .rb-logo {
+  font-weight: 700;
+  letter-spacing: 0.24em;
+}
+
+:root[data-style="moon"] .rb-logo {
+  color: #eef3ff;
+  text-shadow:
+    0 0 20px rgba(169, 196, 255, 0.7),
+    0 0 60px rgba(150, 130, 255, 0.35);
 }

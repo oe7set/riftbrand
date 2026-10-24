@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SETTINGS, loadSettings, migrateSettings, saveSettings } from './settings';
+import {
+  DEFAULT_SETTINGS,
+  loadSettings,
+  migrateSettings,
+  SETTINGS_VERSION,
+  saveSettings,
+} from './settings';
 
 function memoryStore(initial: Record<string, string> = {}) {
   const data = { ...initial };
@@ -36,7 +42,7 @@ describe('settings', () => {
 
   it('migrates v1 settings: keeps values, adds the default touch layout', () => {
     const s = migrateSettings({ version: 1, masterVolume: 0.4, quality: 'low' });
-    expect(s.version).toBe(7);
+    expect(s.version).toBe(SETTINGS_VERSION);
     expect(s.masterVolume).toBe(0.4);
     expect(s.quality).toBe('low');
     expect(s.touchLayout).toEqual({ portrait: {}, landscape: {} });
@@ -46,7 +52,7 @@ describe('settings', () => {
   it('migrates v2 settings: keeps the touch layout, shows status icons by default', () => {
     const layout = { portrait: {}, landscape: { dash: { x: 0.7, y: 0.8, scale: 1 } } };
     const s = migrateSettings({ version: 2, touchLayout: layout, touchOpacity: 0.5 });
-    expect(s.version).toBe(7);
+    expect(s.version).toBe(SETTINGS_VERSION);
     expect(s.touchLayout).toEqual(layout);
     expect(s.touchOpacity).toBe(0.5);
     expect(s.statusIcons).toBe(true);
@@ -55,14 +61,14 @@ describe('settings', () => {
   it('migrates v3 settings: keeps a layout without the spell button', () => {
     const layout = { portrait: { cast: { x: 0.6, y: 0.8, scale: 1.1 } }, landscape: {} };
     const s = migrateSettings({ version: 3, touchLayout: layout, statusIcons: false });
-    expect(s.version).toBe(7);
+    expect(s.version).toBe(SETTINGS_VERSION);
     expect(s.touchLayout).toEqual(layout);
     expect(s.statusIcons).toBe(false);
   });
 
   it('migrates v4 settings: the aura ring starts hidden, everything else stays', () => {
     const s = migrateSettings({ version: 4, statusIcons: false, shake: 0.4 });
-    expect(s.version).toBe(7);
+    expect(s.version).toBe(SETTINGS_VERSION);
     expect(s.auraRing).toBe(false);
     expect(s.statusIcons).toBe(false);
     expect(s.shake).toBe(0.4);
@@ -70,7 +76,7 @@ describe('settings', () => {
 
   it('migrates v5 settings: the language follows the browser until picked', () => {
     const s = migrateSettings({ version: 5, auraRing: true });
-    expect(s.version).toBe(7);
+    expect(s.version).toBe(SETTINGS_VERSION);
     expect(s.language).toBe('auto');
     expect(s.auraRing).toBe(true);
     expect(migrateSettings({ language: 'de' }).language).toBe('de');
@@ -79,9 +85,18 @@ describe('settings', () => {
 
   it('migrates v6 settings: animated bodies stay on until simple graphics is picked', () => {
     const s = migrateSettings({ version: 6, language: 'de' });
-    expect(s.version).toBe(7);
+    expect(s.version).toBe(SETTINGS_VERSION);
     expect(s.simpleGraphics).toBe(false);
     expect(s.language).toBe('de');
+  });
+
+  it('migrates v7 settings: the neon look stays until another style is picked (M4.5)', () => {
+    const s = migrateSettings({ version: 7, simpleGraphics: true });
+    expect(s.version).toBe(SETTINGS_VERSION);
+    expect(s.artStyle).toBe('neon');
+    expect(s.simpleGraphics).toBe(true);
+    expect(migrateSettings({ artStyle: 'storybook' }).artStyle).toBe('storybook');
+    expect(migrateSettings({ artStyle: 'nope' }).artStyle).toBe('neon');
   });
 
   it('keeps a valid touch layout and drops a broken one', () => {

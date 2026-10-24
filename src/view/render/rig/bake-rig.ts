@@ -59,8 +59,24 @@ function trace(g: Graphics, shape: RigShapeDef, u: number): void {
   for (let i = 2; i + 1 < pts.length; i += 2) g.lineTo((pts[i] ?? 0) * u, (pts[i + 1] ?? 0) * u);
 }
 
+/** Art-style knobs for baking (ROADMAP M4.5): ink outlines and how strong the neon halo is. */
+export interface BakeLook {
+  outlineUnits: number;
+  outlineColor: number;
+  glow: number;
+}
+
+const NEON_LOOK: BakeLook = { outlineUnits: 0, outlineColor: 0, glow: 1 };
+
 /** Draws a shape in colour (with glow) or as a white silhouette. */
-function drawShape(g: Graphics, rig: RigDef, shape: RigShapeDef, u: number, flash: boolean): void {
+function drawShape(
+  g: Graphics,
+  rig: RigDef,
+  shape: RigShapeDef,
+  u: number,
+  flash: boolean,
+  look: BakeLook = NEON_LOOK,
+): void {
   const strokeColor = shape.stroke !== undefined ? colorOf(rig, shape.stroke) : null;
   const fillColor = shape.fill !== undefined ? colorOf(rig, shape.fill) : null;
   const line = shape.kind === 'line';
@@ -74,25 +90,50 @@ function drawShape(g: Graphics, rig: RigDef, shape: RigShapeDef, u: number, flas
     return;
   }
   const glowColor = strokeColor ?? fillColor;
-  if (shape.glow && glowColor !== null) {
+  if (shape.glow && glowColor !== null && look.glow > 0) {
     for (const [w, alpha] of GLOW_PASSES) {
       trace(g, shape, u);
-      g.stroke({ color: glowColor, width: width + w * u, alpha, cap: 'round', join: 'round' });
+      g.stroke({
+        color: glowColor,
+        width: width + w * u,
+        alpha: alpha * look.glow,
+        cap: 'round',
+        join: 'round',
+      });
     }
   }
+
   trace(g, shape, u);
   if (!line && fillColor !== null) g.fill({ color: fillColor, alpha: shape.fillAlpha });
   if (strokeColor !== null) g.stroke({ color: strokeColor, width, cap: 'round', join: 'round' });
 }
 
+/** The ink silhouette of one shape, drawn before any colour. */
+function drawOutline(g: Graphics, shape: RigShapeDef, u: number, look: BakeLook): void {
+  const line = shape.kind === 'line';
+  const hasStroke = shape.stroke !== undefined || line;
+  trace(g, shape, u);
+  if (!line && shape.fill !== undefined) g.fill({ color: look.outlineColor });
+  g.stroke({
+    color: look.outlineColor,
+    width: (hasStroke ? shape.strokeWidth * u : 0) + look.outlineUnits * 2 * u,
+    cap: 'round',
+    join: 'round',
+  });
+}
+
 /** Bounding box of a part's shapes in rig units, padded for strokes and glow. */
-function boundsOf(shapes: readonly RigShapeDef[]): [number, number, number, number] {
+function boundsOf(
+  shapes: readonly RigShapeDef[],
+  outlineUnits = 0,
+): [number, number, number, number] {
   let minX = Number.POSITIVE_INFINITY;
   let minY = Number.POSITIVE_INFINITY;
   let maxX = Number.NEGATIVE_INFINITY;
   let maxY = Number.NEGATIVE_INFINITY;
   for (const s of shapes) {
-    const pad = s.strokeWidth / 2 + (s.glow ? (GLOW_PASSES[0]?.[0] ?? 0) / 2 : 0) + 0.02;
+    const pad =
+      s.strokeWidth / 2 + (s.glow ? (GLOW_PASSES[0]?.[0] ?? 0) / 2 : 0) + outlineUnits + 0.02;
     if (s.kind === 'ellipse') {
       minX = Math.min(minX, s.x - s.rx - pad);
       maxX = Math.max(maxX, s.x + s.rx + pad);
@@ -119,15 +160,19 @@ function render(renderer: Renderer, g: Graphics, frame: Rectangle): Texture {
 }
 
 /** Bakes every part once at startup; animation only moves the resulting sprites (ROADMAP M4). */
-export function bakeRig(renderer: Renderer, rig: RigDef): BakedRig {
+export function bakeRig(renderer: Renderer, rig: RigDef, look: BakeLook = NEON_LOOK): BakedRig {
   const u = BAKE_RADIUS_PX;
   const parts = rig.parts.map((part): BakedPart => {
-    const [minX, minY, maxX, maxY] = boundsOf(part.shapes);
+    const [minX, minY, maxX, maxY] = boundsOf(part.shapes, look.outlineUnits);
     const frame = new Rectangle(minX * u, minY * u, (maxX - minX) * u, (maxY - minY) * u);
     const normal = new Graphics();
     const flash = new Graphics();
+    // Outlines go under every shape of the part, so inner shapes don't get ink lines across.
+    if (look.outlineUnits > 0) {
+      for (const shape of part.shapes) drawOutline(normal, shape, u, look);
+    }
     for (const shape of part.shapes) {
-      drawShape(normal, rig, shape, u, false);
+      drawShape(normal, rig, shape, u, false, look);
       drawShape(flash, rig, shape, u, true);
     }
     return {
@@ -156,7 +201,7 @@ export function bakeRig(renderer: Renderer, rig: RigDef): BakedRig {
     const s = Math.sin(r);
     ghost.setTransform(c, s, -s, c, x * u, y * u);
     for (const shape of part.shapes) drawShape(ghost, rig, shape, u, true);
-    const [minX, minY, maxX, maxY] = boundsOf(part.shapes);
+    const [minX, minY, maxX, maxY] = boundsOf(part.shapes, look.outlineUnits);
     extent = Math.max(extent, Math.hypot(x, y) + Math.max(-minX, -minY, maxX, maxY));
   }
   const half = extent * u;

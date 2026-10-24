@@ -631,7 +631,21 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
   - `EntityView.setPlayerRig()` tauscht die Figur.
 - **Simulator:** `pnpm sim --armor id:stufe,…` spielt mit Rüstung.
 
-## 41. Risiken und Gegenmaßnahmen
+## 41. Stand nach M4.5 Schritt 1 (Stil-Prototyp)
+- **ADR 0007.**
+- **Daten:** `content/art/styles.ts` (`ART_STYLES`, `artStyleById`, `mixColor`).
+- **Lesen beim Start:** `Game.start()` liest den Stil vor dem Erzeugen der View, setzt die Menü-Variablen (`applyUiTheme` in `platform/display.ts`) und übergibt ihn an `GameView.create()`.
+- **Rigs:**
+  - `view/render/rig/style-rig.ts` färbt um und macht aus Augenpunkten Augen.
+  - `bakeRig(…, BakeLook)` backt Konturen (`drawOutline` unter allen Formen eines Teils) und skaliert die Leucht-Ringe.
+  - Rig-Formen dürfen feste Farben haben.
+- **Umgebung:**
+  - `ArenaView(style)` zeichnet die Boden-Arten `cracks`, `meadow`, `doodles` und `watercolor` einmal pro Arena-Größe.
+  - `RoomView(textures, style)` zeichnet abgerundete Hindernisse.
+  - `EmberRain(texture, particles)` bewegt die Partikel je nach Art: Funken, Glühwürmchen, Blätter oder Lichtpunkte.
+- **CSS:** Variablen `--rb-title`, `--rb-font` und `--rb-radius`, dazu Regeln pro `:root[data-style=…]`.
+
+## 42. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |
