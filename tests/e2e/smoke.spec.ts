@@ -114,6 +114,9 @@ test('a run starts from the title via the refuge: map, then a room', async ({ pa
   await walkTo(page, 700, 230);
   await expect(page.locator('.rb-hub-prompt')).toBeVisible();
   await page.keyboard.press('KeyE');
+  // The portal opens the world map (ROADMAP M5.2); only the Ember Wastes are open at first.
+  await expect(page.locator('.rb-worldmap')).toBeVisible();
+  await expect(page.locator('.rb-world.open')).toHaveCount(1);
   await page.getByRole('button', { name: /set out|aufbrechen/i }).click();
   await expect(page.locator('.rb-map')).toBeVisible();
   // The pre-selected start node enters with one click; others need two (mis-tap guard).

@@ -1120,6 +1120,8 @@ export const hubLayoutSchema = z.object({
   playerStart: point,
   /** The portal hall: the room exit doubles as the gateway into the world. */
   portal: point,
+  /** Where you stand after a run: just in front of the portal (ROADMAP M5.2). */
+  portalArrival: point,
   obstacles: z.array(obstacleSchema),
   stations: z.array(stationSchema).min(1),
 });
@@ -1133,4 +1135,32 @@ export function defineHub(def: HubLayoutDef): HubLayoutDef {
   const ids = new Set(hub.stations.map((s) => s.id));
   if (ids.size !== hub.stations.length) throw new Error('hub: duplicate station ids');
   return hub;
+}
+
+// ── Worlds (ROADMAP M5.2) ─────────────────────────────────────────────────
+
+/** What opens a world on the world map: from the start, or after beating another world's boss. */
+const worldUnlockSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('start') }),
+  z.object({ kind: z.literal('boss'), world: id }),
+]);
+
+export const worldSchema = z.object({
+  id,
+  /** Biome data the run is generated from; null while the world is not built yet (M6). */
+  biome: biomeSchema.nullable(),
+  /** Boss enemy id shown on the map (also for worlds without biome data yet). */
+  bossName: id.nullable(),
+  unlock: worldUnlockSchema,
+  /** Position on the world map, 0..1 of its width and height. */
+  mapX: z.number().min(0).max(1),
+  mapY: z.number().min(0).max(1),
+  color: z.number().int().min(0).max(0xffffff),
+});
+
+export type WorldDef = z.infer<typeof worldSchema>;
+export type WorldUnlock = z.infer<typeof worldUnlockSchema>;
+
+export function defineWorld(def: WorldDef): WorldDef {
+  return worldSchema.parse(def);
 }

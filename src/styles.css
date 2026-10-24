@@ -1178,3 +1178,145 @@ body {
   padding: 6px 12px;
   min-width: 40px;
 }
+
+/* World map in the portal hall (ROADMAP M5.2). */
+.rb-worldmap-board {
+  position: relative;
+  width: min(620px, 92vw);
+  aspect-ratio: 16 / 9;
+  margin: 8px auto;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 20% 68%, rgba(255, 122, 46, 0.16), transparent 32%),
+    radial-gradient(circle at 86% 22%, rgba(255, 61, 138, 0.1), transparent 30%), #0d0a18;
+}
+
+.rb-worldmap-paths {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.rb-worldmap-paths line {
+  stroke: rgba(255, 255, 255, 0.18);
+  stroke-width: 2;
+  stroke-dasharray: 6 6;
+}
+
+.rb-worldmap-paths line.open {
+  stroke: rgba(255, 210, 150, 0.7);
+  stroke-dasharray: none;
+}
+
+.rb-world {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transform: translate(-50%, -50%);
+  padding: 4px;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.rb-world-dot {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--world);
+  background: color-mix(in srgb, var(--world) 22%, #0d0a18);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--world) 55%, transparent);
+  font-size: 18px;
+  color: var(--world);
+  transition: transform 0.12s ease;
+}
+
+.rb-world-label {
+  margin-top: 4px;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px #000;
+}
+
+.rb-world.locked .rb-world-dot,
+.rb-world.soon .rb-world-dot {
+  border-style: dashed;
+  box-shadow: none;
+  filter: saturate(0.4);
+}
+
+.rb-world.locked {
+  opacity: 0.55;
+}
+
+.rb-world.selected .rb-world-dot {
+  transform: scale(1.18);
+  outline: 3px solid var(--rb-accent);
+  outline-offset: 3px;
+}
+
+.rb-world.current .rb-world-dot {
+  animation: rb-pulse 1.4s ease-in-out infinite;
+}
+
+.rb-world:focus-visible {
+  outline: none;
+}
+
+.rb-world-info {
+  width: min(560px, 90vw);
+  margin: 4px auto 10px;
+  padding: 10px 14px;
+  text-align: left;
+  border-left: 3px solid var(--world);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.rb-world-name {
+  font-size: 18px;
+  color: var(--world);
+}
+
+.rb-world-desc {
+  margin-top: 2px;
+  font-style: italic;
+  opacity: 0.85;
+}
+
+.rb-world-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 2px 12px;
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.rb-world-lock,
+.rb-world-hint {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.rb-world-hint {
+  color: #ffd36b;
+}
+
+.rb-worldmap .rb-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.rb-world-unlocked {
+  color: #ffd36b;
+  font-size: 18px;
+  text-shadow: 0 0 12px rgba(255, 211, 107, 0.6);
+}

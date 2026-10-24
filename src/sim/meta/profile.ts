@@ -6,6 +6,7 @@ import { START_SPELLS, spellById } from '../../content/spells';
 import { dominantBeing } from '../effects/build';
 import type { RunState, SpellSlots } from '../run/run-state';
 import { MAX_UPGRADE_LEVEL } from '../run/upgrades';
+import { recordWorldRun, type WorldProgress } from './worlds';
 
 /** How the last run ended; drives hub dialogue (GDD §2.6) and the result screen. */
 export interface LastRun {
@@ -19,6 +20,10 @@ export interface LastRun {
   reachedBoss: boolean;
   ember: number;
   dust: number;
+  /** World of the run (ROADMAP M5.2). */
+  worldId: string;
+  /** Worlds this run opened on the world map (first boss kill). */
+  unlockedWorlds: string[];
 }
 
 /**
@@ -44,6 +49,8 @@ export interface Profile {
   spellsDiscovered: string[];
   /** Spells a new run starts with. */
   loadout: { active: string; aura: string };
+  /** Progress per world id (ROADMAP M5.2); worlds never entered have no entry. */
+  worlds: Record<string, WorldProgress>;
 }
 
 export function createProfile(): Profile {
@@ -61,6 +68,7 @@ export function createProfile(): Profile {
     spellsUnlocked: [START_SPELLS.active, START_SPELLS.aura],
     spellsDiscovered: [],
     loadout: { active: START_SPELLS.active, aura: START_SPELLS.aura },
+    worlds: {},
   };
 }
 
@@ -310,6 +318,8 @@ export function settleRun(
     reachedBoss: run.reachedBoss,
     ember: earned.ember,
     dust: earned.dust,
+    worldId: run.worldId,
+    unlockedWorlds: recordWorldRun(profile, run, result),
   };
   recordRun(profile, last);
   discoverRunSpells(profile, run);

@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { ENEMIES } from '../../content/enemies';
 import { EMBER_TREE, treeNodeById } from '../../content/meta/ember-tree';
 import { RELICS, relicDescParams } from '../../content/relics';
+import type { WorldDef } from '../../content/schema';
 import { SPELLS } from '../../content/spells';
+import { WORLDS, worldById } from '../../content/worlds';
 import { type TranslationKey, t } from '../../shared/i18n';
 import {
   canBuyRank,
@@ -13,6 +15,12 @@ import {
   spellUnlockCost,
   treeRank,
 } from '../../sim/meta/profile';
+import {
+  isWorldPlayable,
+  isWorldUnlocked,
+  worldDuelCount,
+  worldProgress,
+} from '../../sim/meta/worlds';
 import { relicIcon, spellIcon } from '../render/icons/specs';
 import { CardTitle } from './icons';
 
@@ -52,6 +60,19 @@ export type MetaScreen =
       message: string | null;
       onCopy(): void;
       onImport(code: string): void;
+      onBack(): void;
+    }
+  | {
+      /** The portal hall's world map (ROADMAP M5.2): pick the world of the next run. */
+      kind: 'worldMap';
+      profile: Profile;
+      /** World of the saved run in progress; null when there is none. */
+      runWorld: string | null;
+      /** World highlighted when the map opens. */
+      selected: string;
+      onDepart(worldId: string): void;
+      onContinue(): void;
+      onAbandon(): void;
       onBack(): void;
     }
   | { kind: 'result'; last: LastRun; profile: Profile; onContinue(): void };
@@ -144,6 +165,179 @@ export function StationScreen(s: Extract<MetaScreen, { kind: 'station' }>) {
         </div>
       </Focus>
       {s.footer && <div class="rb-version rb-station-footer">{s.footer}</div>}
+    </div>
+  );
+}
+
+const worldName = (id: string) => t(`world.${id}.name` as TranslationKey);
+const hex = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
+
+type WorldState = 'locked' | 'soon' | 'open' | 'beaten';
+
+function worldState(profile: Profile, world: WorldDef): WorldState {
+  if (!isWorldUnlocked(profile, world)) return 'locked';
+  if (!isWorldPlayable(profile, world)) return 'soon';
+  return worldProgress(profile, world.id).bossKills > 0 ? 'beaten' : 'open';
+}
+
+/** What to do next in a world: the boss, then the remaining mini-bosses (quests come in M5.6). */
+function worldHint(profile: Profile, world: WorldDef): string {
+  const progress = worldProgress(profile, world.id);
+  if (progress.bossKills === 0 && world.bossName) {
+    return t('worldmap.hint.boss', { name: t(`enemy.${world.bossName}.name` as TranslationKey) });
+  }
+  if (progress.duelsWon.length < worldDuelCount(world)) return t('worldmap.hint.duels');
+  return t('worldmap.hint.done');
+}
+
+function WorldDetails({ profile, world }: { profile: Profile; world: WorldDef }) {
+  const state = worldState(profile, world);
+  const progress = worldProgress(profile, world.id);
+  return (
+    <div class="rb-world-info" style={{ '--world': hex(world.color) }}>
+      <div class="rb-world-name">{worldName(world.id)}</div>
+      <div class="rb-world-desc">{t(`world.${world.id}.desc` as TranslationKey)}</div>
+      {state === 'locked' && world.unlock.kind === 'boss' && (
+        <div class="rb-world-lock">
+          🔒 {t('worldmap.unlock_boss', { world: worldName(world.unlock.world) })}
+        </div>
+      )}
+      {state === 'soon' && <div class="rb-world-lock">{t('worldmap.soon')}</div>}
+      {(state === 'open' || state === 'beaten') && (
+        <>
+          <div class="rb-world-stats">
+            {world.bossName && (
+              <div>
+                {t(state === 'beaten' ? 'worldmap.boss_beaten' : 'worldmap.boss_open', {
+                  name: t(`enemy.${world.bossName}.name` as TranslationKey),
+                })}
+              </div>
+            )}
+            <div>
+              {t('worldmap.duels', { n: progress.duelsWon.length, max: worldDuelCount(world) })}
+            </div>
+            <div>
+              {progress.bestTimeSec === null
+                ? t('worldmap.best_none')
+                : t('worldmap.best', { time: formatTime(progress.bestTimeSec) })}
+            </div>
+            <div>{t('worldmap.runs', { n: progress.runs })}</div>
+          </div>
+          <div class="rb-world-hint">➜ {worldHint(profile, world)}</div>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function WorldMapScreen(s: Extract<MetaScreen, { kind: 'worldMap' }>) {
+  const [selected, setSelected] = useState(s.runWorld ?? s.selected);
+  const [confirming, setConfirming] = useState(false);
+  const world = worldById(selected) ?? (WORLDS[0] as WorldDef);
+  const playable = isWorldPlayable(s.profile, world);
+  const select = (id: string) => {
+    setSelected(id);
+    setConfirming(false);
+  };
+  return (
+    <div class="rb-screen rb-center rb-worldmap">
+      <div class="rb-overlay-title">{t('worldmap.title')}</div>
+      <Currencies profile={s.profile} />
+      <Focus>
+        <div class="rb-worldmap-board">
+          <svg
+            class="rb-worldmap-paths"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            {WORLDS.map((w) => {
+              if (w.unlock.kind !== 'boss') return null;
+              const from = worldById(w.unlock.world);
+              if (!from) return null;
+              const open = isWorldUnlocked(s.profile, w);
+              return (
+                <line
+                  key={w.id}
+                  x1={from.mapX * 100}
+                  y1={from.mapY * 100}
+                  x2={w.mapX * 100}
+                  y2={w.mapY * 100}
+                  class={open ? 'open' : ''}
+                  vector-effect="non-scaling-stroke"
+                />
+              );
+            })}
+          </svg>
+          {WORLDS.map((w) => {
+            const state = worldState(s.profile, w);
+            const current = s.runWorld === w.id;
+            return (
+              <button
+                type="button"
+                key={w.id}
+                class={`rb-world ${state} ${selected === w.id ? 'selected' : ''} ${current ? 'current' : ''}`}
+                style={{
+                  left: `${w.mapX * 100}%`,
+                  top: `${w.mapY * 100}%`,
+                  '--world': hex(w.color),
+                }}
+                aria-label={worldName(w.id)}
+                onFocus={() => select(w.id)}
+                onClick={() => select(w.id)}
+              >
+                <span class="rb-world-dot">
+                  {state === 'locked'
+                    ? '🔒'
+                    : state === 'beaten'
+                      ? '✓'
+                      : state === 'open'
+                        ? '✦'
+                        : '…'}
+                </span>
+                <span class="rb-world-label">{worldName(w.id)}</span>
+              </button>
+            );
+          })}
+        </div>
+        <WorldDetails profile={s.profile} world={world} />
+        <div class="rb-menu">
+          {s.runWorld === null ? (
+            <button
+              type="button"
+              class="rb-button rb-primary"
+              data-autofocus
+              disabled={!playable}
+              onClick={() => s.onDepart(world.id)}
+            >
+              {playable
+                ? t('worldmap.depart', { world: worldName(world.id) })
+                : t('worldmap.closed')}
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                class="rb-button rb-primary"
+                data-autofocus
+                onClick={s.onContinue}
+              >
+                {t('worldmap.continue', { world: worldName(s.runWorld) })}
+              </button>
+              <button
+                type="button"
+                class={`rb-button ${confirming ? 'rb-danger' : ''}`}
+                onClick={() => (confirming ? s.onAbandon() : setConfirming(true))}
+              >
+                {confirming ? t('hub.abandon_confirm') : t('hub.abandon')}
+              </button>
+            </>
+          )}
+          <button type="button" class="rb-button" onClick={s.onBack}>
+            {t('common.back')}
+          </button>
+        </div>
+      </Focus>
     </div>
   );
 }
@@ -403,6 +597,12 @@ export function ResultScreen({
   return (
     <div class={`rb-screen rb-center rb-result ${last.result === 'won' ? 'is-won' : 'is-lost'}`}>
       <div class="rb-overlay-title">{t(last.result === 'won' ? 'result.won' : 'result.lost')}</div>
+      <div class="rb-being-quote">{worldName(last.worldId)}</div>
+      {last.unlockedWorlds.map((id) => (
+        <div key={id} class="rb-world-unlocked">
+          {t('result.world_unlocked', { world: worldName(id) })}
+        </div>
+      ))}
       <div class="rb-stats">
         <div>{t('stats.rooms', { n: last.roomsCleared })}</div>
         <div>{t('stats.kills', { n: last.kills })}</div>
