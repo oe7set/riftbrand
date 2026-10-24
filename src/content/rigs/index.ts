@@ -75,6 +75,10 @@ export const RIG_TUNING = {
   shatterLifeSec: 0.65,
   /** How quickly the walk blend follows the speed (per second). */
   moveBlendPerSec: 10,
+  /** Vesper's happy jump when a room is cleared (ROADMAP M4.5): two hops in this time… */
+  celebrateSec: 0.7,
+  /** …each this high, in body radii. */
+  celebrateHopUnits: 0.9,
 };
 
 registerTunables('rigs (look)', 'src/content/rigs/index.ts', RIG_TUNING);

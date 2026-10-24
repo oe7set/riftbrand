@@ -2,7 +2,7 @@ import type { Texture } from 'pixi.js';
 import { autoDetectRenderer, Container, type Renderer } from 'pixi.js';
 import { AdvancedBloomFilter } from 'pixi-filters';
 import { RIFT_SHOT } from '../content/abilities';
-import type { ArtStyleDef } from '../content/art/styles';
+import type { ArtStyleDef } from '../content/art/style';
 import { REFUGE } from '../content/hub/layout';
 import { PLAYER_RIG_ID, RIGS } from '../content/rigs';
 import type { Speaker } from '../content/schema';
@@ -129,7 +129,8 @@ export class GameView {
     );
     this.aimPreview = new AimPreview(this.textures.white, this.textures.ring);
     this.fxParticles.root.blendMode = 'add';
-    this.groundParticles.root.blendMode = 'add';
+    // Ground decals sit on a bright meadow: additive light would wash them out (ROADMAP M4.5).
+    this.groundParticles.root.blendMode = 'normal';
     this.worldLayer.addChild(
       this.arena.root,
       this.roomView.root,

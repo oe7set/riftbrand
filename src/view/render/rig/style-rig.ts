@@ -1,5 +1,5 @@
-import { type ArtStyleDef, mixColor } from '../../../content/art/styles';
-import type { RigDef, RigShapeDef } from '../../../content/schema';
+import { type ArtStyleDef, mixColor } from '../../../content/art/style';
+import { type RigDef, type RigShapeDef, restingRigMotion } from '../../../content/schema';
 
 /** Eye dots up to this size (rig units) become big friendly eyes in styles with `eyes`. */
 const EYE_DOT_MAX_UNITS = 0.13;
@@ -21,11 +21,43 @@ export function styleRig(rig: RigDef, style: ArtStyleDef): RigDef {
     ...rig,
     colors,
     glowAlpha: rig.glowAlpha * s.glow,
-    parts: rig.parts.map((part) => {
-      if (!s.eyes || part.id !== 'head') return part;
-      return { ...part, shapes: part.shapes.flatMap((shape) => toEyes(shape, s.outlineColor)) };
-    }),
+    parts: s.eyes ? withEyes(rig.parts, s.outlineColor) : rig.parts,
   };
+}
+
+/**
+ * Eye dots on the head become a separate `eyes` part right after it, centred on the eye so a
+ * blink (uniform shrink) closes it in place.
+ */
+function withEyes(parts: RigDef['parts'], ink: number): RigDef['parts'] {
+  const out: RigDef['parts'] = [];
+  for (const part of parts) {
+    if (part.id !== 'head') {
+      out.push(part);
+      continue;
+    }
+    const dots = part.shapes.filter(isEyeDot);
+    const rest = part.shapes.filter((shape) => !isEyeDot(shape));
+    const first = dots[0];
+    if (!first || rest.length === 0) {
+      out.push(part);
+      continue;
+    }
+    out.push({ ...part, shapes: rest });
+    const cx = first.x;
+    const cy = first.y;
+    out.push({
+      id: 'eyes',
+      parent: part.id,
+      x: cx,
+      y: cy,
+      rotationDeg: 0,
+      z: part.z,
+      motion: { ...restingRigMotion(), blink: 1 },
+      shapes: dots.flatMap((dot) => toEyes({ ...dot, x: dot.x - cx, y: dot.y - cy }, ink)),
+    });
+  }
+  return out;
 }
 
 function isEyeDot(shape: RigShapeDef): shape is Extract<RigShapeDef, { kind: 'ellipse' }> {

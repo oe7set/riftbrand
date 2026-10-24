@@ -8,6 +8,15 @@ const DEG = Math.PI / 180;
 const TAU = Math.PI * 2;
 /** One float up and down of hovering bodies. */
 const HOVER_SEC = 1.7;
+/** Eyes blink once per period and stay shut this long (picture-book look, ROADMAP M4.5). */
+const BLINK_PERIOD_SEC = 3.7;
+const BLINK_SEC = 0.14;
+
+/** 0 open … 1 shut; a quick close-and-open at the start of each period. */
+function blinkAmount(timeSec: number): number {
+  const t = timeSec % BLINK_PERIOD_SEC;
+  return t < BLINK_SEC ? Math.sin((t / BLINK_SEC) * Math.PI) : 0;
+}
 
 /** Precomputed lookups so posing needs no searches or allocations per frame. */
 export interface RigLayout {
@@ -143,6 +152,7 @@ export function poseRig(layout: RigLayout, input: RigInput, out: Float32Array): 
     rig.bobUnits * Math.abs(Math.sin(TAU * walk)) * move +
     rig.hoverUnits * (0.5 + 0.5 * Math.sin((TAU * input.timeSec) / HOVER_SEC));
   const rootLeanDeg = rig.leanDeg * (move + input.lean) - RIG_TUNING.twitchDeg * input.twitch;
+  const blink = blinkAmount(input.timeSec);
   const weaponDir = weaponDirDeg(layout, input);
   const reach = weaponReach(layout, input);
   const parts = rig.parts;
@@ -199,6 +209,7 @@ export function poseRig(layout: RigLayout, input: RigInput, out: Float32Array): 
     out[o + 1] = py + s * lx + c * ly;
     out[o + 2] = wr;
     out[o + 3] =
-      1 + m.breath * breathe + m.windupScale * input.windup + m.strikeScale * input.strike;
+      (1 + m.breath * breathe + m.windupScale * input.windup + m.strikeScale * input.strike) *
+      (1 - m.blink * blink * 0.85);
   }
 }

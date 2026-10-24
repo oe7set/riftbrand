@@ -1,9 +1,8 @@
-// Fonts of the style prototype (ROADMAP M4.5), bundled so they work offline.
+// Picture-book font (ROADMAP M4.5), bundled so it works offline.
+import '@fontsource/baloo-2/latin-400.css';
+import '@fontsource/baloo-2/latin-600.css';
 import '@fontsource/baloo-2/latin-700.css';
-import '@fontsource/nunito/latin-400.css';
-import '@fontsource/nunito/latin-800.css';
-import '@fontsource/quicksand/latin-400.css';
-import '@fontsource/quicksand/latin-700.css';
+import '@fontsource/baloo-2/latin-800.css';
 import { Game } from './app/game';
 import { preferredLanguages } from './platform/display';
 import { resolveLocale, setLocale, t } from './shared/i18n';

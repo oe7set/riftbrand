@@ -606,10 +606,5 @@
   "armor.spark_gloves.name": "Funkenhandschuhe",
   "armor.spark_gloves.desc": "+{bonus} kritische Trefferchance. Besiegte Gegner zerplatzen manchmal in Funken: {damage} Schaden.",
   "armor.shard_boots.name": "Splitterstiefel",
-  "armor.shard_boots.desc": "+{bonus} gefundene Splitter. +{speed} Tempo.",
-  "settings.style": "Stil (Prototyp, lädt neu)",
-  "settings.style_neon": "Neon (bisher)",
-  "settings.style_firefly": "A · Glühwürmchen-Abend",
-  "settings.style_storybook": "B · Bilderbuch",
-  "settings.style_moon": "C · Mond-Aquarell"
+  "armor.shard_boots.desc": "+{bonus} gefundene Splitter. +{speed} Tempo."
 }

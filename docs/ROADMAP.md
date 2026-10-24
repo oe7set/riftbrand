@@ -780,7 +780,7 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
 
 ---
 
-### M4.5 Neue Stimmung: freundlicher und mit mehr Liebe 🟡 (PO-Wunsch E15)
+### M4.5 Neue Stimmung: freundlicher und mit mehr Liebe ✅ (PO-Wunsch E15)
 **Ziel:** Riftbrand fühlt sich warm, einladend und liebevoll gestaltet an statt düster-technisch. Lesbarkeit und Game Feel bleiben unangetastet (Telegraphs, Spielfigur als markantestes Element).
 
 **Schritt 1, Stil-Prototyp (Entscheidung durch den PO):** dieselbe Szene (Zuflucht und ein Kampfraum) in **3 Richtungen**, im Spiel umschaltbar:
@@ -811,7 +811,23 @@ Für jede Richtung im Prototyp:
 
 **Abnahme:** Der PO wählt nach Schritt 1 eine Richtung (oder eine Mischung). Nach Schritt 2 sagt der PO: „So soll es aussehen.“
 
-**Stand Schritt 1 (Prototyp, ADR 0007):** ✅ umgesetzt, die Wahl des PO steht aus.
+**Entscheidung (2026-10-24):** Der PO wählt **B · Bilderbuch**.
+
+**Stand Schritt 2 (Umbau):** ✅
+- Bilderbuch ist der einzige Stil; der Umschalter und die beiden anderen Richtungen sind entfernt (Settings v9).
+- **HUD:** Leisten mit Tintenrahmen, Texte in Baloo 2 mit Tintenkontur, Leben in Rot.
+- **Touch-Buttons:** Tintenscheibe unter cremefarbenem Rand, damit sie auf der hellen Wiese lesbar bleiben.
+- **Zuflucht:** Herbstbaum mit Glutfrüchten, gestreifte Markise, Turm mit Spitzdach, Portalbogen aus Stein, Gebäude mit rotem Dach, Wimpel, Holzbänke, Pflanzen und Dekorationen mit Tinte.
+- **Räume:** Steinblöcke mit Moos und Tintenrissen.
+- **Icons:** braune Karten mit Tintenrand, Symbole mit Tintenkontur.
+- **Menüs:** warme, halbtransparente Hintergründe statt Nachtschwarz; die Weltkarte ist Papier.
+- **Animation:**
+  - Augen blinzeln: ein eigenes Rig-Teil mit dem neuen Bewegungskanal `blink`.
+  - Freudensprung von Vesper nach jedem geschafften Raum. Tuning: `RIG_TUNING.celebrateSec` und `celebrateHopUnits` im Debug-Menü.
+  - Schatten sind weiche Tinte statt farbigem Unterleuchten.
+- **Offen** (folgt mit M6 bzw. bei Bedarf): Kampf-Effekte im Detail (Schlag-Bögen, Explosionen) und die Musik-Klangfarbe der Zuflucht.
+
+**Stand Schritt 1 (Prototyp, ADR 0007):** ✅ umgesetzt.
 - **Umschalten:** Pause → Einstellungen → „Stil (Prototyp, lädt neu)“ (Settings v8).
 - **Pro Stil umgesetzt:**
   - Boden (Wiese mit Blumen, Bilderbuch-Gekritzel, Aquarell-Flecken) und Rand
@@ -1249,6 +1265,7 @@ Richtwerte. Wenn sich die Reihenfolge der Pakete ändert, verschieben sich die N
 | nach M4.1 ✅ | **v6** | | | Sprachauswahl in den Einstellungen (Automatisch, English, Deutsch) |
 | M4.2 ✅ | **v7** | | | „Einfache Grafik“ (klassische Formen) |
 | M4.5 (Prototyp) ✅ | **v8** | | | Kunst-Richtung `artStyle` |
+| M4.5 ✅ | **v9** | | | `artStyle` entfällt (Bilderbuch fest) |
 | M5.2 ✅ | | **v3** | **v9** | Welt-Fortschritt, `worldId` |
 | M5.3 ✅ | | **v4** | **v10** | Materialien, Gebäude-Stufen, Dekorationen |
 | M5.4 ✅ | | **v5** | **v11** | Rüstungen, Ausrüstung im Run |

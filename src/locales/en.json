@@ -606,10 +606,5 @@
   "armor.spark_gloves.name": "Spark gloves",
   "armor.spark_gloves.desc": "+{bonus} critical chance. Kills sometimes burst into sparks for {damage} damage.",
   "armor.shard_boots.name": "Shard boots",
-  "armor.shard_boots.desc": "+{bonus} shards found. +{speed} move speed.",
-  "settings.style": "Style (prototype, reloads)",
-  "settings.style_neon": "Neon (current)",
-  "settings.style_firefly": "A · Firefly evening",
-  "settings.style_storybook": "B · Picture book",
-  "settings.style_moon": "C · Moon watercolour"
+  "armor.shard_boots.desc": "+{bonus} shards found. +{speed} move speed."
 }

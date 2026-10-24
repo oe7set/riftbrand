@@ -1,6 +1,6 @@
 # ADR 0007: Stil-Prototyp mit umschaltbaren Kunst-Richtungen
 
-**Status:** angenommen (2026-10-24), Prototyp für M4.5
+**Status:** angenommen (2026-10-24), Prototyp für M4.5; abgeschlossen: Der PO wählte das Bilderbuch.
 **Kontext:**
 - Der PO wünscht eine viel freundlichere Stimmung (ROADMAP E15).
 - Stimmung lässt sich schlecht beschreiben, besser zeigen: Drei Richtungen sollen in derselben Szene auf dem Handy vergleichbar sein.
@@ -19,3 +19,8 @@
 ## Folgen
 - Nach der Wahl des PO (M4.5 Schritt 2) bleibt das Stil-System bestehen. Die nicht gewählten Stile werden entfernt, wenn sie keinen Mehrwert mehr haben, zusammen mit den Schriften, die nur sie brauchen.
 - Noch nicht gestylt: HUD, Hub-Wahrzeichen, Effekte und Icons. Sie folgen im Umbau.
+
+## Nachtrag (Schritt 2)
+- Der PO wählte **B · Bilderbuch**.
+- Die Stil-Daten bleiben (`content/art/style.ts`, ein Stil). Die Einstellung `artStyle` und der Neustart beim Wechsel sind entfallen (Settings v9).
+- Nunito und Quicksand sind entfernt.

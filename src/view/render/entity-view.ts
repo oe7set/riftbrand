@@ -86,6 +86,8 @@ export class EntityView {
   private time = 0;
   /** Animation clock in sim time, so slow motion slows the bodies too. */
   private animTime = 0;
+  /** Time left of Vesper's happy jump after a cleared room. */
+  private celebrateSec = 0;
   look: Look = 'rig';
 
   constructor(
@@ -99,6 +101,11 @@ export class EntityView {
       return rigId === undefined ? -1 : rigIndex(rigId);
     });
     this.playerRig = rigIndex(PLAYER_RIG_ID);
+  }
+
+  /** Starts Vesper's happy jump (room cleared). */
+  celebrate(): void {
+    this.celebrateSec = RIG_TUNING.celebrateSec;
   }
 
   /** Swaps Vesper's body for one with armour; existing player figures are rebuilt lazily. */
@@ -205,6 +212,7 @@ export class EntityView {
   sync(sim: SimState, alpha: number, dtSec: number, simDtSec: number): void {
     this.time += dtSec;
     this.animTime += simDtSec;
+    this.celebrateSec = Math.max(0, this.celebrateSec - simDtSec);
     const { world, c } = sim;
     const masks = world.masks;
     const renderMask = C.Transform | C.Renderable;
@@ -792,10 +800,17 @@ export class EntityView {
     if (isPlayer) this.playerRigInput(sim, input);
     else this.enemyRigInput(sim, eid, input);
 
+    // Two quick hops for joy when a room is cleared (picture-book look, ROADMAP M4.5).
+    const hop =
+      isPlayer && this.celebrateSec > 0
+        ? Math.abs(Math.sin((1 - this.celebrateSec / RIG_TUNING.celebrateSec) * Math.PI * 2)) *
+          RIG_TUNING.celebrateHopUnits *
+          r
+        : 0;
     rig.update(
       input,
       x,
-      y,
+      y - hop,
       r,
       facing,
       sx * pop,
@@ -805,8 +820,9 @@ export class EntityView {
     );
     rig.root.tint = s.body.tint;
     rig.root.alpha = s.body.alpha;
-    rig.shadow.tint = def.colors.body;
-    rig.shadow.alpha = 0.22 * s.body.alpha;
+    // Picture-book shadows are soft ink under the feet, not a coloured neon underglow.
+    rig.shadow.tint = PALETTE.ink;
+    rig.shadow.alpha = 0.3 * s.body.alpha;
     this.syncRigElite(sim, eid, s, rig, x, y - def.centerUnits * r, r, facing);
   }
 

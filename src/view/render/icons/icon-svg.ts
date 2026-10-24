@@ -11,8 +11,12 @@ export interface IconSpec {
   rim?: string;
 }
 
-const BACKGROUND = '#0b0914';
-const CORE = '#ffffff';
+/** Picture-book icons (ROADMAP M4.5): warm brown card, ink outline, inked glyph. */
+const BACKGROUND = '#4a3428';
+const CORE = '#fff6e6';
+const INK = '#2a1d2e';
+/** Extra stroke width of the ink line around glyph parts (box units). */
+const GLYPH_INK = 1.7;
 
 export function iconKey(spec: IconSpec): string {
   return `${spec.frame}|${spec.glyph}|${spec.color}|${spec.rim ?? ''}`;
@@ -21,6 +25,16 @@ export function iconKey(spec: IconSpec): string {
 /** CSS hex colour from a 0xRRGGBB number. */
 export function cssColor(color: number): string {
   return `#${color.toString(16).padStart(6, '0')}`;
+}
+
+/** The ink silhouette of a glyph part, drawn under it. */
+function inkSvg(part: GlyphPart): string {
+  const width =
+    (part.paint === 'fill' || part.paint === 'core' || part.paint === 'hole'
+      ? 0
+      : (part.width ?? 1.8)) + GLYPH_INK;
+  const fill = part.paint === 'fill' || part.paint === 'core' ? INK : 'none';
+  return `<path d="${part.d}" fill="${fill}" stroke="${INK}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"/>`;
 }
 
 function partSvg(part: GlyphPart, color: string): string {
@@ -44,38 +58,39 @@ function partSvg(part: GlyphPart, color: string): string {
 }
 
 /**
- * The icon as standalone SVG markup (ROADMAP M4.3): dark frame in the kind's shape, neon rim,
- * glyph inside, soft glow. Menus show it as an image; the game rasterises it into textures.
+ * The icon as standalone SVG markup (ROADMAP M4.3, picture-book look since M4.5): a brown card in
+ * the kind's shape with an ink border and a coloured band, the glyph inked on top. Menus show it
+ * as an image; the game rasterises it into textures.
  */
 export function iconSvg(spec: IconSpec): string {
   const frame = FRAMES[spec.frame];
   const scale = GLYPH_SCALE[spec.frame];
   // Centre the 24-box glyph in the 32-box frame.
   const offset = 16 - 12 * scale;
-  const glyph = GLYPHS[spec.glyph].map((p) => partSvg(p, spec.color)).join('');
+  const parts = GLYPHS[spec.glyph];
+  const ink = parts.filter((p) => p.paint !== 'hole' && p.paint !== 'holeStroke').map(inkSvg);
+  const glyph = parts.map((p) => partSvg(p, spec.color)).join('');
   const ring =
     spec.frame === 'aura'
-      ? `<circle cx="16" cy="16" r="15" fill="none" stroke="${spec.color}" stroke-width="1" opacity="0.8"/>`
+      ? `<circle cx="16" cy="16" r="15" fill="none" stroke="${INK}" stroke-width="2.6"/>` +
+        `<circle cx="16" cy="16" r="15" fill="none" stroke="${spec.color}" stroke-width="1.2"/>`
       : '';
   const chevrons =
     spec.frame === 'upgrade'
-      ? `<path d="M10 7.5 L16 3.6 L22 7.5" fill="none" stroke="${spec.color}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>`
+      ? `<path d="M10 7.5 L16 3.6 L22 7.5" fill="none" stroke="${INK}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>` +
+        `<path d="M10 7.5 L16 3.6 L22 7.5" fill="none" stroke="${spec.color}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>`
       : '';
   const rim = spec.rim
-    ? `<path d="${frame}" fill="none" stroke="${spec.rim}" stroke-width="3.2" opacity="0.9"/>`
+    ? `<path d="${frame}" fill="none" stroke="${spec.rim}" stroke-width="4.6"/>`
     : '';
   return (
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 36 36" width="72" height="72">' +
-    '<defs><filter id="g" x="-30%" y="-30%" width="160%" height="160%">' +
-    '<feGaussianBlur stdDeviation="1.1"/></filter></defs>' +
     rim +
-    `<path d="${frame}" fill="${BACKGROUND}" fill-opacity="0.92"/>` +
-    `<g filter="url(#g)" opacity="0.75"><path d="${frame}" fill="none" stroke="${spec.color}" stroke-width="2"/>${ring}</g>` +
-    `<path d="${frame}" fill="none" stroke="${spec.color}" stroke-width="1.5"/>` +
+    `<path d="${frame}" fill="${BACKGROUND}" stroke="${INK}" stroke-width="3.4" stroke-linejoin="round"/>` +
+    `<path d="${frame}" fill="none" stroke="${spec.color}" stroke-width="1.2" stroke-linejoin="round"/>` +
     ring +
     chevrons +
-    `<g transform="translate(${offset} ${offset}) scale(${scale})">` +
-    `<g filter="url(#g)" opacity="0.55">${glyph}</g>${glyph}</g>` +
+    `<g transform="translate(${offset} ${offset}) scale(${scale})">${ink.join('')}${glyph}</g>` +
     '</svg>'
   );
 }

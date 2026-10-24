@@ -1,5 +1,5 @@
 import { RIFT_SHOT } from '../content/abilities';
-import { artStyleById } from '../content/art/styles';
+import { ART_STYLE } from '../content/art/style';
 import { BOONS } from '../content/boons';
 import { DIALOGUE } from '../content/dialogue';
 import { ELITES } from '../content/elites';
@@ -475,8 +475,8 @@ export class Game {
 
   static async start(root: HTMLElement): Promise<Game> {
     setLocale(resolveLocale(preferredLanguages()));
-    // The art style (ROADMAP M4.5) is baked into every texture, so it is read before the view.
-    const style = artStyleById(loadSettings(browserStore()).artStyle);
+    // The picture-book art style (ROADMAP M4.5) sets the menu look; the view bakes it in.
+    const style = ART_STYLE;
     applyUiTheme(style.id, {
       '--rb-bg': style.ui.bg,
       '--rb-fg': style.ui.fg,
