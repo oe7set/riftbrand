@@ -1,16 +1,15 @@
-/** Neon palette (GDD §12.1): dark, low-contrast world; the play layer glows. */
+/**
+ * Game colours (GDD §12.1), picture-book look since ROADMAP M4.5: warm, saturated colours with
+ * ink lines; enemy attacks stay warm and round, the player's own stay bright and long.
+ */
 export const PALETTE = {
-  background: 0x07060d,
-  floorGrid: 0x1c1830,
-  floorGridMajor: 0x2a2346,
-  arenaEdge: 0xff7a2f,
-  /** Ashfields floor details (ROADMAP M4.4): dark cracks and faint ember veins. */
-  ashCrack: 0x1a1222,
-  ashVein: 0xff6a2a,
-  player: 0x7ff6ff,
+  /** Ink: outlines, text strokes and dark shades (no longer a night sky). */
+  background: 0x2a1d2e,
+  ink: 0x2a1d2e,
+  player: 0xfff1d6,
   playerCore: 0xffffff,
-  /** Player attacks: bright, cool and elongated (GDD §12.1 rule 2). */
-  playerSlash: 0xbffcff,
+  /** Player attacks: bright, cream and elongated (GDD §12.1 rule 2). */
+  playerSlash: 0xfff8e8,
   ember: 0xffa64d,
   drifter: 0xb36bff,
   /** Enemy attacks: warm and round. */
@@ -18,9 +17,9 @@ export const PALETTE = {
   telegraph: 0xff3d3d,
   telegraphFill: 0xff7a5c,
   portal: 0xc46bff,
-  hpBack: 0x2a1020,
+  hpBack: 0x3a2a26,
   hpFill: 0xff4d6d,
-  hpPlayer: 0x7ff6ff,
+  hpPlayer: 0xff6b5a,
   stamina: 0xffd36b,
   crit: 0xfff06b,
   damageText: 0xffffff,
@@ -44,5 +43,5 @@ export const PALETTE = {
   ultimate: 0xff8a3d,
   debugCollider: 0x39ff88,
   touchBase: 0xffffff,
-  touchAccent: 0x7ff6ff,
+  touchAccent: 0xff8a5c,
 } as const;

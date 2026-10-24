@@ -12,9 +12,9 @@ import { installStatusFont, STATUS_FONT, STATUS_LABELS } from '../vfx/status-ove
 
 const MARGIN_PX = 16;
 const HP_WIDTH_PX = 180;
-const HP_HEIGHT_PX = 10;
+const HP_HEIGHT_PX = 12;
 const PIP_WIDTH_PX = 34;
-const PIP_HEIGHT_PX = 7;
+const PIP_HEIGHT_PX = 8;
 const PIP_GAP_PX = 6;
 const BANNER_SEC = 1.6;
 const STAMINA_PULSE_SEC = 0.35;
@@ -30,6 +30,8 @@ const BOSS_STATUS_GAP_PX = 42;
 /** Spell slot icons under the ultimate meter (screen pixels). */
 const SPELL_ICON_PX = 26;
 const SPELL_GAP_PX = 8;
+/** Picture-book ink frame around every bar (ROADMAP M4.5), screen pixels. */
+const INK_PX = 2;
 
 function bar(texture: Texture, tint: number, anchorX = 0): Sprite {
   const s = new Sprite(texture);
@@ -94,6 +96,8 @@ export class HudView {
   private time = 0;
   /** Player setting 0..1 for full-screen flashes (photosensitivity, GDD §13). */
   flashIntensity = 1;
+  /** Ink frames and the bar backs they outline. */
+  private readonly inks: Array<[ink: Sprite, back: Sprite]> = [];
 
   constructor(
     white: Texture,
@@ -136,10 +140,11 @@ export class HudView {
     this.ultFill = bar(white, PALETTE.ultimate);
     this.root.addChild(this.ultBack, this.ultFill);
     const style = {
-      fontFamily: 'system-ui, sans-serif',
-      fontWeight: '700' as const,
+      fontFamily: '"Baloo 2", system-ui, sans-serif',
+      fontWeight: '800' as const,
       fill: 0xffffff,
-      letterSpacing: 2,
+      letterSpacing: 1,
+      stroke: { color: PALETTE.ink, width: 4, join: 'round' as const },
     };
     this.waveLabel = new Text({ text: '', style: { ...style, fontSize: 16 } });
     this.waveLabel.anchor.set(0.5, 0);
@@ -181,6 +186,17 @@ export class HudView {
       this.bossName,
     );
     this.root.addChild(this.spellIcon, this.spellShade, this.auraIcon);
+    for (const back of [
+      this.hpBack,
+      ...this.pipsBack,
+      ...this.castBack,
+      this.ultBack,
+      this.bossBack,
+    ]) {
+      const ink = bar(white, PALETTE.ink);
+      this.root.addChildAt(ink, this.root.getChildIndex(back));
+      this.inks.push([ink, back]);
+    }
     installStatusFont();
     for (let s = 0; s < STATUS_COUNT; s++) {
       const icon = new Sprite(statusIcons[s] ?? white);
@@ -547,5 +563,16 @@ export class HudView {
     this.vignette.alpha = Math.min(1, (hitFlash + lowHp) * this.flashIntensity);
     this.vignette.width = this.width;
     this.vignette.height = this.height;
+    this.syncInk();
+  }
+
+  /** Each ink frame follows its bar back, a little larger, so every bar has an outline. */
+  private syncInk(): void {
+    for (const [ink, back] of this.inks) {
+      ink.visible = back.visible;
+      if (!back.visible) continue;
+      ink.position.set(back.x - INK_PX, back.y - INK_PX);
+      ink.scale.set(back.scale.x + INK_PX * 2, back.scale.y + INK_PX * 2);
+    }
   }
 }

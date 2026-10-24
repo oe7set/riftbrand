@@ -645,7 +645,18 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
   - `EmberRain(texture, particles)` bewegt die Partikel je nach Art: Funken, Glühwürmchen, Blätter oder Lichtpunkte.
 - **CSS:** Variablen `--rb-title`, `--rb-font` und `--rb-radius`, dazu Regeln pro `:root[data-style=…]`.
 
-## 42. Risiken und Gegenmaßnahmen
+## 42. Stand nach M4.5 (Bilderbuch-Look)
+- **Daten:** `content/art/style.ts` (`ART_STYLE`) ist die einzige Kunst-Richtung.
+- **Palette:** `PALETTE.ink` ist die Tinte, `PALETTE.background` die dunkle Schattierung. Die Neon-Bodenfarben sind entfernt.
+- **Rigs:**
+  - `styleRig()` legt Augen als eigenes Teil `eyes` hinter den Kopf.
+  - Neuer Bewegungskanal `blink`: `poseRig` skaliert das Teil periodisch, `restingRigMotion()` liefert die Ruhewerte für Teile, die im Code entstehen.
+- **HUD:** Tintenrahmen als Sprites unter jeder Leiste (`syncInk`), Texte mit Kontur.
+- **Zuflucht:** `HubView` zeichnet alle Wahrzeichen, Gebäude, Pflanzen und Dekorationen gefüllt mit Tintenkontur, weiterhin nur bei Änderungen.
+- **Freude:** `EntityView.celebrate()` wird von `feedback.ts` bei `Ev.RoomCleared` ausgelöst.
+- **Bodenpartikel** werden normal statt additiv gemischt.
+
+## 43. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

@@ -45,7 +45,7 @@ body {
   justify-content: safe center;
   gap: 14px;
   padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
-  background: rgba(7, 6, 13, 0.72);
+  background: rgba(42, 29, 30, 0.55);
   backdrop-filter: blur(3px);
   overflow-y: auto;
   box-sizing: border-box;
@@ -57,7 +57,7 @@ body {
 
 .rb-death {
   cursor: pointer;
-  background: radial-gradient(circle at center, rgba(60, 8, 20, 0.6), rgba(7, 6, 13, 0.92));
+  background: radial-gradient(circle at center, rgba(120, 30, 30, 0.55), rgba(42, 29, 30, 0.9));
 }
 
 .rb-overlay-title {
@@ -293,7 +293,7 @@ body {
   padding: 8px 16px;
   border: 1px solid rgba(127, 246, 255, 0.5);
   border-radius: 999px;
-  background: rgba(7, 6, 13, 0.75);
+  background: rgba(42, 29, 30, 0.85);
   font-weight: 700;
   letter-spacing: 0.04em;
   box-shadow: 0 0 16px rgba(127, 246, 255, 0.25);
@@ -304,7 +304,7 @@ body {
   inset: 0;
   display: flex;
   flex-direction: column;
-  background: rgba(7, 6, 13, 0.82);
+  background: rgba(42, 29, 30, 0.68);
   backdrop-filter: blur(4px);
   padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
     max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
@@ -1189,11 +1189,12 @@ body {
   width: min(620px, 92vw);
   aspect-ratio: 16 / 9;
   margin: 8px auto;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 3px solid #1d1418;
   border-radius: 14px;
+  box-shadow: 0 4px 0 #1d1418;
   background:
-    radial-gradient(circle at 20% 68%, rgba(255, 122, 46, 0.16), transparent 32%),
-    radial-gradient(circle at 86% 22%, rgba(255, 61, 138, 0.1), transparent 30%), #0d0a18;
+    radial-gradient(circle at 20% 68%, rgba(255, 140, 80, 0.25), transparent 32%),
+    radial-gradient(circle at 70% 40%, rgba(127, 160, 94, 0.35), transparent 45%), #e8d9b0;
 }
 
 .rb-worldmap-paths {
@@ -1204,18 +1205,19 @@ body {
 }
 
 .rb-worldmap-paths line {
-  stroke: rgba(255, 255, 255, 0.18);
+  stroke: rgba(42, 29, 46, 0.45);
   stroke-width: 2;
   stroke-dasharray: 6 6;
 }
 
 .rb-worldmap-paths line.open {
-  stroke: rgba(255, 210, 150, 0.7);
+  stroke: #c8503e;
   stroke-dasharray: none;
 }
 
 .rb-world {
   position: absolute;
+  font: inherit;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1234,9 +1236,9 @@ body {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  border: 2px solid var(--world);
-  background: color-mix(in srgb, var(--world) 22%, #0d0a18);
-  box-shadow: 0 0 16px color-mix(in srgb, var(--world) 55%, transparent);
+  border: 3px solid #1d1418;
+  background: var(--world);
+  box-shadow: 0 3px 0 #1d1418;
   font-size: 18px;
   color: var(--world);
   transition: transform 0.12s ease;
@@ -1247,7 +1249,8 @@ body {
   font-size: 12px;
   letter-spacing: 0.05em;
   white-space: nowrap;
-  text-shadow: 0 1px 3px #000;
+  font-weight: 700;
+  color: #2a1d2e;
 }
 
 .rb-world.locked .rb-world-dot,
@@ -1479,20 +1482,7 @@ body {
   background: color-mix(in srgb, var(--rb-panel) 80%, transparent);
 }
 
-/* ── Style prototype (ROADMAP M4.5): friendlier menus per art direction ───────────── */
-
-/* A · Glühwürmchen-Abend: soft, warm, rounded; light instead of neon. */
-:root[data-style="firefly"] .rb-button {
-  border-width: 2px;
-  background: rgba(255, 220, 180, 0.08);
-}
-
-:root[data-style="firefly"] .rb-logo {
-  color: #fff3e0;
-  text-shadow:
-    0 0 14px rgba(255, 196, 138, 0.8),
-    0 0 46px rgba(255, 150, 120, 0.45);
-}
+/* ── Picture-book look (ROADMAP M4.5) ─────────────────────────────────────────────── */
 
 /* B · Bilderbuch: thick ink outlines, offset shadows instead of glow, chunky type. */
 :root[data-style="storybook"] .rb-button,
@@ -1525,23 +1515,4 @@ body {
 
 :root[data-style="storybook"] .rb-logo {
   color: #ffe0a3;
-}
-
-/* C · Mond-Aquarell: airy, thin lines, a soft wash behind titles. */
-:root[data-style="moon"] .rb-button {
-  border-color: rgba(169, 196, 255, 0.45);
-  background: rgba(169, 196, 255, 0.07);
-}
-
-:root[data-style="moon"] .rb-overlay-title,
-:root[data-style="moon"] .rb-logo {
-  font-weight: 700;
-  letter-spacing: 0.24em;
-}
-
-:root[data-style="moon"] .rb-logo {
-  color: #eef3ff;
-  text-shadow:
-    0 0 20px rgba(169, 196, 255, 0.7),
-    0 0 60px rgba(150, 130, 255, 0.35);
 }

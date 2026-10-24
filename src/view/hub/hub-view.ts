@@ -42,6 +42,9 @@ const PLANT_SPOTS: ReadonlyArray<readonly [number, number]> = [
   [760, 960],
 ];
 
+/** Ink for every outline in the refuge (picture-book look, ROADMAP M4.5). */
+const INK = PALETTE.ink;
+
 const SITE_COLORS: Readonly<Record<string, number>> = {
   forge: 0xff9a5a,
   map_table: 0x7ff6c8,
@@ -115,9 +118,9 @@ export class HubView {
       const rig = new RigInstance(baked, this.bodies, this.ground, textures.dot, textures.softGlow);
       rig.visible = true;
       const style = {
-        fontFamily: 'Inter, system-ui, sans-serif',
+        fontFamily: '"Baloo 2", system-ui, sans-serif',
         fontSize: 13,
-        fontWeight: '700' as const,
+        fontWeight: '800' as const,
         fill: baked.layout.rig.colors.body,
         stroke: { color: PALETTE.background, width: 4 },
       };
@@ -155,66 +158,101 @@ export class HubView {
     }
   }
 
-  /** Static landmark art on top of the plain obstacle shapes; never redrawn per frame. */
+  /**
+   * Static landmark art on top of the plain obstacle shapes (picture-book look, ROADMAP M4.5):
+   * filled shapes with ink outlines; never redrawn per frame.
+   */
   private drawDecor(layout: HubLayoutDef): void {
     const g = this.decor;
+    const ink = { color: INK, width: 3.5, join: 'round' as const, cap: 'round' as const };
     const [tree, stall, tower, wallL, wallR] = layout.obstacles;
     if (tree?.kind === 'circle') {
-      // Ember Tree: glowing branches fanning up from the trunk, embers as fruit.
-      for (let i = 0; i < 7; i++) {
-        const a = -Math.PI / 2 + (i - 3) * 0.32;
-        const len = tree.r * (1.5 + (i % 3) * 0.35);
-        const x1 = tree.x + Math.cos(a) * tree.r * 0.5;
-        const y1 = tree.y + Math.sin(a) * tree.r * 0.5;
-        const x2 = tree.x + Math.cos(a) * len;
-        const y2 = tree.y + Math.sin(a) * len;
-        g.moveTo(x1, y1).lineTo(x2, y2).stroke({ color: PALETTE.ember, width: 9, alpha: 0.08 });
-        g.moveTo(x1, y1).lineTo(x2, y2).stroke({ color: PALETTE.ember, width: 2.5, alpha: 0.75 });
-        g.circle(x2, y2, 5).fill({ color: 0xffd36b, alpha: 0.9 });
-        g.circle(x2, y2, 11).fill({ color: PALETTE.ember, alpha: 0.12 });
+      // Ember Tree: a round autumn crown of overlapping puffs above the trunk, ember fruit.
+      const cx = tree.x;
+      const cy = tree.y - tree.r * 1.4;
+      const puffs: ReadonlyArray<readonly [number, number, number]> = [
+        [-0.9, 0.25, 0.75],
+        [0.9, 0.25, 0.75],
+        [-0.45, -0.45, 0.85],
+        [0.5, -0.4, 0.8],
+        [0, 0.15, 1],
+      ];
+      for (const [dx, dy, k] of puffs) {
+        g.circle(cx + dx * tree.r, cy + dy * tree.r, tree.r * k)
+          .fill({ color: 0xd9704a })
+          .stroke(ink);
+      }
+      for (const [dx, dy, k] of puffs) {
+        g.circle(cx + dx * tree.r - 6, cy + dy * tree.r - 8, tree.r * k * 0.55).fill({
+          color: 0xf09a5a,
+          alpha: 0.7,
+        });
+      }
+      for (let i = 0; i < 6; i++) {
+        const a = i * 1.1;
+        const fx = cx + Math.cos(a) * tree.r * 0.9;
+        const fy = cy + Math.sin(a) * tree.r * 0.6;
+        g.circle(fx, fy, 6).fill({ color: 0xffd36b }).stroke({ color: INK, width: 2.5 });
       }
     }
     if (stall?.kind === 'rect') {
-      // Nix's stall: a striped awning and two lanterns.
+      // Nix's stall: a striped red and cream awning and two lanterns.
       const stripes = 6;
+      const top = stall.y - 30;
       for (let i = 0; i < stripes; i++) {
-        const x = stall.x + (stall.w / stripes) * i;
-        g.rect(x, stall.y - 22, stall.w / stripes, 22).fill({
-          color: i % 2 === 0 ? 0xc46bff : 0x2a1a3a,
-          alpha: 0.5,
+        const x = stall.x - 10 + ((stall.w + 20) / stripes) * i;
+        g.rect(x, top, (stall.w + 20) / stripes, 30).fill({
+          color: i % 2 === 0 ? 0xd94f4f : 0xfff1d6,
         });
       }
-      g.rect(stall.x, stall.y - 22, stall.w, 22).stroke({ color: 0xc46bff, width: 2, alpha: 0.8 });
+      g.rect(stall.x - 10, top, stall.w + 20, 30).stroke(ink);
+      for (let i = 0; i < stripes; i++) {
+        const x = stall.x - 10 + ((stall.w + 20) / stripes) * (i + 0.5);
+        g.circle(x, top + 30, (stall.w + 20) / stripes / 2)
+          .fill({ color: i % 2 === 0 ? 0xd94f4f : 0xfff1d6 })
+          .stroke({ color: INK, width: 2.5 });
+      }
       for (const lx of [stall.x + 12, stall.x + stall.w - 12]) {
-        g.circle(lx, stall.y + 8, 12).fill({ color: 0xc46bff, alpha: 0.15 });
-        g.circle(lx, stall.y + 8, 5).fill({ color: 0xf0d6ff, alpha: 0.95 });
+        g.circle(lx, stall.y + 14, 9)
+          .fill({ color: 0xffd36b })
+          .stroke({ color: INK, width: 2.5 });
       }
     }
     if (tower?.kind === 'rect') {
-      // Sel's rune tower: glowing runes up the walls and a lit window.
+      // Sel's rune tower: a pointed purple roof, a round window and runes.
       const cx = tower.x + tower.w / 2;
-      for (let i = 0; i < 3; i++) {
-        const y = tower.y + 30 + i * 40;
-        g.poly([cx, y - 10, cx + 8, y, cx, y + 10, cx - 8, y]).stroke({
-          color: 0xb8a6ff,
-          width: 2,
-          alpha: 0.85,
-        });
+      g.poly([tower.x - 14, tower.y + 6, cx, tower.y - 70, tower.x + tower.w + 14, tower.y + 6])
+        .fill({ color: 0x7a5ab8 })
+        .stroke(ink);
+      g.circle(cx, tower.y + 40, 14)
+        .fill({ color: 0xfff1d6 })
+        .stroke(ink);
+      for (let i = 0; i < 2; i++) {
+        const y = tower.y + 85 + i * 34;
+        g.poly([cx, y - 10, cx + 8, y, cx, y + 10, cx - 8, y])
+          .fill({ color: 0xb8a6ff })
+          .stroke({
+            color: INK,
+            width: 2.5,
+          });
       }
-      g.rect(cx - 10, tower.y + tower.h - 36, 20, 26).fill({ color: 0xeee8ff, alpha: 0.6 });
     }
     if (wallL?.kind === 'rect' && wallR?.kind === 'rect') {
-      // Portal hall: an arch spanning the two walls.
+      // Portal hall: a stone arch over the two pillars with a purple swirl between them.
       const x1 = wallL.x + wallL.w / 2;
       const x2 = wallR.x + wallR.w / 2;
       const y = wallL.y + 10;
       const mid = (x1 + x2) / 2;
       g.moveTo(x1, y)
-        .quadraticCurveTo(mid, y - 90, x2, y)
-        .stroke({ color: PALETTE.portal, width: 10, alpha: 0.1 });
+        .quadraticCurveTo(mid, y - 110, x2, y)
+        .stroke({ color: INK, width: 26, cap: 'round' });
       g.moveTo(x1, y)
-        .quadraticCurveTo(mid, y - 90, x2, y)
-        .stroke({ color: PALETTE.portal, width: 3, alpha: 0.8 });
+        .quadraticCurveTo(mid, y - 110, x2, y)
+        .stroke({ color: 0xa8a090, width: 18, cap: 'round' });
+      g.ellipse(mid, y + 70, (x2 - x1) * 0.32, 80)
+        .fill({ color: 0x9a6bff, alpha: 0.55 })
+        .stroke(ink);
+      g.ellipse(mid, y + 70, (x2 - x1) * 0.18, 46).fill({ color: 0xd8c4ff, alpha: 0.6 });
     }
   }
 
@@ -316,84 +354,108 @@ export class HubView {
 
 type Rect = { x: number; y: number; w: number; h: number };
 
-/** A ruin is a broken outline with rubble; built sites get walls, roof and light. */
+const INK_LINE = { color: INK, width: 3.5, join: 'round' as const, cap: 'round' as const };
+
+/** A ruin is a broken wall with rubble; built sites get walls, a red roof and light. */
 function drawSite(g: Graphics, id: string, level: number, r: Rect): void {
   const color = SITE_COLORS[id] ?? PALETTE.ember;
   if (level === 0) {
-    const grey = 0x6a6478;
+    const stone = 0xa8a090;
     g.moveTo(r.x, r.y + r.h)
       .lineTo(r.x, r.y + r.h * 0.35)
       .lineTo(r.x + r.w * 0.2, r.y + r.h * 0.2)
-      .stroke({ color: grey, width: 3, alpha: 0.7 });
+      .stroke({ color: INK, width: 9, cap: 'round', join: 'round' });
+    g.moveTo(r.x, r.y + r.h)
+      .lineTo(r.x, r.y + r.h * 0.35)
+      .lineTo(r.x + r.w * 0.2, r.y + r.h * 0.2)
+      .stroke({ color: stone, width: 5, cap: 'round', join: 'round' });
     g.moveTo(r.x + r.w, r.y + r.h)
       .lineTo(r.x + r.w, r.y + r.h * 0.55)
-      .stroke({ color: grey, width: 3, alpha: 0.7 });
-    g.moveTo(r.x, r.y + r.h)
-      .lineTo(r.x + r.w, r.y + r.h)
-      .stroke({ color: grey, width: 2, alpha: 0.5 });
+      .stroke({ color: INK, width: 9, cap: 'round' });
+    g.moveTo(r.x + r.w, r.y + r.h)
+      .lineTo(r.x + r.w, r.y + r.h * 0.55)
+      .stroke({ color: stone, width: 5, cap: 'round' });
     for (let i = 0; i < 5; i++) {
       const x = r.x + r.w * (0.15 + i * 0.17);
       const y = r.y + r.h * (0.55 + (i % 2) * 0.25);
-      g.poly([x - 7, y + 4, x - 2, y - 5, x + 7, y - 2, x + 5, y + 5]).fill({
-        color: grey,
-        alpha: 0.6,
-      });
+      g.poly([x - 9, y + 5, x - 3, y - 7, x + 9, y - 3, x + 7, y + 7])
+        .fill({ color: stone })
+        .stroke({
+          color: INK,
+          width: 2.5,
+        });
     }
     return;
   }
-  g.rect(r.x, r.y, r.w, r.h)
-    .fill({ color, alpha: 0.08 })
-    .stroke({ color, width: 2.5, alpha: 0.85 });
-  // Roof ridge.
-  g.moveTo(r.x - 8, r.y)
-    .lineTo(r.x + r.w / 2, r.y - 26)
-    .lineTo(r.x + r.w + 8, r.y)
-    .stroke({ color, width: 3, alpha: 0.9 });
+  // Walls in warm cream, the site colour as trim, a red roof.
+  g.roundRect(r.x, r.y, r.w, r.h, 10).fill({ color: 0xf2dfb8 }).stroke(INK_LINE);
+  g.roundRect(r.x + 6, r.y + r.h - 16, r.w - 12, 10, 4).fill({ color });
+  g.poly([r.x - 12, r.y + 8, r.x + r.w / 2, r.y - 34, r.x + r.w + 12, r.y + 8])
+    .fill({ color: 0xc8503e })
+    .stroke(INK_LINE);
   const cx = r.x + r.w / 2;
   if (id === 'forge') {
-    // Anvil in front and a glowing hearth mouth.
-    g.rect(cx - 22, r.y + r.h - 34, 44, 26).fill({ color: 0xffd36b, alpha: 0.18 + level * 0.12 });
+    // A glowing hearth mouth and an anvil in front.
+    g.roundRect(cx - 24, r.y + r.h - 44, 48, 30, 12)
+      .fill({ color: 0xffb347 })
+      .stroke(INK_LINE);
     g.poly([
-      cx + 40,
-      r.y + r.h + 18,
+      cx + 44,
+      r.y + r.h + 16,
+      cx + 76,
+      r.y + r.h + 16,
       cx + 70,
-      r.y + r.h + 18,
-      cx + 64,
       r.y + r.h + 28,
-      cx + 46,
+      cx + 50,
       r.y + r.h + 28,
-    ]).fill({ color, alpha: 0.6 });
+    ])
+      .fill({ color: 0x6a6478 })
+      .stroke(INK_LINE);
     if (level >= 2) {
-      g.rect(r.x + r.w - 34, r.y - 50, 18, 46).stroke({ color, width: 2.5, alpha: 0.9 });
-      g.circle(r.x + r.w - 25, r.y - 60, 8).fill({ color: 0xffd36b, alpha: 0.5 });
+      g.roundRect(r.x + r.w - 38, r.y - 54, 20, 48, 4)
+        .fill({ color: 0xa8a090 })
+        .stroke(INK_LINE);
+      g.circle(r.x + r.w - 28, r.y - 66, 9).fill({ color: 0xe8e0d0, alpha: 0.85 });
     }
   } else if (id === 'map_table') {
-    // A table with a glowing map spread on it.
-    g.rect(cx - 30, r.y + 16, 60, 36).fill({ color: 0xe0fff4, alpha: 0.15 + level * 0.1 });
+    // A table with a map spread on it.
+    g.roundRect(cx - 32, r.y + 14, 64, 38, 6)
+      .fill({ color: 0xfff6e0 })
+      .stroke(INK_LINE);
     g.moveTo(cx - 20, r.y + 40)
       .lineTo(cx - 4, r.y + 26)
       .lineTo(cx + 18, r.y + 34)
-      .stroke({ color, width: 2, alpha: 0.9 });
-    if (level >= 2) g.circle(cx + 18, r.y + 34, 5).fill({ color: 0xffd36b, alpha: 0.9 });
+      .stroke({
+        color: 0xd94f4f,
+        width: 3,
+        cap: 'round',
+      });
+    if (level >= 2)
+      g.circle(cx + 18, r.y + 34, 6)
+        .fill({ color: 0xffd36b })
+        .stroke({ color: INK, width: 2 });
   } else if (id === 'archive') {
-    // Shelves of glowing book spines.
+    // Shelves of colourful book spines.
     const shelves = level >= 2 ? 3 : 2;
-    for (let s = 0; s < shelves; s++) {
-      const y = r.y + 30 + s * 36;
-      g.moveTo(r.x + 16, y + 22)
-        .lineTo(r.x + r.w - 16, y + 22)
-        .stroke({ color, width: 2, alpha: 0.8 });
+    const spines = [0xd94f4f, 0x7a5ab8, 0x7fa05e, 0xffd36b];
+    for (let sh = 0; sh < shelves; sh++) {
+      const y = r.y + 28 + sh * 36;
       for (let b = 0; b < 7; b++) {
-        g.rect(r.x + 22 + b * 16, y, 8, 20).fill({
-          color: b % 3 === 0 ? 0xf2f0ff : color,
-          alpha: 0.5,
-        });
+        g.rect(r.x + 20 + b * 16, y, 10, 22)
+          .fill({ color: spines[b % spines.length] ?? color })
+          .stroke({
+            color: INK,
+            width: 2,
+          });
       }
+      g.moveTo(r.x + 14, y + 23)
+        .lineTo(r.x + r.w - 14, y + 23)
+        .stroke({ color: INK, width: 3 });
     }
   }
 }
 
-/** Places that worked from the start show their upgrades as extra light and furniture. */
+/** Places that worked from the start show their upgrades as lights and furniture. */
 function drawUpgrades(
   g: Graphics,
   layout: HubLayoutDef,
@@ -402,55 +464,88 @@ function drawUpgrades(
   const [, stall, tower] = layout.obstacles;
   const market = levels.market ?? 0;
   if (stall?.kind === 'rect' && market > 0) {
-    // A string of lights over the stall, a second one when expanded.
+    // Bunting over the stall, a second row when expanded.
     for (let row = 0; row < market; row++) {
-      const y = stall.y - 40 - row * 16;
-      for (let i = 0; i <= 6; i++) {
+      const y = stall.y - 52 - row * 18;
+      g.moveTo(stall.x - 10, y)
+        .quadraticCurveTo(stall.x + stall.w / 2, y + 14, stall.x + stall.w + 10, y)
+        .stroke({ color: INK, width: 2 });
+      for (let i = 0; i < 7; i++) {
         const x = stall.x + (stall.w / 6) * i;
-        g.circle(x, y + Math.sin(i) * 4, 3.5).fill({
-          color: row === 0 ? 0xf0d6ff : 0xffd36b,
-          alpha: 0.9,
-        });
+        const yy = y + 4 + Math.sin((i / 6) * Math.PI) * 8;
+        g.poly([x - 6, yy, x + 6, yy, x, yy + 12])
+          .fill({ color: i % 2 ? 0xffd36b : 0x7fa05e })
+          .stroke({
+            color: INK,
+            width: 1.5,
+          });
       }
     }
   }
   const runes = levels.rune_tower ?? 0;
   if (tower?.kind === 'rect' && runes > 0) {
     const cx = tower.x + tower.w / 2;
-    g.circle(cx, tower.y - 24, 10 + runes * 4).stroke({ color: 0xb8a6ff, width: 2.5, alpha: 0.85 });
-    if (runes >= 2) g.circle(cx, tower.y - 24, 6).fill({ color: 0xeee8ff, alpha: 0.9 });
+    g.circle(cx, tower.y - 90, 12 + runes * 4)
+      .fill({ color: 0xd8c4ff, alpha: 0.5 })
+      .stroke({ color: INK, width: 3 });
+    if (runes >= 2)
+      g.star(cx, tower.y - 90, 5, 9, 4)
+        .fill({ color: 0xffffff })
+        .stroke({ color: INK, width: 2 });
   }
   const fire = levels.campfire ?? 0;
-  const campfire = layout.stations.find((s) => s.id === 'campfire');
+  const campfire = layout.stations.find((st) => st.id === 'campfire');
   if (campfire && fire > 0) {
-    // Benches around the fire, lantern posts once expanded.
+    // Log benches around the fire, lantern posts once expanded.
     for (const a of [0.6, 2.5, 4.4]) {
-      const x = campfire.x + Math.cos(a) * 70;
-      const y = campfire.y + Math.sin(a) * 52;
-      g.rect(x - 16, y - 4, 32, 8).fill({ color: 0x8a5a30, alpha: 0.8 });
+      const x = campfire.x + Math.cos(a) * 72;
+      const y = campfire.y + Math.sin(a) * 54;
+      g.roundRect(x - 20, y - 6, 40, 12, 6)
+        .fill({ color: 0x9a6a44 })
+        .stroke({ color: INK, width: 3 });
     }
     if (fire >= 2) {
       for (const dx of [-120, 120]) {
         g.moveTo(campfire.x + dx, campfire.y + 10)
           .lineTo(campfire.x + dx, campfire.y - 30)
-          .stroke({ color: 0x8a5a30, width: 3 });
-        g.circle(campfire.x + dx, campfire.y - 34, 6).fill({ color: 0xffd36b, alpha: 0.95 });
-        g.circle(campfire.x + dx, campfire.y - 34, 14).fill({ color: 0xffb347, alpha: 0.15 });
+          .stroke({
+            color: INK,
+            width: 5,
+          });
+        g.circle(campfire.x + dx, campfire.y - 36, 8)
+          .fill({ color: 0xffd36b })
+          .stroke({ color: INK, width: 2.5 });
       }
     }
   }
 }
 
 function drawPlant(g: Graphics, x: number, y: number, seed: number): void {
-  const color = seed % 3 === 0 ? 0x7ff6c8 : 0x5fd38a;
+  // Inked leaves; every second plant carries a flower.
   for (let i = -1; i <= 1; i++) {
-    const tipX = x + i * 9 + (seed % 2) * 2;
-    const tipY = y - 16 - Math.abs(i) * -4;
-    g.moveTo(x, y)
-      .quadraticCurveTo(x + i * 3, y - 8, tipX, tipY)
-      .stroke({ color, width: 2, alpha: 0.8 });
+    const tipX = x + i * 10;
+    const tipY = y - 14 - (i === 0 ? 6 : 0);
+    g.poly([
+      x,
+      y,
+      (x + tipX) / 2 - 3,
+      (y + tipY) / 2,
+      tipX,
+      tipY,
+      (x + tipX) / 2 + 3,
+      (y + tipY) / 2,
+    ])
+      .fill({ color: 0x7fa05e })
+      .stroke({ color: INK, width: 2 });
   }
-  if (seed % 2 === 0) g.circle(x, y - 18, 3).fill({ color: 0xffd36b, alpha: 0.9 });
+  if (seed % 2 === 0) {
+    g.circle(x, y - 22, 5)
+      .fill({ color: seed % 4 === 0 ? 0xd94f4f : 0xffd36b })
+      .stroke({
+        color: INK,
+        width: 2,
+      });
+  }
 }
 
 function drawDecoration(g: Graphics, d: DecorationDef): void {
@@ -458,29 +553,35 @@ function drawDecoration(g: Graphics, d: DecorationDef): void {
   if (d.kind === 'lantern') {
     g.moveTo(x, y + 20)
       .lineTo(x, y - 20)
-      .stroke({ color: 0x8a5a30, width: 3 });
-    g.circle(x, y - 26, 7).fill({ color, alpha: 0.95 });
-    g.circle(x, y - 26, 18).fill({ color, alpha: 0.15 });
+      .stroke({ color: INK, width: 5 });
+    g.circle(x, y - 28, 9)
+      .fill({ color })
+      .stroke({ color: INK, width: 3 });
   } else if (d.kind === 'flowers') {
     for (let i = 0; i < 5; i++) {
-      const fx = x + (i - 2) * 12;
+      const fx = x + (i - 2) * 13;
       const fy = y + (i % 2) * 6;
       g.moveTo(fx, fy + 10)
         .lineTo(fx, fy)
-        .stroke({ color: 0x5fd38a, width: 2 });
-      g.circle(fx, fy - 2, 4).fill({ color, alpha: 0.95 });
+        .stroke({ color: INK, width: 2.5 });
+      g.circle(fx, fy - 3, 5)
+        .fill({ color })
+        .stroke({ color: INK, width: 2 });
     }
   } else if (d.kind === 'banner') {
     g.moveTo(x, y + 24)
       .lineTo(x, y - 40)
-      .stroke({ color: 0x8a5a30, width: 3 });
+      .stroke({ color: INK, width: 5 });
     g.poly([x, y - 40, x + 34, y - 34, x + 26, y - 22, x + 34, y - 10, x, y - 14])
-      .fill({ color, alpha: 0.6 })
-      .stroke({ color, width: 2 });
+      .fill({ color: 0xd94f4f })
+      .stroke({ color: INK, width: 3, join: 'round' });
   } else {
     g.poly([x, y - 34, x + 12, y - 8, x, y + 6, x - 12, y - 8])
-      .fill({ color, alpha: 0.4 })
-      .stroke({ color, width: 2 });
-    g.circle(x, y - 12, 20).fill({ color, alpha: 0.1 });
+      .fill({ color })
+      .stroke({
+        color: INK,
+        width: 3,
+        join: 'round',
+      });
   }
 }

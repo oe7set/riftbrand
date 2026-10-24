@@ -90,13 +90,11 @@ describe('settings', () => {
     expect(s.language).toBe('de');
   });
 
-  it('migrates v7 settings: the neon look stays until another style is picked (M4.5)', () => {
-    const s = migrateSettings({ version: 7, simpleGraphics: true });
+  it('migrates v8 settings: the prototype style choice is dropped (M4.5)', () => {
+    const s = migrateSettings({ version: 8, artStyle: 'moon', simpleGraphics: true });
     expect(s.version).toBe(SETTINGS_VERSION);
-    expect(s.artStyle).toBe('neon');
+    expect('artStyle' in s).toBe(false);
     expect(s.simpleGraphics).toBe(true);
-    expect(migrateSettings({ artStyle: 'storybook' }).artStyle).toBe('storybook');
-    expect(migrateSettings({ artStyle: 'nope' }).artStyle).toBe('neon');
   });
 
   it('keeps a valid touch layout and drops a broken one', () => {

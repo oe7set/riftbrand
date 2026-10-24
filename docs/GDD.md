@@ -576,17 +576,33 @@ Die zuletzt verwendete Eingabemethode bestimmt die angezeigten Hinweise und die 
 
 ## 12. Kunst- und Audio-Richtung
 
-### 12.1 Look: Neon-Vektor
-> **Hinweis (2026-10-24):** Der PO wünscht eine **viel freundlichere Stimmung** mit mehr Liebe im Design (ROADMAP E15). Die Richtung wird in M4.5 mit einem Stil-Prototyp (3 Varianten) gewählt; danach wird dieser Abschnitt neu geschrieben. Die Lesbarkeits-Regeln unten gelten weiter.
-
-- Dunkle, entsättigte Hintergründe mit niedrigem Kontrast. Die **Spielebene leuchtet**.
-- Figuren bestehen aus klaren geometrischen Silhouetten mit leuchtenden Kanten (Bloom), alles prozedural im Code erzeugt.
-- **Lesbarkeits-Regeln:**
-  1. Der Spieler ist immer das hellste bzw. markanteste Element mit weißem Kern.
+### 12.1 Look: Bilderbuch (seit M4.5)
+Der PO hat aus drei Richtungen das **Bilderbuch** gewählt (2026-10-24, ROADMAP E15). Vorbild in der Stimmung: Cult of the Lamb, niedlich und frech mit dunklem Unterton.
+- **Farben:**
+  - kräftige, warme Farben auf einer grünen Wiese
+  - Tinte (`#2a1d2e`) für alle Konturen und Schatten
+  - kein Neon-Leuchten und kein Bloom; Licht nur als weiche Flächen (Lagerfeuer, gebaute Plätze)
+- **Figuren:**
+  - Körper aus Teilen (M4) mit **dicker Tintenkontur**
+  - **große Augen**, die blinzeln
+  - Vesper in Creme mit rotem Umhang
+  - Gegner behalten ihre Farbe, leicht aufgehellt.
+- **Umgebung:**
+  - Wiese mit helleren und dunkleren Flächen, Gekritzel aus Gras, Kieseln und Pilzen
+  - Steinblöcke mit Moos und Rissen
+  - fallende Blätter
+  - Die Zuflucht hat gezeichnete Wahrzeichen: Herbstbaum, gestreifte Markise, Turm mit Spitzdach, steinerner Portalbogen.
+- **Bewegung:** Squash & Stretch wie bisher, dazu Blinzeln und ein **Freudensprung** von Vesper, wenn ein Raum geschafft ist.
+- **Oberfläche:**
+  - Schrift **Baloo 2**, im Spiel gebündelt
+  - Buttons und Karten mit Tintenkontur und Versatz-Schatten
+  - warme braune Flächen statt Nachtschwarz
+  - Icons als braune Karten mit Tintenrand und eingefärbtem Symbol
+- **Lesbarkeits-Regeln (gelten weiter):**
+  1. Der Spieler ist das hellste bzw. markanteste Element: cremeweiß mit Tintenkontur (ein Test prüft den Kontrast zum Boden).
   2. Gegnerische Angriffe sind warm und rot-orange mit runden Formen. Eigene Angriffe haben die Farbe des Wesens und längliche Formen.
   3. Telegraphs = Form + Füllanimation + Sound (bei Farbenblindheit zusätzlich ein Muster).
-- Fragmente haben jeweils eine eigene Hintergrund-Palette und eigene Umgebungspartikel (Asche, Schnee, Regen, Leere-Glitches).
-- Schrift: eine charaktervolle, freie Display-Schrift für Titel und eine gut lesbare Sans-Schrift für Text.
+- Weitere Welten bekommen eigene Paletten im selben Bilderbuch-Stil (z. B. Gläserne See: Türkis und Weiß).
 
 ### 12.2 Audio
 - **Soundeffekte:** prozedural mit einem Synthesizer im Stil von ZzFX. Sie werden beim Laden einmal erzeugt und dann mit Variation in Tonhöhe und Lautstärke abgespielt.

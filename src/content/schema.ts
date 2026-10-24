@@ -1015,7 +1015,14 @@ const rigMotionSchema = z.object({
   lagDeg: z.number().default(0),
   /** Extra wobble at twice the walk rate (cloth, flames). */
   flutterDeg: z.number().default(0),
+  /** Shrinks the part during a blink (eyes, ROADMAP M4.5): 1 = closes fully. */
+  blink: z.number().min(0).max(1).default(0),
 });
+
+/** All motion channels at rest, for parts made in code (e.g. eyes added by the art style). */
+export function restingRigMotion(): z.infer<typeof rigMotionSchema> {
+  return rigMotionSchema.parse({});
+}
 
 const rigPartSchema = z.object({
   id,

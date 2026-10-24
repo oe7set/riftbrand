@@ -1,11 +1,9 @@
 import { RIFT_SHOT_UPGRADES } from '../content/abilities';
-import { artStyleIdSchema } from '../content/art/styles';
 import { boonById, boonDescParams } from '../content/boons';
 import { BEINGS } from '../content/boons/beings';
 import { relicById, relicDescParams } from '../content/relics';
 import type { UpgradeTree } from '../content/schema';
 import { spellById } from '../content/spells';
-import { reloadApp } from '../platform/display';
 import type { InputDevice } from '../platform/input/input-manager';
 import type { Settings } from '../platform/storage/settings';
 import { type TranslationKey, t } from '../shared/i18n';
@@ -169,27 +167,6 @@ export class PauseOverlay {
     ringRow.className = 'rb-setting rb-setting-inline';
     ringRow.append(ring, div('rb-setting-label', t('settings.aura_ring')));
     box.append(ringRow);
-
-    // Style prototype (ROADMAP M4.5): everything is baked at startup, so a switch reloads.
-    const style = document.createElement('select');
-    for (const value of artStyleIdSchema.options) {
-      const option = document.createElement('option');
-      option.value = value;
-      option.textContent = t(`settings.style_${value}`);
-      style.append(option);
-    }
-    style.value = s.artStyle;
-    style.addEventListener('change', () => {
-      const parsed = artStyleIdSchema.safeParse(style.value);
-      if (!parsed.success || parsed.data === s.artStyle) return;
-      s.artStyle = parsed.data;
-      this.onSettingsChange(s);
-      reloadApp();
-    });
-    const styleRow = document.createElement('label');
-    styleRow.className = 'rb-setting';
-    styleRow.append(div('rb-setting-label', t('settings.style')), style);
-    box.append(styleRow);
 
     const quality = document.createElement('select');
     for (const value of ['high', 'low'] as const) {

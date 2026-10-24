@@ -645,8 +645,9 @@ export class FeedbackDirector {
       case Ev.RoomCleared:
         // The "ahh" moment of a room: slow motion, zoom punch, chord, portal opens.
         fx.waveCleared(e.x, e.y);
-        fx.portal(e.x, e.y, 0.6, PALETTE.player);
+        fx.portal(e.x, e.y, 0.6, PALETTE.portal);
         this.view.hud.onRoomCleared();
+        this.view.entities.celebrate();
         this.view.addZoomPunch(TUNING.lastEnemyZoomPunch);
         this.audio.play('waveCleared', { pitchVariation: 0 });
         this.requestSlowMo({

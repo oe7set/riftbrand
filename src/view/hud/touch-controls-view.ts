@@ -114,8 +114,9 @@ export class TouchControlsView {
         g.addChild(fill);
         this.spellFill = fill;
       }
-      g.circle(0, 0, b.radius).fill({ color: PALETTE.touchBase, alpha: 0.08 });
-      g.circle(0, 0, b.radius).stroke({ color: PALETTE.touchBase, width: 2, alpha: 0.6 });
+      // Ink disc under a cream rim: readable on the bright picture-book meadow (ROADMAP M4.5).
+      g.circle(0, 0, b.radius).fill({ color: PALETTE.ink, alpha: 0.35 });
+      g.circle(0, 0, b.radius).stroke({ color: PALETTE.touchBase, width: 3, alpha: 0.8 });
       if (b.id === 'attack') {
         const icon = new Graphics();
         drawIcon(icon, b);
@@ -146,7 +147,7 @@ export class TouchControlsView {
   private rebuildJoystick(radius: number): void {
     this.joystickRadius = radius;
     this.joystickBase.clear();
-    this.joystickBase.circle(0, 0, radius).fill({ color: PALETTE.touchBase, alpha: 0.06 });
+    this.joystickBase.circle(0, 0, radius).fill({ color: PALETTE.ink, alpha: 0.25 });
     this.joystickBase
       .circle(0, 0, radius)
       .stroke({ color: PALETTE.touchAccent, width: 2, alpha: 0.5 });
