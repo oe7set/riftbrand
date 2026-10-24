@@ -79,6 +79,8 @@ M0 Fundament ─▶ M1 Prototyp ─▶ M2 Vertical Slice ─▶ M3 Kampftiefe �
 | E12 | Quests | **Beides:** Aufträge von Hub-Figuren und Story-Quests | M5.6 |
 | E13 | Story | **Beides:** mehr Story im Run und im Hub | M5.7, M6 |
 | E14 | Reihenfolge | M2 ist abgenommen. Reihenfolge: Kampftiefe → Look → Hub-Welt → weitere Welten und Bosse | M3 bis M6 |
+| E15 | Stimmung (2026-10-24) | Die Grafik soll **viel freundlicher** werden: eine andere Stimmung, coolere Design-Entscheidungen, „mehr Liebe“. Löst E8 („Neon-Vektor bleibt“) teilweise ab. | **M4.5** (neu), GDD §12.1 |
+| E16 | Rätsel-Welten (2026-10-24) | Es soll Welten mit **kleinen, verbundenen Räumen** geben (ähnlich Cult of the Lamb), in denen man **Rätsel lösen** muss, um weiterzukommen. | **M6.0** (neu), M6.1 |
 
 ### Annahmen (vom PO am 2026-10-23 bestätigt: A1, A2 und A3)
 | Nr. | Annahme | Stand | Betrifft |
@@ -104,6 +106,13 @@ Der PO findet das aktuelle Kampfmodell gut und möchte es **erweitern, ohne den 
 | I8 | **Zufällige Sammel-Drops** (Materialien) zum Aufwerten | Passt direkt zu M5.4: Toll braucht Materialien, eine Quelle war noch offen. Gegner bzw. Räume lassen weltspezifische Materialien fallen. Kleiner bis mittlerer Aufwand. | **M5.4** (mit Schmied und Rüstungen) |
 | I9 | **Mehrere Fähigkeitsbäume parallel**, die man sich erarbeitet (z. B. Bollwerk/Tank, Licht/Heilung, Klinge/Schaden, Runen/Zauber) | Lohnt sich schon im Einzelspieler: Der Glutbaum wird zu mehreren Pfaden, die man nacheinander freischaltet. Jeder kann alles; die Skillung entscheidet die Rolle. Mittlerer Aufwand (Meta-Daten, Oberfläche, Balancing). | **K2.7** bzw. mit M5 (Zuflucht) |
 | I10 | **Mehrspieler** mit Tank, Heiler und Schadensverursacher | Größter Brocken. Die deterministische Simulation ist eine gute Grundlage (Lockstep bzw. Rollback). Schwierig: Online-Spiel im Browser braucht einen kleinen Vermittlungs-Server (WebRTC-Signalisierung); bisher ist alles statisch (GitHub Pages). Empfehlung in Stufen: **(1) jetzt schon** die Simulation mehrspielerfähig halten (mehrere Spielfiguren statt einer festen `playerEid`), das ist später teuer nachzurüsten; **(2) lokaler Koop** (2 Gamepads an einem PC, kein Server); **(3) Online-Koop** für 2–4 Spieler. ❓ Wie wichtig ist Mehrspieler (vor oder nach Version 1.0)? | (1) technische Vorbereitung in K2, (2) und (3) eigener Meilenstein, voraussichtlich nach M6 |
+
+### PO-Ideen, Runde 3 (2026-10-24, nach M5.4)
+
+| Nr. | Idee | Einschätzung | Vorschlag wann |
+|---|---|---|---|
+| I11 | **Welten mit kleinen Räumen und Rätseln**, ähnlich Cult of the Lamb: Man muss Rätsel lösen, um weiterzukommen. | Passt gut, weil die Raum-Simulation schon Räume, Hindernisse und Ausgänge kennt. Neu wären ein **Raum-Netz** statt der Pfad-Karte (verbundene Räume mit Türen in alle Richtungen), **Rätsel-Elemente** als Daten und ein ruhigerer Rhythmus zwischen den Kämpfen. Die vorhandenen Fähigkeiten sind die Rätsel-Werkzeuge: Brand zündet, Frost friert ein, Dash überwindet Lücken, das Riss-Geschoss trifft Schalter. Mittlerer bis hoher Aufwand. ❓ Ganze Welten als Rätsel-Welt oder Rätsel-Räume in allen Welten (Vorschlag: beides, siehe M6.0)? | **M6.0**, erste Rätsel-Welt: Gläserne See (M6.1) |
+| I12 | **Freundlichere Grafik**, andere Stimmung, coolere Design-Auswahl, „mehr Liebe“ | Größter Hebel für den ersten Eindruck. Der Rig-Ansatz aus M4 bleibt; ändern sich Palette, Formen, Proportionen, Umgebung und Oberfläche. Da Stimmung Geschmackssache ist: zuerst ein **Stil-Prototyp mit 3 Richtungen zur Auswahl** in derselben Szene, dann der Umbau. Mittlerer Aufwand für den Prototyp, hoch für den kompletten Umbau. ❓ Welche Richtung (nach dem Prototyp)? | **M4.5**, als Nächstes |
 
 **Leitlinie „nicht zu kompliziert am Anfang“:** Der erste Run hat nur Angriff, Dash, Riss-Geschoss und einen Zauber. Block, Sprung, weitere Zauber-Slots und Fähigkeitsbäume werden über die ersten Stunden freigeschaltet (Freischaltungs-Fahrplan GDD §8.3), jeweils mit einer kurzen Einführung.
 
@@ -771,6 +780,39 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
 
 ---
 
+### M4.5 Neue Stimmung: freundlicher und mit mehr Liebe ⬜ (PO-Wunsch E15)
+**Ziel:** Riftbrand fühlt sich warm, einladend und liebevoll gestaltet an statt düster-technisch. Lesbarkeit und Game Feel bleiben unangetastet (Telegraphs, Spielfigur als markantestes Element).
+
+**Schritt 1, Stil-Prototyp (Entscheidung durch den PO):** dieselbe Szene (Zuflucht und ein Kampfraum) in **3 Richtungen**, im Spiel umschaltbar:
+
+| Richtung | Stimmung | Kennzeichen |
+|---|---|---|
+| **A „Glühwürmchen-Abend“** | gemütlich, warm, magisch | warme Pastelltöne (Apricot, Rosé, Moosgrün), weiches Licht statt hartem Neon, Glühwürmchen, runde Formen, Gras und Blumen auf dem Boden |
+| **B „Bilderbuch“** (am nächsten an Cult of the Lamb) | niedlich und frech mit dunklem Unterton | kräftige Farben mit dicken dunklen Konturen, größere Köpfe und große Augen, viel Squash & Stretch, handgezeichnet wirkende Formen, Papier-Schatten |
+| **C „Mond-Aquarell“** | verträumt, ruhig, leicht melancholisch | kühle, weiche Farbverläufe, Aquarell-Flecken als Boden, leuchtende Akzente nur an Magie, schwebende Partikel |
+
+Für jede Richtung im Prototyp:
+- Palette als Daten (`content/art/palettes.ts`) mit Lesbarkeits-Prüfung (Kontrast von Spieler und Telegraphs)
+- Boden und Umgebung statt Raster: weicher Boden, Gras, Steine, Lichtflecken, gebacken
+- Vesper und 2 Gegner mit angepassten Proportionen und Konturen
+- Oberfläche: Schrift, Buttons und Karten im passenden Stil
+- Feedback-Farben (Treffer, Brand, Frost) passend zur Stimmung
+
+**Schritt 2, Umbau in der gewählten Richtung:**
+- alle Rigs, die Zuflucht, die Aschefelder, Icons, Menüs und der Titelbildschirm
+- Freundlichere Animationen: Idle-Wippen, Blinzeln, Freudensprung bei Raumabschluss
+- Musik bzw. Klangfarbe der Zuflucht passend zur Stimmung
+- „Einfache Grafik“ bleibt als Leistungs-Fallback
+
+**Technik:**
+- Paletten und Stil-Parameter als Daten.
+- Der Stil ist eine View-Einstellung; die Simulation bleibt unverändert.
+- Leistungs-Budget wie in M4 (CPU ×4 auf dem Handy prüfen).
+
+**Abnahme:** Der PO wählt nach Schritt 1 eine Richtung (oder eine Mischung). Nach Schritt 2 sagt der PO: „So soll es aussehen.“
+
+**Abhängig von:** M4, M5.4
+
 ## M5: Hub-Welt, Weltkarte, Quests und Story 🏕
 **Ziel:** Die Zuflucht wird eine begehbare Welt. Von hier aus wählt man per Portal frei zwischen den Welten, baut die Zuflucht wieder auf, nimmt Aufträge an, schmiedet Rüstungen und erlebt die Geschichte, ein bisschen wie in Cult of the Lamb (E7, E10–E13).
 
@@ -1052,6 +1094,41 @@ Zuflucht (begehbar)
 - eine Story-Kette
 - 3–4 Ereignisse
 - ein Status-Thema
+
+### M6.0 Rätsel-Räume und Erkundungs-Welten ⬜ (PO-Wunsch E16)
+**Ziel:** Neben Kampf-Runs gibt es Welten aus **kleinen, verbundenen Räumen** (wie Cult of the Lamb bzw. ein kleiner Dungeon), in denen man Rätsel löst, um weiterzukommen.
+
+**Umfang:**
+- [ ] **Raum-Netz** als zweite Welt-Struktur neben der Pfad-Karte:
+  - Räume mit Türen nach Norden, Süden, Osten und Westen, eine Mini-Karte
+  - gesperrte Türen, Schlüssel, Abkürzungen
+  - Der Seed bestimmt das Netz.
+- [ ] **Rätsel-Elemente als Daten** (`content/puzzles/`, `definePuzzle`), die vorhandene Fähigkeiten nutzen:
+  - **Feuerschalen** mit Brand entzünden, in der richtigen Reihenfolge
+  - **Wasser** mit Frost einfrieren und darüber laufen
+  - **Druckplatten** und **schiebbare Blöcke**
+  - **Kristall-Schalter**, die man mit dem Riss-Geschoss trifft, auch über Abgründe
+  - **Lücken** und **zeitgesteuerte Tore**, die man mit dem Dash schafft
+  - **Runen-Reihenfolgen** mit Hinweisen im Raum
+- [ ] **Raumtypen** in Rätsel-Welten: Rätsel, Kampf, Schatz, Rast und Wächter (Mini-Boss vor dem Weiterkommen).
+- [ ] **Rätsel-Räume in allen Welten:** In normalen Kampf-Runs taucht gelegentlich ein Rätsel-Raum mit Belohnung auf, als Abwechslung.
+- [ ] **Belohnungen:** Materialien, Truhen, Rüstungsteile, Abkürzungen zum Boss.
+- [ ] **Fairness:** keine Rätsel, die man ohne Hinweis nur durch Ausprobieren lösen kann. Nach mehreren Fehlversuchen kommt ein Hinweis von Iskra. Kein Fortschritt darf durch ein festgefahrenes Rätsel verloren gehen (Rücksetzen per Rune).
+
+**Technik:**
+- Rätsel-Zustand ist Simulationszustand (deterministisch, im Raum-Seed).
+- Die Elemente sind Entities mit Komponenten.
+- Ereignisse wie `Ev.PuzzleSolved` steuern das Feedback.
+- Run-Save mit gelösten Rätseln und offenen Türen.
+
+**Tests:**
+- Jede Rätsel-Vorlage ist lösbar (Solver im Test).
+- Determinismus
+- Speichern und Laden mitten in der Welt
+
+**Vorschlag:** Die **Gläserne See** (M6.1) wird die erste Rätsel-Welt (Spiegel und Lichtstrahlen passen zum Thema). ❓ Der PO entscheidet: ganze Rätsel-Welten, Rätsel-Räume in allen Welten oder beides (Vorschlag: beides).
+
+**Abhängig von:** M5.2 (Welten), M4.5 (Stimmung)
 
 ### M6.1 Gläserne See ⬜
 - **Thema:** Kristall, Fernkampf, Schilde, Spiegelungen. Wesen-Fokus: Vaelis.

@@ -122,6 +122,8 @@ Meta (Tage)        Glut/Rissstaub ausgeben → Freischaltungen → Story-Dialog 
 
 **Welten (seit M5.2):** Ein Run führt durch genau **eine** Welt (A3). In der Portalhalle der Zuflucht wählt man die Welt auf einer Weltkarte. Wer den Boss einer Welt zum ersten Mal besiegt, öffnet die nächste: Aschefelder → Gläserne See → Sturmzitadelle → Der Riss. Bisher ist nur die Aschefelder spielbar; die anderen Welten stehen schon auf der Karte und kommen mit M6. Der Durchmarsch durch alle Welten am Stück folgt als Endgame-Modus (M7).
 
+**Rätsel-Welten (geplant, M6.0):** Manche Welten bestehen aus kleinen, verbundenen Räumen statt einer Pfad-Karte (ähnlich Cult of the Lamb). Man löst Rätsel mit den eigenen Fähigkeiten, um weiterzukommen: Brand entzündet Feuerschalen, Frost friert Wasser ein, das Riss-Geschoss trifft Kristall-Schalter, der Dash überwindet Lücken. Rätsel-Räume tauchen als Abwechslung auch in normalen Runs auf.
+
 **Spannungsbogen über die Welten** (bis M5 „eines Runs“):
 - **Biom 1:** taktisch, wenige Gegner, man lernt den Gegner kennen.
 - **Biom 2–3:** Der Build nimmt Form an, Horde-Räume werden größer.
@@ -575,6 +577,8 @@ Die zuletzt verwendete Eingabemethode bestimmt die angezeigten Hinweise und die 
 ## 12. Kunst- und Audio-Richtung
 
 ### 12.1 Look: Neon-Vektor
+> **Hinweis (2026-10-24):** Der PO wünscht eine **viel freundlichere Stimmung** mit mehr Liebe im Design (ROADMAP E15). Die Richtung wird in M4.5 mit einem Stil-Prototyp (3 Varianten) gewählt; danach wird dieser Abschnitt neu geschrieben. Die Lesbarkeits-Regeln unten gelten weiter.
+
 - Dunkle, entsättigte Hintergründe mit niedrigem Kontrast. Die **Spielebene leuchtet**.
 - Figuren bestehen aus klaren geometrischen Silhouetten mit leuchtenden Kanten (Bloom), alles prozedural im Code erzeugt.
 - **Lesbarkeits-Regeln:**
