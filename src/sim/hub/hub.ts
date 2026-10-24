@@ -40,6 +40,7 @@ export function hubRoomSetup(
     lastSparkHeal: 0,
     spells: { active: null, aura: null },
     cast: { level: 1, branches: [] },
+    armor: [],
   };
 }
 

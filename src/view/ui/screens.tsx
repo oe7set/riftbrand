@@ -21,6 +21,7 @@ import { LayoutEditor, type LayoutEditorScreen } from './layout-editor';
 import {
   BuildScreen,
   DecorationsScreen,
+  ForgeScreen,
   HubWalkScreen,
   MaterialChips,
   type MetaScreen,
@@ -933,6 +934,8 @@ export function UiRoot({ screen }: { screen: Screen }) {
       return <BuildScreen {...screen} />;
     case 'decorations':
       return <DecorationsScreen {...screen} />;
+    case 'forge':
+      return <ForgeScreen {...screen} />;
     case 'tree':
       return <TreeScreen {...screen} />;
     case 'wares':

@@ -1,3 +1,4 @@
+import { armorById, armorSetById, armorValue } from '../../content/armor';
 import { boonById, boonValue } from '../../content/boons';
 import { evolutionById } from '../../content/evolutions';
 import { relicById, relicValue } from '../../content/relics';
@@ -24,6 +25,12 @@ export interface OwnedBoon {
 export interface OwnedRelic {
   id: string;
   stacks: number;
+}
+
+/** An equipped armour piece (ROADMAP M5.4), level 1–3; snapshotted at run start. */
+export interface OwnedArmor {
+  id: string;
+  level: number;
 }
 
 /** Effect action with all value references resolved to numbers for the owned rarity. */
@@ -187,6 +194,7 @@ export function compileBuild(
   boons: readonly OwnedBoon[],
   relics: readonly OwnedRelic[] = [],
   evolutions: readonly string[] = [],
+  armor: readonly OwnedArmor[] = [],
 ): CompiledBuild {
   const build: CompiledBuild = {
     stats: emptyStats(),
@@ -230,7 +238,33 @@ export function compileBuild(
       typeof ref === 'number' ? ref : fallback,
     );
   }
+  addArmor(build, armor);
   return build;
+}
+
+/** Armour pieces by level, then set bonuses for 2 and 4 pieces of one set (ROADMAP M5.4). */
+function addArmor(build: CompiledBuild, armor: readonly OwnedArmor[]): void {
+  const setCounts = new Map<string, number>();
+  for (const owned of armor) {
+    const def = armorById(owned.id);
+    if (!def) continue;
+    addEffects(build, def.id, def.effects, (ref, fallback = 0) =>
+      ref === undefined
+        ? fallback
+        : typeof ref === 'number'
+          ? ref
+          : armorValue(def, ref, owned.level),
+    );
+    if (def.set) setCounts.set(def.set, (setCounts.get(def.set) ?? 0) + 1);
+  }
+  for (const [id, count] of setCounts) {
+    const set = armorSetById(id);
+    if (!set) continue;
+    const fixed = (ref: string | number | undefined, fallback = 0) =>
+      typeof ref === 'number' ? ref : fallback;
+    if (count >= 2) addEffects(build, `${set.id}_2`, set.bonus2, fixed);
+    if (count >= 4) addEffects(build, `${set.id}_4`, set.bonus4, fixed);
+  }
 }
 
 /** Healing multiplier from the build; curses can reduce it but never below 10 %. */

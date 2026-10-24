@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { FIRST_WORLD_ID } from '../../content/worlds';
 import { createProfile, type Profile } from '../../sim/meta/profile';
 
-export const PROFILE_VERSION = 4;
+export const PROFILE_VERSION = 5;
 const KEY = 'profile';
 const BACKUP_KEY = 'profile.backup';
 
@@ -46,6 +46,13 @@ const profileSchema = z.object({
   materials: z.record(z.string(), z.number().int().min(0)),
   buildings: z.record(z.string(), z.number().int().min(0).max(2)),
   decorations: z.array(z.string()),
+  armor: z.record(z.string(), z.number().int().min(1).max(3)),
+  equipped: z.object({
+    head: z.string().optional(),
+    chest: z.string().optional(),
+    hands: z.string().optional(),
+    feet: z.string().optional(),
+  }),
 });
 
 const saveSchema = z.object({ version: z.literal(PROFILE_VERSION), profile: profileSchema });
@@ -105,6 +112,11 @@ function migrate3to4(raw: { version: number; profile?: Record<string, unknown> }
   };
 }
 
+/** v4 → v5 (M5.4): armour at Toll's forge; nobody owns or wears any yet. */
+function migrate4to5(raw: { version: number; profile?: Record<string, unknown> }): unknown {
+  return { ...raw, version: 5, profile: { ...raw.profile, armor: {}, equipped: {} } };
+}
+
 /**
  * Upgrades older profile saves step by step (vN → vN+1). Broken data yields null so the caller
  * can fall back to the backup slot: losing progress is the worst bug there is.
@@ -115,6 +127,7 @@ export function migrateProfile(raw: unknown): Profile | null {
   if (data.version === 1) data = migrate1to2(data as { version: number }) as typeof data;
   if (data.version === 2) data = migrate2to3(data as { version: number }) as typeof data;
   if (data.version === 3) data = migrate3to4(data as { version: number }) as typeof data;
+  if (data.version === 4) data = migrate4to5(data as { version: number }) as typeof data;
   const parsed = saveSchema.safeParse(data);
   return parsed.success ? parsed.data.profile : null;
 }

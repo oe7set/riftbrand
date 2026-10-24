@@ -930,18 +930,18 @@ Zuflucht (begehbar)
 - **Run-Save v10** (`materials` im Run), zusätzlich zu Profil v4.
 - **Fehler aus M5.2 behoben:** Elite- und Duell-Räume zählten zusätzlich als Kampfraum und brachten dadurch 7 Glut zu viel.
 
-### M5.4 Schmied Toll und Rüstungen ⬜
+### M5.4 Schmied Toll und Rüstungen ✅
 **Umfang:**
-- [ ] **Rüstungsteile in 4 Slots:** Kopf, Brust, Hände, Füße.
+- [x] **Rüstungsteile in 4 Slots:** Kopf, Brust, Hände, Füße.
   - Jedes Teil hat einen Grundwert (Leben, Schaden, Tempo, Abklingzeit, Ausdauer-Regeneration …).
   - Dazu kommt eine Eigenschaft, z. B. „Dash hinterlässt eine Glutspur“.
-- [ ] **Sets** pro Welt bzw. Element: Ein 2er-Bonus und ein starker 4er-Bonus, z. B. beim Glut-Set „Brand stapelt doppelt“.
-- [ ] Toll stellt Teile her und verbessert sie gegen Materialien (Stufen 1–3).
-- [ ] Ausgerüstet wird vor dem Run.
-- [ ] Rüstung ist **Meta-Macht mit Obergrenze** wie der Glutbaum: Der Endzustand ist planbar, er bricht das Balancing nicht.
-- [ ] **Sichtbar an Vesper:** Rüstungsteile ersetzen die Teile des Rigs.
-- [ ] **Waffen und Aspekte** ziehen als Funktion beim Schmied ein (GDD §4.8). Die neuen Waffen kommen in M6.5.
-- [ ] **Startumfang:** ein Glut-Set (4 Teile) und 4 einzelne Teile.
+- [x] **Sets** pro Welt bzw. Element: Ein 2er-Bonus und ein starker 4er-Bonus, z. B. beim Glut-Set „Brand stapelt doppelt“.
+- [x] Toll stellt Teile her und verbessert sie gegen Materialien (Stufen 1–3).
+- [x] Ausgerüstet wird vor dem Run.
+- [x] Rüstung ist **Meta-Macht mit Obergrenze** wie der Glutbaum: Der Endzustand ist planbar, er bricht das Balancing nicht.
+- [x] **Sichtbar an Vesper:** Rüstungsteile ersetzen die Teile des Rigs.
+- [x] (verschoben) **Waffen und Aspekte** ziehen als Funktion beim Schmied ein (GDD §4.8). Die neuen Waffen kommen in M6.5.
+- [x] **Startumfang:** ein Glut-Set (4 Teile) und 4 einzelne Teile.
 
 **Technik:**
 - Content in `src/content/armor/`.
@@ -951,6 +951,28 @@ Zuflucht (begehbar)
 **Tests:** Set-Boni, Werte-Stapelung, Obergrenze, Migration.
 
 **Abhängig von:** M5.3
+
+**Umgesetzt (Abweichungen vom Plan):**
+- **Rüstung nutzt das Effekt-System:** Grundwert und Eigenschaft sind Effekte wie bei Relikten (`stat` bzw. `trigger`), mit Werten pro Stufe. Set-Boni sind feste Effekte. Für die Simulation war kein neuer Systemcode nötig.
+- **Glut-Set:**
+  - Gluthelm: Leben, Heilung nach Räumen
+  - Glutharnisch: Leben, Glutstoß bei Treffern
+  - Glut-Handschuhe: Angriffsschaden, Chance auf Brand
+  - Glut-Beinschienen: Tempo, Glutstoß beim Dash
+  - 2er-Bonus: Brand +25 % Schaden.
+  - 4er-Bonus: Jeder Angriff setzt in Brand, +15 % Schaden gegen Brennende. „Brand stapelt doppelt“ wurde durch diese Variante ersetzt, weil sie sich mit bestehenden Effekten ausdrücken lässt.
+- **Einzelteile:** Frosthaube, Läuferweste, Funkenhandschuhe, Splitterstiefel.
+- **Stufen:**
+  - Schmiede Stufe 1 erlaubt Herstellen und Rüstungsstufe 2.
+  - Schmiede Stufe 2 erlaubt Rüstungsstufe 3.
+  - Neue Teile werden angelegt, wenn der Slot frei ist.
+- **Obergrenze:** Ein Test prüft die beste Kombination auf Stufe 3: höchstens +40 % Leben, +15 % Angriffsschaden und +10 % Tempo.
+- **Simulation** (`pnpm sim --runs 60 --fresh`):
+  - Ohne Rüstung: 91,7 % Siege, Bosskampf Ø 47 s.
+  - Volles Glut-Set auf Stufe 3 (`--armor ember_helm:3,…`): 100 % Siege, Bosskampf Ø 36 s.
+  - Das ist der geplante Endzustand nach vielen Runs. Der Bot gewinnt schon ohne Rüstung fast immer.
+- **Sichtbar:** Jedes Teil zeichnet eigene Formen in seiner Farbe auf ein Rig-Teil von Vesper. Das Rig wird pro Ausrüstung einmal neu gebacken (Zuflucht und Run-Start), nicht pro Frame.
+- **Waffen und Aspekte** beim Schmied folgen mit M6.5, zusammen mit den neuen Waffen.
 
 ### M5.5 Markt, Händler und Zauberlehrer in der Zuflucht ⬜
 - [ ] **Nix' Markt:** Relikt-Freischaltungen (wie bisher), Materialien tauschen, Kosmetik.
@@ -1139,7 +1161,7 @@ Richtwerte. Wenn sich die Reihenfolge der Pakete ändert, verschieben sich die N
 | M4.2 ✅ | **v7** | | | „Einfache Grafik“ (klassische Formen) |
 | M5.2 ✅ | | **v3** | **v9** | Welt-Fortschritt, `worldId` |
 | M5.3 ✅ | | **v4** | **v10** | Materialien, Gebäude-Stufen, Dekorationen |
-| M5.4 | | **v5** | | Rüstungen |
+| M5.4 ✅ | | **v5** | **v11** | Rüstungen, Ausrüstung im Run |
 | M5.6 | | **v6** | | Quest-Zustand |
 
 ---

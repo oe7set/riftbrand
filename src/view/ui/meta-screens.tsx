@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { ARMOR, ARMOR_SETS, ARMOR_SLOTS, armorById, armorDescParams } from '../../content/armor';
 import { ENEMIES } from '../../content/enemies';
 import { buildingById, DECORATIONS } from '../../content/hub/buildings';
 import { MATERIALS, materialById } from '../../content/materials';
@@ -8,6 +9,13 @@ import type { CostDef, Speaker, WorldDef } from '../../content/schema';
 import { SPELLS } from '../../content/spells';
 import { WORLDS, worldById } from '../../content/worlds';
 import { type TranslationKey, t } from '../../shared/i18n';
+import {
+  armorLevel,
+  canForge,
+  equippedArmor,
+  forgeMaxLevel,
+  nextArmorCost,
+} from '../../sim/meta/forge';
 import {
   canBuyRank,
   canUnlockSpell,
@@ -30,7 +38,7 @@ import {
   worldDuelCount,
   worldProgress,
 } from '../../sim/meta/worlds';
-import { relicIcon, spellIcon } from '../render/icons/specs';
+import { armorIcon, relicIcon, spellIcon } from '../render/icons/specs';
 import { CardTitle } from './icons';
 
 /** Screens of the meta layer (GDD §2.3, §8): hub, Ember Tree, Nix, save transfer, results. */
@@ -80,6 +88,14 @@ export type MetaScreen =
       onBack(): void;
     }
   | { kind: 'decorations'; profile: Profile; onBuy(id: string): void; onBack(): void }
+  | {
+      /** Toll's forge (ROADMAP M5.4): craft, improve and equip armour for the next run. */
+      kind: 'forge';
+      profile: Profile;
+      onForge(id: string): void;
+      onEquip(id: string): void;
+      onBack(): void;
+    }
   | {
       /** The portal hall's world map (ROADMAP M5.2): pick the world of the next run. */
       kind: 'worldMap';
@@ -520,6 +536,115 @@ export function DecorationsScreen({
                 <div class="rb-card-name">{t(`decor.${d.id}.name` as TranslationKey)}</div>
                 {!owned && <CostList profile={profile} cost={d.cost} />}
               </button>
+            );
+          })}
+        </div>
+      </Focus>
+      <div class="rb-menu">
+        <button type="button" class="rb-button rb-primary" onClick={onBack}>
+          {t('common.back')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SetBonuses({ profile }: { profile: Profile }) {
+  const worn = equippedArmor(profile);
+  return (
+    <div class="rb-forge-sets">
+      {ARMOR_SETS.map((set) => {
+        const count = worn.filter((a) => armorById(a.id)?.set === set.id).length;
+        return (
+          <div key={set.id} class="rb-world-info rb-forge-set" style={{ '--world': '#ff7a2e' }}>
+            <div class="rb-world-name">
+              {t(`armor_set.${set.id}.name` as TranslationKey)} · {count}/4
+            </div>
+            <div class={count >= 2 ? 'is-on' : 'is-off'}>
+              (2) {t(`armor_set.${set.id}.bonus2` as TranslationKey)}
+            </div>
+            <div class={count >= 4 ? 'is-on' : 'is-off'}>
+              (4) {t(`armor_set.${set.id}.bonus4` as TranslationKey)}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function ForgeScreen({
+  profile,
+  onForge,
+  onEquip,
+  onBack,
+}: Extract<MetaScreen, { kind: 'forge' }>) {
+  const maxLevel = forgeMaxLevel(profile);
+  const pieces = [...ARMOR].sort(
+    (a, b) => ARMOR_SLOTS.indexOf(a.slot) - ARMOR_SLOTS.indexOf(b.slot),
+  );
+  return (
+    <div class="rb-screen rb-center rb-boon-screen rb-forge" style={{ '--being': '#ff9a5a' }}>
+      <div class="rb-being-name">{t('forge.title')}</div>
+      <div class="rb-being-quote">{t('forge.hint', { max: maxLevel })}</div>
+      <Currencies profile={profile} />
+      <SetBonuses profile={profile} />
+      <Focus wide>
+        <div class="rb-cards">
+          {pieces.map((a, i) => {
+            const level = armorLevel(profile, a.id);
+            const worn = profile.equipped[a.slot] === a.id;
+            const check = canForge(profile, a.id);
+            const cost = nextArmorCost(profile, a.id);
+            const shown = Math.max(1, level);
+            return (
+              <div key={a.id} class={`rb-card rb-armor ${worn ? 'is-worn' : ''}`}>
+                <div class="rb-card-head">
+                  <span class="rb-card-slot">{t(`armor_slot.${a.slot}` as TranslationKey)}</span>
+                  <span class="rb-card-rarity">
+                    {level === 0 ? t('forge.not_owned') : t('forge.level', { n: level })}
+                  </span>
+                </div>
+                <CardTitle
+                  spec={armorIcon(a.id)}
+                  name={t(`armor.${a.id}.name` as TranslationKey)}
+                />
+                <div class="rb-card-desc">
+                  {t(`armor.${a.id}.desc` as TranslationKey, armorDescParams(a, shown))}
+                </div>
+                {a.set && (
+                  <div class="rb-armor-set">{t(`armor_set.${a.set}.name` as TranslationKey)}</div>
+                )}
+                {cost && check !== 'maxed' && check !== 'locked' && (
+                  <CostList profile={profile} cost={cost} />
+                )}
+                <div class="rb-armor-actions">
+                  {check !== 'maxed' && (
+                    <button
+                      type="button"
+                      class="rb-button rb-small-button"
+                      disabled={check !== 'ok'}
+                      data-autofocus={i === 0 ? true : undefined}
+                      onClick={() => onForge(a.id)}
+                    >
+                      {check === 'locked'
+                        ? t('forge.needs_forge')
+                        : level === 0
+                          ? t('forge.craft')
+                          : t('forge.improve', { n: level + 1 })}
+                    </button>
+                  )}
+                  {level > 0 && (
+                    <button
+                      type="button"
+                      class={`rb-button rb-small-button ${worn ? 'rb-primary' : ''}`}
+                      onClick={() => onEquip(a.id)}
+                    >
+                      {worn ? t('forge.unequip') : t('forge.equip')}
+                    </button>
+                  )}
+                </div>
+              </div>
             );
           })}
         </div>

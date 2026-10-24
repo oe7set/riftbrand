@@ -69,6 +69,13 @@ Ein kleines Fragment am Rand des Risses mit einer Handvoll Überlebender. Die Zu
 - **Sichtbares Wachstum:** Mit jedem Ausbau sprießen Pflanzen, und über gebauten Plätzen liegt Licht.
 - **Dekorationen** am Lagerfeuer sind reine Kosmetik.
 
+**Umgesetzt (M5.4), Rüstungen:**
+- **Toll** stellt in der Schmiede Rüstungsteile her (Kopf, Brust, Hände, Füße) und verbessert sie auf Stufe 2 bzw. 3. Bezahlt wird mit Materialien und Rissstaub.
+- **Teile:** Jedes Teil hat einen Grundwert und eine Eigenschaft, z. B. „der Dash hinterlässt einen Glutstoß“.
+- **Glut-Set:** Der 2er-Bonus verstärkt Brand; mit 4 Teilen setzt jeder Angriff in Brand.
+- **Ausrüstung:** Angelegt wird vor dem Run. Die Teile sind an Vesper sichtbar.
+- **Obergrenze:** Rüstung ist Meta-Macht mit festem Endzustand, wie der Glutbaum.
+
 **Umgesetzt (M5.1):** Die Zuflucht ist begehbar. Man kommt am Lagerfeuer an, läuft mit Bewegung und Dash wie im Kampf zu Maren (Glutbaum), Nix (Stand) und Sel (Runenturm) und spricht sie an (E, Angriff oder der Sprechen-Knopf am Handy). Durch die Portalhalle im Norden bricht man zum Run auf. Am Lagerfeuer findet man Profil, Titelbildschirm und Statistik.
 
 ### 2.4 Die fünf Riss-Wesen (Segen-Fraktionen)

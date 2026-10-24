@@ -87,6 +87,15 @@ describe('profile save', () => {
     expect(p?.decorations).toEqual([]);
   });
 
+  it('migrates a v4 profile: no armour yet (M5.4)', () => {
+    const { armor: _a, equipped: _e, ...v4 } = createProfile();
+    v4.buildings = { forge: 1 };
+    const p = migrateProfile({ version: 4, profile: v4 });
+    expect(p?.buildings.forge).toBe(1);
+    expect(p?.armor).toEqual({});
+    expect(p?.equipped).toEqual({});
+  });
+
   it('migrates a fresh v2 profile without world entries', () => {
     const { worlds: _w, ...v2 } = createProfile();
     expect(migrateProfile({ version: 2, profile: v2 })?.worlds).toEqual({});

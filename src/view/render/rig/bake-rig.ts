@@ -39,10 +39,10 @@ export interface BakedRig {
   ghostExtentUnits: number;
 }
 
-type Paint = 'body' | 'accent' | 'core';
+type Paint = 'body' | 'accent' | 'core' | number;
 
 function colorOf(rig: RigDef, paint: Paint): number {
-  return rig.colors[paint];
+  return typeof paint === 'number' ? paint : rig.colors[paint];
 }
 
 function trace(g: Graphics, shape: RigShapeDef, u: number): void {
@@ -61,8 +61,8 @@ function trace(g: Graphics, shape: RigShapeDef, u: number): void {
 
 /** Draws a shape in colour (with glow) or as a white silhouette. */
 function drawShape(g: Graphics, rig: RigDef, shape: RigShapeDef, u: number, flash: boolean): void {
-  const strokeColor = shape.stroke ? colorOf(rig, shape.stroke) : null;
-  const fillColor = shape.fill ? colorOf(rig, shape.fill) : null;
+  const strokeColor = shape.stroke !== undefined ? colorOf(rig, shape.stroke) : null;
+  const fillColor = shape.fill !== undefined ? colorOf(rig, shape.fill) : null;
   const line = shape.kind === 'line';
   const width = shape.strokeWidth * u;
   if (flash) {
@@ -162,4 +162,13 @@ export function bakeRig(renderer: Renderer, rig: RigDef): BakedRig {
   const half = extent * u;
   const ghostTexture = render(renderer, ghost, new Rectangle(-half, -half, half * 2, half * 2));
   return { layout, parts, ghost: ghostTexture, ghostExtentUnits: extent };
+}
+
+/** Frees a rig baked at runtime (armour looks); the startup rigs live for the whole session. */
+export function destroyBakedRig(baked: BakedRig): void {
+  for (const part of baked.parts) {
+    part.normal.destroy(true);
+    part.flash.destroy(true);
+  }
+  baked.ghost.destroy(true);
 }

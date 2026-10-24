@@ -3,7 +3,7 @@ import { autoDetectRenderer, Container, type Renderer } from 'pixi.js';
 import { AdvancedBloomFilter } from 'pixi-filters';
 import { RIFT_SHOT } from '../content/abilities';
 import { REFUGE } from '../content/hub/layout';
-import { RIGS } from '../content/rigs';
+import { PLAYER_RIG_ID, RIGS } from '../content/rigs';
 import type { Speaker } from '../content/schema';
 import { SPELLS, spellRadiusPx, spellReachPx } from '../content/spells';
 import { TUNING } from '../content/tuning';
@@ -29,7 +29,8 @@ import { EntityView } from './render/entity-view';
 import { rasterizeIcons } from './render/icons/rasterize';
 import { gameIconSpecs } from './render/icons/specs';
 import { PALETTE } from './render/palette';
-import { bakeRig } from './render/rig/bake-rig';
+import { armoredRig, armorLookKey } from './render/rig/armor-look';
+import { type BakedRig, bakeRig, destroyBakedRig } from './render/rig/bake-rig';
 import { RoomView } from './render/room-view';
 import { type BakedTextures, bakeTextures } from './render/textures';
 import { DamageNumbers } from './vfx/damage-numbers';
@@ -68,6 +69,8 @@ export class GameView {
   readonly debugDraw = new DebugDraw();
   readonly shake = new ScreenShake();
   readonly entities: EntityView;
+  private playerArmorKey = '';
+  private playerArmorRig: BakedRig | null = null;
   readonly effects: Effects;
   readonly damageNumbers = new DamageNumbers();
   readonly hud: HudView;
@@ -179,6 +182,18 @@ export class GameView {
     this.groundParticles.budget = budget / 2;
   }
 
+  /** Bakes Vesper with the equipped armour (ROADMAP M5.4); only when the loadout changes. */
+  setPlayerArmor(armorIds: readonly string[]): void {
+    const key = armorLookKey(armorIds);
+    if (key === this.playerArmorKey) return;
+    this.playerArmorKey = key;
+    const base = RIGS.find((r) => r.id === PLAYER_RIG_ID);
+    const previous = this.playerArmorRig;
+    this.playerArmorRig =
+      base && armorIds.length > 0 ? bakeRig(this.renderer, armoredRig(base, armorIds)) : null;
+    this.entities.setPlayerRig(this.playerArmorRig);
+    if (previous) destroyBakedRig(previous);
+  }
   resize(size: ViewSize): void {
     this.renderer.resize(size.width, size.height, Math.min(size.devicePixelRatio, MAX_RESOLUTION));
     this.camera.viewWidth = size.width;

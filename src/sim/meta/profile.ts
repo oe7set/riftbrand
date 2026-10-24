@@ -1,11 +1,12 @@
 import { EMBER_TREE, treeNodeById } from '../../content/meta/ember-tree';
 import { META_REWARDS } from '../../content/meta/rewards';
 import { RELICS, relicById } from '../../content/relics';
-import type { BeingId } from '../../content/schema';
+import type { ArmorSlot, BeingId } from '../../content/schema';
 import { START_SPELLS, spellById } from '../../content/spells';
-import { dominantBeing } from '../effects/build';
+import { dominantBeing, type OwnedArmor } from '../effects/build';
 import type { RunState, SpellSlots } from '../run/run-state';
 import { MAX_UPGRADE_LEVEL } from '../run/upgrades';
+import { equippedArmor } from './forge';
 import { addMaterials } from './refuge';
 import { recordWorldRun, type WorldProgress } from './worlds';
 
@@ -60,6 +61,10 @@ export interface Profile {
   buildings: Record<string, number>;
   /** Decorations bought for the refuge (cosmetic). */
   decorations: string[];
+  /** Armour crafted at Toll's forge: piece id → level 1–3 (ROADMAP M5.4). */
+  armor: Record<string, number>;
+  /** Piece worn in each slot for the next run. */
+  equipped: Partial<Record<ArmorSlot, string>>;
 }
 
 export function createProfile(): Profile {
@@ -81,6 +86,8 @@ export function createProfile(): Profile {
     materials: {},
     buildings: {},
     decorations: [],
+    armor: {},
+    equipped: {},
   };
 }
 
@@ -217,6 +224,8 @@ export interface RunMeta {
   lastSparkHeal: number;
   rerolls: number;
   staminaBonus: number;
+  /** Equipped armour with its levels (ROADMAP M5.4). */
+  armor: OwnedArmor[];
 }
 
 export function emptyRunMeta(): RunMeta {
@@ -230,11 +239,13 @@ export function emptyRunMeta(): RunMeta {
     lastSparkHeal: 0,
     rerolls: 0,
     staminaBonus: 0,
+    armor: [],
   };
 }
 
 export function runMetaFor(profile: Profile): RunMeta {
   const meta = emptyRunMeta();
+  meta.armor = equippedArmor(profile);
   for (const node of EMBER_TREE) {
     const rank = Math.min(treeRank(profile, node.id), node.ranks.length);
     if (rank === 0) continue;

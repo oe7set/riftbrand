@@ -4,7 +4,7 @@ import { type RunState, startSpellSlots } from '../../sim/run/run-state';
 import type { KeyValueStore } from './settings';
 
 const STORAGE_KEY = 'riftbrand.run';
-export const RUN_SAVE_VERSION = 10;
+export const RUN_SAVE_VERSION = 11;
 
 const mapNodeSchema = z.object({
   id: z.number().int().min(0),
@@ -51,6 +51,7 @@ const runSchema = z.object({
     lastSparkHeal: z.number().min(0).max(1),
     rerolls: z.number().int().min(0),
     staminaBonus: z.number().int().min(0),
+    armor: z.array(z.object({ id: z.string(), level: z.number().int().min(1).max(3) })),
   }),
   lockedRelics: z.array(z.string()),
   lastSparks: z.number().int().min(0),
@@ -171,6 +172,12 @@ function migrate9to10(raw: { version: number; run?: Record<string, unknown> }): 
   return { ...raw, version: 10, run: { ...raw.run, materials: {} } };
 }
 
+/** v10 → v11: armour is snapshotted into the run meta (M5.4); older runs wore none. */
+function migrate10to11(raw: { version: number; run?: Record<string, unknown> }): unknown {
+  const meta = (raw.run?.meta ?? {}) as Record<string, unknown>;
+  return { ...raw, version: 11, run: { ...raw.run, meta: { ...meta, armor: [] } } };
+}
+
 export function migrateRunSave(raw: unknown): RunState | null {
   if (typeof raw !== 'object' || raw === null) return null;
   let data = raw as { version?: unknown; run?: Record<string, unknown> };
@@ -183,6 +190,7 @@ export function migrateRunSave(raw: unknown): RunState | null {
   if (data.version === 7) data = migrate7to8(data as { version: number }) as typeof data;
   if (data.version === 8) data = migrate8to9(data as { version: number }) as typeof data;
   if (data.version === 9) data = migrate9to10(data as { version: number }) as typeof data;
+  if (data.version === 10) data = migrate10to11(data as { version: number }) as typeof data;
   if (data.version !== RUN_SAVE_VERSION) return null;
   raw = data;
   const parsed = saveSchema.safeParse(raw);

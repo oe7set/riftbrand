@@ -1,3 +1,4 @@
+import { armorById } from '../../../content/armor';
 import { boonById } from '../../../content/boons';
 import { BEINGS } from '../../../content/boons/beings';
 import { relicById } from '../../../content/relics';
@@ -34,6 +35,16 @@ export function relicIcon(id: string): IconSpec {
   const def = relicById(id);
   if (!def) return FALLBACK;
   return { frame: 'relic', glyph: def.icon.glyph, color: RARITY_COLORS[def.rarity] };
+}
+
+/** Armour (ROADMAP M5.4): hexagon in the colour the piece shows on Vesper. */
+export function armorIcon(id: string): IconSpec {
+  const def = armorById(id);
+  if (!def) return FALLBACK;
+  const shape = def.look.shapes[0];
+  const paint = shape?.stroke ?? shape?.fill;
+  const color = typeof paint === 'number' ? cssColor(paint) : RARITY_COLORS.common;
+  return { frame: 'relic', glyph: def.icon.glyph, color };
 }
 
 /** Spells: diamond in the school colour; auras get a ring around it. */

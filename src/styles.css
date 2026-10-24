@@ -1415,3 +1415,57 @@ body {
     13px ui-monospace,
     monospace;
 }
+
+/* Toll's forge (ROADMAP M5.4). */
+.rb-forge-sets {
+  display: flex;
+  justify-content: center;
+}
+
+.rb-forge-set {
+  font-size: 14px;
+}
+
+.rb-forge-set .is-on {
+  color: #ffd36b;
+}
+
+.rb-forge-set .is-off {
+  opacity: 0.55;
+}
+
+.rb-armor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: default;
+}
+
+.rb-armor.is-worn {
+  border-color: #ff9a5a;
+  box-shadow: 0 0 14px rgba(255, 154, 90, 0.45);
+}
+
+.rb-armor-set {
+  font-size: 12px;
+  color: #ff9a5a;
+}
+
+.rb-armor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+.rb-small-button {
+  min-height: 40px;
+  padding: 6px 10px;
+  font-size: 14px;
+}
+
+.rb-armor .rb-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
