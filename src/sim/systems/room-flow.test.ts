@@ -31,6 +31,7 @@ function roomSim(encounter: Encounter, template = OPEN, seed = 4): SimState {
     lastSparkHeal: 0,
     spells: { active: null, aura: null },
     cast: { level: 1, branches: [] },
+    armor: [],
   });
 }
 

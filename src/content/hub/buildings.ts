@@ -11,7 +11,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
     ruin: true,
     levels: [
       { cost: { dust: 2, materials: { slag_iron: 5 } }, unlocks: ['armor'] },
-      { cost: { dust: 6, materials: { slag_iron: 8, ember_core: 3 } }, unlocks: ['armor_traits'] },
+      { cost: { dust: 6, materials: { slag_iron: 8, ember_core: 3 } }, unlocks: ['armor_mastery'] },
     ],
   }),
   defineBuilding({

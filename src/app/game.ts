@@ -69,6 +69,7 @@ import { Ev, type EventBuffer } from '../sim/events';
 import { hashSim } from '../sim/hash';
 import { COMBAT_BUTTONS, hubInteractPressed, hubRoomSetup, nearestStation } from '../sim/hub/hub';
 import { markSeen, pickLine } from '../sim/meta/dialogue';
+import { equippedArmor, forgeArmor, toggleEquip } from '../sim/meta/forge';
 import {
   buyRank,
   equipLoadout,
@@ -526,6 +527,8 @@ export class Game {
   private loadSim(sim: SimState): void {
     const debug = { ...this.sim.debug };
     this.sim = sim;
+    // Vesper wears the run's armour in rooms (ROADMAP M5.4); the refuge sets its own below.
+    this.view.setPlayerArmor(sim.armor.map((a) => a.id));
     // Keep debug toggles (god mode, waves) across rooms.
     sim.debug.godMode = debug.godMode;
     this.view.resetEffects();
@@ -568,6 +571,7 @@ export class Game {
       this.pickHubLines();
       this.refreshRefuge();
     }
+    this.view.setPlayerArmor(equippedArmor(this.profile).map((a) => a.id));
     this.hubMenu = false;
     this.input.releaseAll();
     this.input.setGameplayEnabled(true);
@@ -654,6 +658,9 @@ export class Game {
       actions.push({ label: t('hub.wares'), onClick: () => this.showWares(), primary: true });
     if (id === 'sel')
       actions.push({ label: t('hub.spells'), onClick: () => this.showSpells(), primary: true });
+    if (id === 'forge' && hasUnlock(this.profile, 'armor')) {
+      actions.push({ label: t('hub.armor'), onClick: () => this.showForge(), primary: true });
+    }
     if (id === 'map_table') {
       actions.push({
         label: t('hub.world_map'),
@@ -689,8 +696,8 @@ export class Game {
       footer:
         id === 'campfire'
           ? t('hub.stats', { runs: p.runs, wins: p.wins, rooms: p.bestRooms })
-          : id === 'forge' || id === 'archive'
-            ? t(`hub.soon.${id}`)
+          : id === 'archive'
+            ? t('hub.soon.archive')
             : undefined,
     });
   }
@@ -710,6 +717,26 @@ export class Game {
         this.pickHubLines();
         this.audio.play('evolve', { pitch: 0.9, pitchVariation: 0, volume: 0.8 });
         this.showBuild(building);
+      },
+      onBack: () => this.showHub(),
+    });
+  }
+
+  /** Toll's forge (ROADMAP M5.4): armour for the next run. */
+  private showForge(): void {
+    this.ui.show({
+      kind: 'forge',
+      profile: this.profile,
+      onForge: (id) => {
+        if (!forgeArmor(this.profile, id)) return;
+        this.persistProfile();
+        this.audio.play('evolve', { pitch: 0.8, pitchVariation: 0, volume: 0.8 });
+        this.showForge();
+      },
+      onEquip: (id) => {
+        if (!toggleEquip(this.profile, id)) return;
+        this.persistProfile();
+        this.showForge();
       },
       onBack: () => this.showHub(),
     });

@@ -6,11 +6,18 @@ import type { Rarity, RoomTemplateDef } from '../../content/schema';
 import { START_SPELLS } from '../../content/spells';
 import { TUNING } from '../../content/tuning';
 import { FIRST_WORLD_ID, worldBiome } from '../../content/worlds';
-import type { OwnedBoon, OwnedRelic } from '../effects/build';
+import type { OwnedArmor, OwnedBoon, OwnedRelic } from '../effects/build';
 import { enemyTypeFromCode } from '../enemy-code';
 import { emptyRunMeta, type RunMeta } from '../meta/profile';
 import { createRng, hashString, nextInt } from '../rng/rng';
-import { clearBonusShards, heal, nodeReward, rollRoomMaterials, runStats } from './economy';
+import {
+  applyMaxHp,
+  clearBonusShards,
+  heal,
+  nodeReward,
+  rollRoomMaterials,
+  runStats,
+} from './economy';
 import { buildEncounter, type Encounter } from './encounter';
 import { generateMap, type MapNode, type RunMap } from './map';
 import { addBoon, type BoonOffer, rewardRarityBonus, rollBoonOffer } from './rewards';
@@ -108,6 +115,8 @@ export interface RoomSetup {
   lastSparkHeal: number;
   spells: SpellSlots;
   cast: UpgradeState;
+  /** Armour equipped before the run (ROADMAP M5.4). */
+  armor: OwnedArmor[];
 }
 
 export function createRun(
@@ -119,7 +128,7 @@ export function createRun(
 ): RunState {
   const s = seed >>> 0;
   const map = generateMap(createRng(hashString(`${s}:map`)), worldBiome(worldId));
-  return {
+  const run: RunState = {
     seed: s,
     worldId,
     map,
@@ -138,7 +147,7 @@ export function createRun(
     maxHpBonus: 0,
     evolutions: [],
     ultCharge: 0,
-    meta: { ...meta },
+    meta: { ...meta, armor: meta.armor.map((a) => ({ ...a })) },
     lockedRelics: [...lockedRelics],
     lastSparks: meta.lastSparks,
     rerolls: meta.rerolls,
@@ -155,6 +164,10 @@ export function createRun(
     duelsWon: [],
     materials: {},
   };
+  // Armour can raise max HP; the run starts at full health either way.
+  applyMaxHp(run);
+  run.hp = run.maxHp;
+  return run;
 }
 
 /** Nodes the player may pick next: the start layer, or the successors of the current node. */
@@ -204,6 +217,7 @@ export function roomSetupFor(run: RunState, node: MapNode): RoomSetup {
     lastSparkHeal: run.meta.lastSparkHeal,
     spells: run.spells,
     cast: run.cast,
+    armor: run.meta.armor,
   };
 }
 

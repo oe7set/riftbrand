@@ -1,6 +1,7 @@
 /**
  * Headless simulator (TECH_DESIGN §13): bots play whole runs without rendering and print a
  * balancing summary. Run: pnpm sim --runs 200 --seed-start 1 --bot balanced [--csv] [--fresh]
+ * [--armor ember_helm:3,ember_plate:3,…] (equipped armour, ROADMAP M5.4)
  * Results are also written to sim-results/ (git-ignored).
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -21,10 +22,19 @@ const bot = arg('bot', 'balanced') as BotStrategy;
 const locked = process.argv.includes('--fresh') ? lockedRelics(createProfile()) : [];
 if (bot !== 'balanced' && bot !== 'aggressive') throw new Error(`unknown bot "${bot}"`);
 
+const meta = emptyRunMeta();
+meta.armor = arg('armor', '')
+  .split(',')
+  .filter((part) => part.length > 0)
+  .map((part) => {
+    const [id = '', level = '1'] = part.split(':');
+    return { id, level: Number(level) };
+  });
+
 const started = Date.now();
 const reports: RunReport[] = [];
 for (let i = 0; i < runs; i++) {
-  reports.push(autoplayRun(seedStart + i, bot, emptyRunMeta(), locked));
+  reports.push(autoplayRun(seedStart + i, bot, meta, locked));
 }
 const summary = summarize(reports);
 

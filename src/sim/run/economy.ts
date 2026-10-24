@@ -23,7 +23,7 @@ import {
 export const MIN_MAX_HP = 20;
 
 export function runStats(run: RunState): Stats {
-  return compileBuild(run.boons, run.relics, run.evolutions).stats;
+  return compileBuild(run.boons, run.relics, run.evolutions, run.meta.armor).stats;
 }
 
 /** Recomputes max HP from relics; gains also heal, losses only cap current HP. */

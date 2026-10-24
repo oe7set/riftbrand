@@ -54,6 +54,12 @@ export class RigInstance {
     groundLayer.addChild(this.shadow);
   }
 
+  /** Removes the figure (the baked textures stay; they belong to the rig). */
+  destroy(): void {
+    this.root.destroy({ children: true });
+    this.shadow.destroy();
+  }
+
   set visible(on: boolean) {
     this.root.visible = on;
     this.shadow.visible = on;

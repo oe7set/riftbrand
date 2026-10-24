@@ -955,11 +955,17 @@ export function defineDialogue(lines: DialogueLineDef[]): DialogueLineDef[] {
  */
 const rigPoint = z.number().min(-4).max(4);
 
+/** A rig colour by role, or a fixed colour (armour keeps its own colour on any rig). */
+const rigColorRef = z.union([
+  z.enum(['body', 'accent', 'core']),
+  z.number().int().min(0).max(0xffffff),
+]);
+
 const rigPaint = z.object({
-  /** Which rig colour fills or strokes the shape. */
-  fill: z.enum(['body', 'accent', 'core']).optional(),
+  /** Which colour fills or strokes the shape. */
+  fill: rigColorRef.optional(),
   fillAlpha: z.number().min(0).max(1).default(1),
-  stroke: z.enum(['body', 'accent', 'core']).optional(),
+  stroke: rigColorRef.optional(),
   /** Stroke width in rig units. */
   strokeWidth: z.number().min(0).max(1).default(0.1),
   /** A soft halo behind the shape (baked, cheap): neon glow for marks and cracks. */
@@ -1236,4 +1242,56 @@ export type DecorationDef = z.infer<typeof decorationSchema>;
 
 export function defineDecoration(def: DecorationDef): DecorationDef {
   return decorationSchema.parse(def);
+}
+
+// ── Armour at Toll's forge (ROADMAP M5.4) ─────────────────────────────────
+
+export const armorSlotSchema = z.enum(['head', 'chest', 'hands', 'feet']);
+
+/** One number per armour level (1–3). */
+const armorValueSchema = z.object({
+  levels: z.array(z.number()).length(3),
+  int: z.boolean().optional(),
+  percent: z.boolean().optional(),
+});
+
+export const armorSchema = z.object({
+  id,
+  slot: armorSlotSchema,
+  /** Set this piece belongs to; singles have none. */
+  set: id.optional(),
+  icon: iconSchema,
+  values: z.record(z.string(), armorValueSchema),
+  /** The base stat first, then the trait; value names resolve by level. */
+  effects: z.array(effectSchema).min(1),
+  craftCost: costSchema,
+  /** To level 2 and level 3. */
+  upgradeCosts: z.array(costSchema).length(2),
+  /** Drawn onto Vesper: extra shapes on one rig part (baked once per loadout). */
+  look: z.object({ part: id, shapes: z.array(rigShapeSchema).min(1) }),
+});
+
+export const armorSetSchema = z.object({
+  id,
+  /** Bonuses with 2 and with 4 pieces of the set equipped (fixed numbers). */
+  bonus2: z.array(effectSchema).min(1),
+  bonus4: z.array(effectSchema).min(1),
+});
+
+export type ArmorSlot = z.infer<typeof armorSlotSchema>;
+export type ArmorDef = z.infer<typeof armorSchema>;
+export type ArmorSetDef = z.infer<typeof armorSetSchema>;
+
+export function defineArmor(def: z.input<typeof armorSchema>): ArmorDef {
+  const armor = armorSchema.parse(def);
+  checkValueRefs(`armor ${armor.id}`, armor.values, armor.effects);
+  return armor;
+}
+
+export function defineArmorSet(def: ArmorSetDef): ArmorSetDef {
+  const set = armorSetSchema.parse(def);
+  for (const e of [...set.bonus2, ...set.bonus4]) {
+    checkValueRefs(`armor set ${set.id}`, {}, [e]);
+  }
+  return set;
 }

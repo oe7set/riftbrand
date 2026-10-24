@@ -128,6 +128,13 @@ describe('run save', () => {
     expect(migrated?.materials).toEqual({});
   });
 
+  it('migrates v10 saves: the run wore no armour (M5.4)', () => {
+    const run = createRun(19);
+    const { armor: _a, ...meta } = run.meta;
+    const migrated = migrateRunSave({ version: 10, run: { ...run, meta } });
+    expect(migrated?.meta.armor).toEqual([]);
+  });
+
   it('clears the save', () => {
     const store = memoryStore();
     saveRun(store, createRun(5));

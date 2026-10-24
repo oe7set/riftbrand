@@ -611,7 +611,27 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
   - Figuren in Ruinen bleiben unsichtbar.
 - **Oberfläche:** Screens `build` (Zustand, nächste Stufe, Kosten mit „du hast“) und `decorations`; Material-Chips in Währungszeile, Karten-Kopf und Ergebnis.
 
-## 40. Risiken und Gegenmaßnahmen
+## 40. Stand nach M5.4 (Rüstungen)
+- **Content:** `content/armor/index.ts`:
+  - `defineArmor`: Slot, Set, Werte pro Stufe, Effekte, Kosten, `look`
+  - `defineArmorSet`: 2er- und 4er-Bonus
+  - Rig-Formen dürfen feste Farben haben (`rigColorRef`), damit Rüstung auf jedem Rig ihre Farbe behält.
+- **Simulation:**
+  - `compileBuild(…, armor)` kompiliert Teile nach Stufe und zählt Set-Teile.
+  - `SimState.armor` und `RoomSetup.armor` kommen aus `RunMeta.armor`, das beim Run-Start aus `profile.equipped` geschnappschusst wird.
+  - Spätere Änderungen in der Schmiede berühren einen laufenden Run nicht.
+  - `createRun` wendet das Max-Leben der Rüstung sofort an.
+- **Meta:** `sim/meta/forge.ts` (`canForge`, `forgeArmor`, `toggleEquip`, `equippedArmor`, `forgeMaxLevel`).
+- **Speicherstände:**
+  - Profil **v5**: `armor` (Teil → Stufe), `equipped`.
+  - Run-Save **v11**: `meta.armor`.
+- **Darstellung:**
+  - `view/render/rig/armor-look.ts` erzeugt ein Vesper-Rig mit den Formen der Teile.
+  - `GameView.setPlayerArmor()` backt es nur, wenn sich die Ausrüstung ändert, und gibt das alte frei.
+  - `EntityView.setPlayerRig()` tauscht die Figur.
+- **Simulator:** `pnpm sim --armor id:stufe,…` spielt mit Rüstung.
+
+## 41. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

@@ -66,6 +66,8 @@ export class EntityView {
   readonly overlayLayer = new Container();
   readonly statusIcons: StatusIcons;
   private readonly slots: Array<Slot | undefined> = [];
+  /** Vesper with the equipped armour baked in (ROADMAP M5.4); null = the plain rig. */
+  private playerBaked: BakedRig | null = null;
   private readonly flashSec = new Float32Array(4096);
   private readonly squashSec = new Float32Array(4096);
   private readonly squashDirX = new Float32Array(4096);
@@ -97,6 +99,23 @@ export class EntityView {
       return rigId === undefined ? -1 : rigIndex(rigId);
     });
     this.playerRig = rigIndex(PLAYER_RIG_ID);
+  }
+
+  /** Swaps Vesper's body for one with armour; existing player figures are rebuilt lazily. */
+  setPlayerRig(baked: BakedRig | null): void {
+    this.playerBaked = baked;
+    for (const s of this.slots) {
+      const rig = s?.rigs[this.playerRig];
+      if (!s || !rig) continue;
+      rig.destroy();
+      s.rigs[this.playerRig] = undefined;
+    }
+  }
+
+  private bakedRig(rigIdx: number): BakedRig | undefined {
+    if (rigIdx < 0) return undefined;
+    if (rigIdx === this.playerRig && this.playerBaked) return this.playerBaked;
+    return this.rigs[rigIdx];
   }
 
   /** Rig index for an entity, -1 when it keeps the classic shape. */
@@ -266,7 +285,7 @@ export class EntityView {
       }
       body.scale.set(scale * sx, scale * sy);
       const rigIdx = this.rigOf(sim, eid);
-      const baked = rigIdx >= 0 ? this.rigs[rigIdx] : undefined;
+      const baked = this.bakedRig(rigIdx);
       body.visible = baked === undefined;
 
       if ((mask & C.Enemy) !== 0) this.syncEnemyExtras(sim, eid, s, x, y, baked);
@@ -721,7 +740,7 @@ export class EntityView {
       const other = s.rigs[i];
       if (other && i !== rigIdx) other.visible = false;
     }
-    const baked = rigIdx >= 0 ? this.rigs[rigIdx] : undefined;
+    const baked = this.bakedRig(rigIdx);
     if (!baked) return;
     let rig = s.rigs[rigIdx];
     if (!rig) {

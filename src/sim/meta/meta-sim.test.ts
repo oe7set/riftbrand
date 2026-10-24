@@ -18,6 +18,7 @@ function setup(over: Partial<RoomSetup>): RoomSetup {
     relics: [],
     shards: 0,
     evolutions: [],
+    armor: [],
     ultCharge: 0,
     bonusAllDamage: 0,
     bonusStaminaRegen: 0,

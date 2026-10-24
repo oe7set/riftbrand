@@ -18,7 +18,7 @@ export function canAfford(profile: Profile, cost: CostDef): 'ok' | 'dust' | 'mat
   return profile.dust < cost.dust ? 'dust' : 'ok';
 }
 
-function pay(profile: Profile, cost: CostDef): void {
+export function pay(profile: Profile, cost: CostDef): void {
   profile.dust -= cost.dust;
   for (const [id, n] of Object.entries(cost.materials)) {
     profile.materials[id] = (profile.materials[id] ?? 0) - n;

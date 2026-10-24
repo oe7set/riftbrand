@@ -16,7 +16,13 @@ import {
   Team,
 } from './ecs/components';
 import { addComponents, createEntity, createWorld, destroyEntity, type World } from './ecs/world';
-import { type CompiledBuild, compileBuild, type OwnedBoon, type OwnedRelic } from './effects/build';
+import {
+  type CompiledBuild,
+  compileBuild,
+  type OwnedArmor,
+  type OwnedBoon,
+  type OwnedRelic,
+} from './effects/build';
 import { MAX_EFFECT_DEPTH } from './effects/runtime';
 import { statusSystem } from './effects/status';
 import { clearEvents, createEventBuffer, Ev, type EventBuffer, pushEvent } from './events';
@@ -71,6 +77,8 @@ export interface SimState {
   relics: OwnedRelic[];
   /** Weapon evolutions unlocked in this run (GDD §4.9). */
   evolutions: string[];
+  /** Armour equipped for this run (ROADMAP M5.4). */
+  armor: OwnedArmor[];
   /** Ember Tree bonuses added on top of the build (GDD §8.2). */
   bonusAllDamage: number;
   bonusStaminaRegen: number;
@@ -137,6 +145,7 @@ export function createSim(seed: number, setup?: RoomSetup): SimState {
     boons: [],
     relics: [],
     evolutions: [],
+    armor: [],
     bonusAllDamage: 0,
     bonusStaminaRegen: 0,
     build: compileBuild([]),
@@ -170,6 +179,7 @@ export function createSim(seed: number, setup?: RoomSetup): SimState {
     state.staminaMax = TUNING.staminaMax + setup.staminaBonus;
     state.lastSparks = setup.lastSparks;
     state.lastSparkHeal = setup.lastSparkHeal;
+    state.armor = setup.armor.map((a) => ({ ...a }));
     setBuild(state, setup.boons, setup.relics, setup.evolutions);
     state.shards = setup.shards;
     state.player.ultCharge = setup.ultCharge;
@@ -343,7 +353,7 @@ export function setBuild(
   state.boons = boons.map((b) => ({ ...b }));
   state.relics = relics.map((r) => ({ ...r }));
   state.evolutions = [...evolutions];
-  state.build = compileBuild(state.boons, state.relics, state.evolutions);
+  state.build = compileBuild(state.boons, state.relics, state.evolutions, state.armor);
   state.build.stats.allDamage += state.bonusAllDamage;
   state.build.stats.staminaRegen += state.bonusStaminaRegen;
 }
