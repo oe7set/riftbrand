@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { ENEMIES } from '../../content/enemies';
+import { buildingById, DECORATIONS } from '../../content/hub/buildings';
+import { MATERIALS, materialById } from '../../content/materials';
 import { EMBER_TREE, treeNodeById } from '../../content/meta/ember-tree';
 import { RELICS, relicDescParams } from '../../content/relics';
-import type { WorldDef } from '../../content/schema';
+import type { CostDef, Speaker, WorldDef } from '../../content/schema';
 import { SPELLS } from '../../content/spells';
 import { WORLDS, worldById } from '../../content/worlds';
 import { type TranslationKey, t } from '../../shared/i18n';
@@ -15,6 +17,13 @@ import {
   spellUnlockCost,
   treeRank,
 } from '../../sim/meta/profile';
+import {
+  buildingLevel,
+  canBuyDecoration,
+  canUpgradeBuilding,
+  hasUnlock,
+  nextBuildingCost,
+} from '../../sim/meta/refuge';
 import {
   isWorldPlayable,
   isWorldUnlocked,
@@ -38,7 +47,7 @@ export type MetaScreen =
       kind: 'station';
       profile: Profile;
       title: string;
-      speaker: 'maren' | 'nix' | 'sel' | null;
+      speaker: Speaker | null;
       line: string | null;
       actions: StationAction[];
       /** Text under the actions, e.g. run statistics at the campfire. */
@@ -63,6 +72,15 @@ export type MetaScreen =
       onBack(): void;
     }
   | {
+      /** A building site (ROADMAP M5.3): level, next step, cost. */
+      kind: 'build';
+      profile: Profile;
+      building: string;
+      onBuild(): void;
+      onBack(): void;
+    }
+  | { kind: 'decorations'; profile: Profile; onBuy(id: string): void; onBack(): void }
+  | {
       /** The portal hall's world map (ROADMAP M5.2): pick the world of the next run. */
       kind: 'worldMap';
       profile: Profile;
@@ -76,6 +94,10 @@ export type MetaScreen =
       onBack(): void;
     }
   | { kind: 'result'; last: LastRun; profile: Profile; onContinue(): void };
+
+function hex(color: number): string {
+  return `#${color.toString(16).padStart(6, '0')}`;
+}
 
 function formatTime(sec: number): string {
   return `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
@@ -98,11 +120,54 @@ function Currencies({ profile }: { profile: Profile }) {
     <div class="rb-currencies">
       <span class="rb-ember">✦ {t('hub.ember', { n: profile.ember })}</span>
       <span class="rb-dust">✧ {t('hub.dust', { n: profile.dust })}</span>
+      <MaterialChips materials={profile.materials} />
     </div>
   );
 }
 
-function Speech({ speaker, line }: { speaker: 'maren' | 'nix' | 'sel'; line: string | null }) {
+const materialName = (id: string) => t(`material.${id}.name` as TranslationKey);
+
+/** Materials as small coloured chips (ROADMAP M5.3); only kinds you have. */
+export function MaterialChips({ materials }: { materials: Readonly<Record<string, number>> }) {
+  return (
+    <>
+      {MATERIALS.map((m) => {
+        const n = materials[m.id] ?? 0;
+        if (n <= 0) return null;
+        return (
+          <span key={m.id} class="rb-material" style={{ '--mat': hex(m.color) }}>
+            ● {n} {materialName(m.id)}
+          </span>
+        );
+      })}
+    </>
+  );
+}
+
+/** One cost line per currency, marked when you don't have enough. */
+function CostList({ profile, cost }: { profile: Profile; cost: CostDef }) {
+  return (
+    <ul class="rb-cost">
+      {cost.dust > 0 && (
+        <li class={profile.dust < cost.dust ? 'is-short' : ''}>
+          ✧ {t('construct.cost_dust', { n: cost.dust, have: profile.dust })}
+        </li>
+      )}
+      {Object.entries(cost.materials).map(([id, n]) => {
+        const have = profile.materials[id] ?? 0;
+        const color = materialById(id)?.color ?? 0xffffff;
+        return (
+          <li key={id} class={have < n ? 'is-short' : ''} style={{ '--mat': hex(color) }}>
+            <span class="rb-material-dot">●</span>{' '}
+            {t('construct.cost_material', { n, have, name: materialName(id) })}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function Speech({ speaker, line }: { speaker: Speaker; line: string | null }) {
   if (!line) return null;
   return (
     <div class={`rb-speech speaker-${speaker}`}>
@@ -170,7 +235,6 @@ export function StationScreen(s: Extract<MetaScreen, { kind: 'station' }>) {
 }
 
 const worldName = (id: string) => t(`world.${id}.name` as TranslationKey);
-const hex = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
 type WorldState = 'locked' | 'soon' | 'open' | 'beaten';
 
@@ -223,6 +287,15 @@ function WorldDetails({ profile, world }: { profile: Profile; world: WorldDef })
             </div>
             <div>{t('worldmap.runs', { n: progress.runs })}</div>
           </div>
+          {hasUnlock(profile, 'world_intel') && world.biome && (
+            <div class="rb-world-intel">
+              {t('worldmap.intel', {
+                names: world.biome.enemyPool
+                  .map((e) => t(`enemy.${ENEMIES[e]?.id ?? ''}.name` as TranslationKey))
+                  .join(', '),
+              })}
+            </div>
+          )}
           <div class="rb-world-hint">➜ {worldHint(profile, world)}</div>
         </>
       )}
@@ -338,6 +411,124 @@ export function WorldMapScreen(s: Extract<MetaScreen, { kind: 'worldMap' }>) {
           </button>
         </div>
       </Focus>
+    </div>
+  );
+}
+
+const LEVEL_KEYS: readonly TranslationKey[] = [
+  'construct.level0',
+  'construct.level1',
+  'construct.level2',
+];
+
+export function BuildScreen({
+  profile,
+  building,
+  onBuild,
+  onBack,
+}: Extract<MetaScreen, { kind: 'build' }>) {
+  const def = buildingById(building);
+  const level = buildingLevel(profile, building);
+  const cost = nextBuildingCost(profile, building);
+  const check = canUpgradeBuilding(profile, building);
+  const levelName =
+    level === 0 && def?.ruin ? t('construct.ruin') : t(LEVEL_KEYS[level] ?? 'construct.level2');
+  return (
+    <div class="rb-screen rb-center rb-construct">
+      <div class="rb-overlay-title">{t(`building.${building}.name` as TranslationKey)}</div>
+      <Currencies profile={profile} />
+      <div class="rb-world-info rb-construct-info">
+        <div class="rb-construct-level">
+          {t('construct.state', { level: levelName })}
+          <span class="rb-construct-pips">
+            {[1, 2].map((n) => (
+              <span key={n} class={n <= level ? 'is-on' : ''} />
+            ))}
+          </span>
+        </div>
+        <div class="rb-world-desc">{t(`building.${building}.desc` as TranslationKey)}</div>
+        {cost ? (
+          <>
+            <div class="rb-construct-next">
+              {t('construct.next', { level: t(LEVEL_KEYS[level + 1] ?? 'construct.level2') })}{' '}
+              {t(`building.${building}.level${level + 1}` as TranslationKey)}
+            </div>
+            <CostList profile={profile} cost={cost} />
+          </>
+        ) : (
+          <div class="rb-construct-next">{t('construct.maxed')}</div>
+        )}
+      </div>
+      <Focus>
+        <div class="rb-menu">
+          {cost && (
+            <button
+              type="button"
+              class="rb-button rb-primary"
+              data-autofocus
+              disabled={check !== 'ok'}
+              onClick={onBuild}
+            >
+              {check === 'ok'
+                ? t(level === 0 && def?.ruin ? 'construct.rebuild' : 'construct.upgrade')
+                : t('construct.missing')}
+            </button>
+          )}
+          <button
+            type="button"
+            class="rb-button"
+            data-autofocus={cost ? undefined : true}
+            onClick={onBack}
+          >
+            {t('common.back')}
+          </button>
+        </div>
+      </Focus>
+      {!cost && <div class="rb-version rb-station-footer">{t('construct.hint')}</div>}
+    </div>
+  );
+}
+
+export function DecorationsScreen({
+  profile,
+  onBuy,
+  onBack,
+}: Extract<MetaScreen, { kind: 'decorations' }>) {
+  return (
+    <div class="rb-screen rb-center rb-boon-screen" style={{ '--being': '#ffd36b' }}>
+      <div class="rb-being-name">{t('decor.title')}</div>
+      <div class="rb-being-quote">{t('decor.hint')}</div>
+      <Currencies profile={profile} />
+      <Focus wide>
+        <div class="rb-cards">
+          {DECORATIONS.map((d, i) => {
+            const check = canBuyDecoration(profile, d.id);
+            const owned = check === 'owned';
+            return (
+              <button
+                type="button"
+                key={d.id}
+                class={`rb-card rb-shop-item ${owned ? 'is-sold' : ''}`}
+                disabled={check !== 'ok'}
+                data-autofocus={i === 0 ? true : undefined}
+                onClick={() => onBuy(d.id)}
+                style={{ '--mat': hex(d.color) }}
+              >
+                <div class="rb-card-head">
+                  <span class="rb-card-rarity">{owned ? t('decor.owned') : t('decor.buy')}</span>
+                </div>
+                <div class="rb-card-name">{t(`decor.${d.id}.name` as TranslationKey)}</div>
+                {!owned && <CostList profile={profile} cost={d.cost} />}
+              </button>
+            );
+          })}
+        </div>
+      </Focus>
+      <div class="rb-menu">
+        <button type="button" class="rb-button rb-primary" onClick={onBack}>
+          {t('common.back')}
+        </button>
+      </div>
     </div>
   );
 }
@@ -614,6 +805,11 @@ export function ResultScreen({
         )}
       </div>
       <div class="rb-earned">{t('result.earned', { ember: last.ember, dust: last.dust })}</div>
+      {Object.keys(last.materials).length > 0 && (
+        <div class="rb-currencies rb-result-materials">
+          <MaterialChips materials={last.materials} />
+        </div>
+      )}
       {/* The "almost there" bar (GDD §8.8): what the next Glut buys. */}
       <div class="rb-goal">
         <div class="rb-goal-bar">

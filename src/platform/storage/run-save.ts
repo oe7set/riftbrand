@@ -4,7 +4,7 @@ import { type RunState, startSpellSlots } from '../../sim/run/run-state';
 import type { KeyValueStore } from './settings';
 
 const STORAGE_KEY = 'riftbrand.run';
-export const RUN_SAVE_VERSION = 9;
+export const RUN_SAVE_VERSION = 10;
 
 const mapNodeSchema = z.object({
   id: z.number().int().min(0),
@@ -67,6 +67,7 @@ const runSchema = z.object({
   spells: z.object({ active: ownedSpellSchema.nullable(), aura: ownedSpellSchema.nullable() }),
   cast: upgradeStateSchema,
   duelsWon: z.array(z.string()),
+  materials: z.record(z.string(), z.number().int().min(0)),
 });
 
 const saveSchema = z.object({
@@ -165,6 +166,11 @@ function migrate8to9(raw: { version: number; run?: Record<string, unknown> }): u
   return { ...raw, version: 9, run: { ...run, worldId: FIRST_WORLD_ID, duelsWon: [] } };
 }
 
+/** v9 → v10: materials drop in runs (M5.3); a run in progress has found none yet. */
+function migrate9to10(raw: { version: number; run?: Record<string, unknown> }): unknown {
+  return { ...raw, version: 10, run: { ...raw.run, materials: {} } };
+}
+
 export function migrateRunSave(raw: unknown): RunState | null {
   if (typeof raw !== 'object' || raw === null) return null;
   let data = raw as { version?: unknown; run?: Record<string, unknown> };
@@ -176,6 +182,7 @@ export function migrateRunSave(raw: unknown): RunState | null {
   if (data.version === 6) data = migrate6to7(data as { version: number }) as typeof data;
   if (data.version === 7) data = migrate7to8(data as { version: number }) as typeof data;
   if (data.version === 8) data = migrate8to9(data as { version: number }) as typeof data;
+  if (data.version === 9) data = migrate9to10(data as { version: number }) as typeof data;
   if (data.version !== RUN_SAVE_VERSION) return null;
   raw = data;
   const parsed = saveSchema.safeParse(raw);

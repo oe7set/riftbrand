@@ -1,6 +1,7 @@
 import { boonById } from '../../content/boons';
 import { BEING_IDS } from '../../content/boons/beings';
 import { EVENTS } from '../../content/events';
+import { MATERIAL_DROPS, MATERIALS } from '../../content/materials';
 import { RELIC_ECONOMY, RELICS, relicById } from '../../content/relics';
 import type { BeingId, EventOutcome, Rarity, RelicRarity, RoomType } from '../../content/schema';
 import { SPELLS, spellById } from '../../content/spells';
@@ -91,6 +92,37 @@ export function nodeReward(seed: number, node: Pick<MapNode, 'id' | 'type'>): No
 }
 
 /** Shards granted for clearing a room, before the shard-gain bonus. */
+/**
+ * Materials a cleared room drops (ROADMAP M5.3), drawn from the world's materials by weight.
+ * `rng` comes from the room seed, so a reload drops the same.
+ */
+export function rollRoomMaterials(
+  rng: Rng,
+  worldId: string,
+  type: RoomType,
+): Record<string, number> {
+  const d = MATERIAL_DROPS;
+  let count = 0;
+  if (type === 'combat' || type === 'horde') count = nextFloat(rng) < d.combatChance ? 1 : 0;
+  else if (type === 'elite') count = nextInt(rng, d.eliteMin, d.eliteMax + 1);
+  else if (type === 'duel') count = nextInt(rng, d.duelMin, d.duelMax + 1);
+  else if (type === 'boss') count = nextInt(rng, d.bossMin, d.bossMax + 1);
+  const pool = MATERIALS.filter((m) => m.world === worldId);
+  const total = pool.reduce((sum, m) => sum + m.weight, 0);
+  const found: Record<string, number> = {};
+  for (let i = 0; i < count && total > 0; i++) {
+    let roll = nextFloat(rng) * total;
+    for (const m of pool) {
+      roll -= m.weight;
+      if (roll < 0) {
+        found[m.id] = (found[m.id] ?? 0) + 1;
+        break;
+      }
+    }
+  }
+  return found;
+}
+
 export function clearBonusShards(type: RoomType): number {
   if (type === 'elite' || type === 'duel') return RELIC_ECONOMY.eliteClearShards;
   if (type === 'horde') return RELIC_ECONOMY.hordeClearShards;

@@ -11,7 +11,7 @@ import type { InputDevice } from '../platform/input/input-manager';
 import type { TouchInput } from '../platform/input/touch';
 import type { Vec2 } from '../shared/math/vec2';
 import type { SimState } from '../sim/sim';
-import { HubView } from './hub/hub-view';
+import { HubView, type RefugeLook } from './hub/hub-view';
 import { HudView } from './hud/hud-view';
 import { TouchControlsView } from './hud/touch-controls-view';
 import { AimPreview } from './render/aim-preview';
@@ -52,6 +52,8 @@ export interface HubFrame {
   /** Speakers with a new line this visit (speech bubble). */
   fresh: Readonly<Partial<Record<Speaker, boolean>>>;
   locale: string;
+  /** Rebuilt state of the refuge (ROADMAP M5.3). */
+  refuge: RefugeLook;
 }
 
 export interface ViewSize {
@@ -277,7 +279,7 @@ export class GameView {
     this.emberRain.update(simDtSec, cam.x, cam.y, cam.zoom, cam.viewWidth, cam.viewHeight);
     this.roomView.sync(sim.room, realDtSec);
     this.entities.sync(sim, alpha, realDtSec, simDtSec);
-    if (hub) this.hub.sync(realDtSec, px, py, hub.active, hub.fresh, hub.locale);
+    if (hub) this.hub.sync(realDtSec, px, py, hub.active, hub.fresh, hub.locale, hub.refuge);
     this.fxParticles.update(realDtSec);
     this.groundParticles.update(realDtSec);
     this.damageNumbers.update(realDtSec);

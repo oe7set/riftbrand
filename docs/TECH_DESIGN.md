@@ -589,7 +589,29 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
   - `hubRoomSetup(hub, 'portal')` setzt Vesper nach einem Run auf `portalArrival` vor dem Portal.
   - Sonst startet man wie bisher am Lagerfeuer.
 
-## 39. Risiken und Gegenmaßnahmen
+## 39. Stand nach M5.3 (Wiederaufbau)
+- **Content:**
+  - `content/materials.ts` (`defineMaterial`, `MATERIAL_DROPS` als Tunables)
+  - `content/hub/buildings.ts` (`defineBuilding` mit zwei Stufen, Kosten und Feature-Flags; `defineDecoration`)
+  - Rigs `toll`, `iskra` und `archivist`, neue Sprecher und Dialogzeilen
+- **Layout:**
+  - Stationen `forge`, `map_table` und `archive`, jeweils mit eigenem Grundriss (`SITE_BUILDINGS` ab `SITE_OBSTACLE_START`).
+  - Stationen tragen optional ein `building`.
+- **Logik:**
+  - `sim/meta/refuge.ts`: Kosten, Ausbau, `hasUnlock(flag)`, Bewohnt-Status, Wachstum 0..1, Dekorationen.
+  - `rollRoomMaterials()` in `sim/run/economy.ts`, aufgerufen in `completeRoom` mit einem eigenen Strom aus dem Raum-Seed.
+- **Speicherstände:**
+  - Profil **v4**: `materials`, `buildings`, `decorations`, `LastRun.materials`.
+  - Run-Save **v10**: `materials`.
+  - `settleRun` legt die Funde immer ins Lager, auch bei Tod oder Aufgabe.
+- **Darstellung:**
+  - `HubView` bekommt pro Frame ein `RefugeLook` mit `version`.
+  - Nur wenn sich die Version ändert, werden Gebäude, Pflanzen und Dekorationen in eine Graphics neu gezeichnet; pro Frame wird nichts neu gezeichnet.
+  - Licht über den Bauplätzen: `softGlow`-Sprites mit Alpha je Stufe.
+  - Figuren in Ruinen bleiben unsichtbar.
+- **Oberfläche:** Screens `build` (Zustand, nächste Stufe, Kosten mit „du hast“) und `decorations`; Material-Chips in Währungszeile, Karten-Kopf und Ergebnis.
+
+## 40. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

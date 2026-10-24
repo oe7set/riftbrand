@@ -142,4 +142,21 @@ export const DIALOGUE: readonly DialogueLineDef[] = defineDialogue([
   { id: 'sel_filler_2', speaker: 'sel', priority: 0, once: false },
   { id: 'sel_filler_3', speaker: 'sel', priority: 0, once: false },
   { id: 'sel_filler_4', speaker: 'sel', priority: 0, once: false, when: { minRuns: 2 } },
+
+  // ── Figures who move into rebuilt ruins (ROADMAP M5.3) ───────────────────
+  { id: 'toll_intro', speaker: 'toll', priority: 100, once: true, setsFlag: 'met_toll' },
+  { id: 'toll_filler_1', speaker: 'toll', priority: 0, once: false },
+  { id: 'toll_filler_2', speaker: 'toll', priority: 0, once: false },
+  { id: 'iskra_intro', speaker: 'iskra', priority: 100, once: true, setsFlag: 'met_iskra' },
+  { id: 'iskra_filler_1', speaker: 'iskra', priority: 0, once: false },
+  { id: 'iskra_filler_2', speaker: 'iskra', priority: 0, once: false },
+  {
+    id: 'archivist_intro',
+    speaker: 'archivist',
+    priority: 100,
+    once: true,
+    setsFlag: 'met_archivist',
+  },
+  { id: 'archivist_filler_1', speaker: 'archivist', priority: 0, once: false },
+  { id: 'archivist_filler_2', speaker: 'archivist', priority: 0, once: false },
 ]);

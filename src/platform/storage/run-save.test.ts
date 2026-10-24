@@ -122,6 +122,12 @@ describe('run save', () => {
     expect(migrated && 'biomeId' in migrated).toBe(false);
   });
 
+  it('migrates v9 saves: no materials found yet (M5.3)', () => {
+    const { materials: _m, ...v9Run } = createRun(18);
+    const migrated = migrateRunSave({ version: 9, run: v9Run });
+    expect(migrated?.materials).toEqual({});
+  });
+
   it('clears the save', () => {
     const store = memoryStore();
     saveRun(store, createRun(5));

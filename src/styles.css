@@ -939,7 +939,8 @@ body {
 
 .rb-currencies {
   display: flex;
-  gap: 18px;
+  flex-wrap: wrap;
+  gap: 4px 18px;
   justify-content: center;
   font:
     15px ui-monospace,
@@ -1319,4 +1320,98 @@ body {
   color: #ffd36b;
   font-size: 18px;
   text-shadow: 0 0 12px rgba(255, 211, 107, 0.6);
+}
+
+/* Rebuilding the refuge (ROADMAP M5.3). */
+
+.rb-material {
+  color: var(--mat);
+  white-space: nowrap;
+}
+
+.rb-cost {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.rb-cost li {
+  margin-top: 2px;
+}
+
+.rb-cost li.is-short {
+  color: #ff8a8a;
+}
+
+.rb-material-dot {
+  color: var(--mat);
+}
+
+.rb-construct-info {
+  --world: #ffb347;
+}
+
+.rb-construct-level {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 15px;
+}
+
+.rb-construct-pips {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.rb-construct-pips span {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #ffb347;
+  border-radius: 50%;
+}
+
+.rb-construct-pips span.is-on {
+  background: #ffb347;
+  box-shadow: 0 0 10px rgba(255, 179, 71, 0.7);
+}
+
+.rb-construct-next {
+  margin-top: 10px;
+}
+
+.rb-construct .rb-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.rb-world-intel {
+  margin-top: 6px;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.rb-result-materials {
+  font-size: 15px;
+}
+
+.rb-speech.speaker-toll {
+  --speaker: #ff9a5a;
+}
+
+.rb-speech.speaker-iskra {
+  --speaker: #7ff6c8;
+}
+
+.rb-speech.speaker-archivist {
+  --speaker: #9fa8ff;
+}
+
+.rb-map-materials {
+  display: flex;
+  gap: 10px;
+  font:
+    13px ui-monospace,
+    monospace;
 }
