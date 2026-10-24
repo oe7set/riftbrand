@@ -1,11 +1,13 @@
-import { EMBER_WASTES } from '../../content/biomes/ember-wastes';
 import { BEING_IDS } from '../../content/boons/beings';
+import { ENEMIES } from '../../content/enemies';
 import { EVOLUTIONS } from '../../content/evolutions';
 import { ROOMS } from '../../content/rooms';
 import type { Rarity, RoomTemplateDef } from '../../content/schema';
 import { START_SPELLS } from '../../content/spells';
 import { TUNING } from '../../content/tuning';
+import { FIRST_WORLD_ID, worldBiome } from '../../content/worlds';
 import type { OwnedBoon, OwnedRelic } from '../effects/build';
+import { enemyTypeFromCode } from '../enemy-code';
 import { emptyRunMeta, type RunMeta } from '../meta/profile';
 import { createRng, hashString, nextInt } from '../rng/rng';
 import { clearBonusShards, heal, nodeReward, runStats } from './economy';
@@ -39,7 +41,8 @@ export function startSpellSlots(): SpellSlots {
  */
 export interface RunState {
   seed: number;
-  biomeId: string;
+  /** The world this run leads through (ROADMAP M5.2); its boss ends the run. */
+  worldId: string;
   map: RunMap;
   /** Node the player is in or just finished; -1 before the first room. */
   currentNodeId: number;
@@ -81,6 +84,8 @@ export interface RunState {
   spells: SpellSlots;
   /** Rift shot upgrades (ROADMAP M3.4). */
   cast: UpgradeState;
+  /** Mini-bosses (duel champions, by enemy id) beaten in this run, for the world map. */
+  duelsWon: string[];
 }
 
 export interface RoomSetup {
@@ -108,12 +113,13 @@ export function createRun(
   meta: RunMeta = emptyRunMeta(),
   lockedRelics: readonly string[] = [],
   spells: SpellSlots = startSpellSlots(),
+  worldId: string = FIRST_WORLD_ID,
 ): RunState {
   const s = seed >>> 0;
-  const map = generateMap(createRng(hashString(`${s}:map`)), EMBER_WASTES);
+  const map = generateMap(createRng(hashString(`${s}:map`)), worldBiome(worldId));
   return {
     seed: s,
-    biomeId: EMBER_WASTES.id,
+    worldId,
     map,
     currentNodeId: -1,
     visited: [],
@@ -144,6 +150,7 @@ export function createRun(
       aura: spells.aura ? { ...spells.aura, branches: [...spells.aura.branches] } : null,
     },
     cast: { level: 1, branches: [] },
+    duelsWon: [],
   };
 }
 
@@ -179,7 +186,7 @@ export function roomSetupFor(run: RunState, node: MapNode): RoomSetup {
   const template = candidates[nextInt(rng, 0, candidates.length)] ?? (ROOMS[0] as RoomTemplateDef);
   return {
     template,
-    encounter: buildEncounter(rng, EMBER_WASTES, node.type, node.layer),
+    encounter: buildEncounter(rng, worldBiome(run.worldId), node.type, node.layer),
     playerHp: run.hp,
     playerMaxHp: run.maxHp,
     boons: run.boons,
@@ -217,6 +224,7 @@ export function completeRoom(run: RunState, result: RoomResult): void {
   const node = run.map.nodes[run.currentNodeId];
   // Duels pay out like elite rooms (Glut and Rissstaub, ROADMAP M3.5).
   if (node?.type === 'elite' || node?.type === 'duel') run.clearedElite++;
+  if (node?.type === 'duel') recordDuel(run, node);
   else if (node?.type === 'boss') run.clearedBoss++;
   else run.clearedCombat++;
   // Glutheilung (Ember Tree): a little health after every fight.
@@ -224,6 +232,16 @@ export function completeRoom(run: RunState, result: RoomResult): void {
   const bonus = node ? clearBonusShards(node.type) : 0;
   run.shards = result.shards + Math.round(bonus * (1 + runStats(run).shardGain));
   run.status = node?.type === 'boss' ? 'won' : 'map';
+}
+
+/** Books the duel's champion (the line-up's first enemy) as a beaten mini-boss. */
+function recordDuel(run: RunState, node: MapNode): void {
+  const encounter = roomSetupFor(run, node).encounter;
+  if (encounter.kind !== 'waves') return;
+  const code = encounter.waves[0]?.[0];
+  if (code === undefined) return;
+  const champion = ENEMIES[enemyTypeFromCode(code)]?.id;
+  if (champion && !run.duelsWon.includes(champion)) run.duelsWon.push(champion);
 }
 
 /** Altar, shop and event nodes have no fight; leaving them completes the node. */
@@ -234,7 +252,7 @@ export function completeNonCombat(run: RunState): void {
 
 /** Rest node: heal a fraction of max HP (or evolve the weapon instead, see restEvolve). */
 export function rest(run: RunState): number {
-  const healed = Math.round(heal(run, run.maxHp * EMBER_WASTES.restHealFraction));
+  const healed = Math.round(heal(run, run.maxHp * worldBiome(run.worldId).restHealFraction));
   run.roomsCleared++;
   run.status = 'map';
   return healed;

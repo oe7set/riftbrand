@@ -101,11 +101,13 @@ Die Wesen jenseits des Risses wollen, dass die Gebrandmarkte das Herz erreicht. 
 ```
 Moment (Sekunden)  Ausweichen → Treffen → Feedback (Hitstop, Shake, Sound) → Gegner fällt
 Raum (30–90 s)     Raum betreten → Spawn-Wellen bekämpfen → Belohnung wählen → nächster Knoten
-Run (20–30 min)    Waffe wählen → 4 Biome über die Map → Build aufbauen → Boss → Sieg oder Tod
-Meta (Tage)        Glut/Rissstaub ausgeben → Freischaltungen → Story-Dialog → Brand-Stufe hoch → nächster Run
+Run (8–12 min)     Welt im Portal wählen → Map der Welt → Build aufbauen → Welt-Boss → Sieg oder Tod
+Meta (Tage)        Glut/Rissstaub ausgeben → Freischaltungen → Story-Dialog → neue Welt offen → nächster Run
 ```
 
-**Spannungsbogen eines Runs:**
+**Welten (seit M5.2):** Ein Run führt durch genau **eine** Welt (A3). In der Portalhalle der Zuflucht wählt man die Welt auf einer Weltkarte. Wer den Boss einer Welt zum ersten Mal besiegt, öffnet die nächste: Aschefelder → Gläserne See → Sturmzitadelle → Der Riss. Bisher ist nur die Aschefelder spielbar; die anderen Welten stehen schon auf der Karte und kommen mit M6. Der Durchmarsch durch alle Welten am Stück folgt als Endgame-Modus (M7).
+
+**Spannungsbogen über die Welten** (bis M5 „eines Runs“):
 - **Biom 1:** taktisch, wenige Gegner, man lernt den Gegner kennen.
 - **Biom 2–3:** Der Build nimmt Form an, Horde-Räume werden größer.
 - **Biom 4:** Man ist übermächtig, aber die Bosse fordern trotzdem das Ausweichen.
@@ -335,9 +337,9 @@ Jeder Boss hat 2–3 Phasen, 4–6 Muster pro Phase, eine zornige Phase unter 30
 ## 6. Run-Struktur
 
 ### 6.1 Map (Pfadwahl nach Slay the Spire)
-- 4 Biome mit je einer eigenen **Map** aus 8–10 Ebenen und 2–4 Knoten pro Ebene. Pfade verzweigen sich und laufen wieder zusammen.
+- Jede Welt (früher: Biom) hat eine eigene **Map** aus 8–10 Ebenen und 2–4 Knoten pro Ebene. Pfade verzweigen sich und laufen wieder zusammen.
 - Die Raumtypen sind als Icons **vorab sichtbar**, damit der Weg planbar ist.
-- Am Ende jedes Bioms steht der Boss. Davor gibt es garantiert eine Rast.
+- Am Ende jeder Welt steht ihr Boss. Davor gibt es garantiert eine Rast. Der Sieg über den Welt-Boss beendet den Run erfolgreich; danach steht man vor dem Portal in der Zuflucht.
 - Die Generierung erfolgt per Seed. Regeln: kein Elite-Raum auf Ebene 1–2, maximal 2 Shops pro Biom, mindestens ein Horde-Raum.
 
 ### 6.2 Raumtypen

@@ -27,6 +27,7 @@ import {
   StationScreen,
   TreeScreen,
   WaresScreen,
+  WorldMapScreen,
 } from './meta-screens';
 
 const MAP_ROW_PX = 92;
@@ -200,7 +201,7 @@ function MapScreen({ run, onEnter }: Extract<Screen, { kind: 'map' }>) {
   return (
     <div class="rb-screen rb-map">
       <header class="rb-map-header">
-        <div class="rb-map-title">{t('biome.ember_wastes.name')}</div>
+        <div class="rb-map-title">{t(`world.${run.worldId}.name` as TranslationKey)}</div>
         <div class="rb-shards">◆ {t('map.shards', { n: run.shards })}</div>
         <div class="rb-map-hp">
           <div class="rb-hpbar">
@@ -918,6 +919,8 @@ export function UiRoot({ screen }: { screen: Screen }) {
       return <HubWalkScreen {...screen} />;
     case 'station':
       return <StationScreen {...screen} />;
+    case 'worldMap':
+      return <WorldMapScreen {...screen} />;
     case 'tree':
       return <TreeScreen {...screen} />;
     case 'wares':

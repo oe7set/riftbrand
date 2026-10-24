@@ -7,14 +7,18 @@ import type { RoomSetup } from '../run/run-state';
  * The walkable refuge (ROADMAP M5.1, ADR 0006) reuses the room simulation: same movement, dash,
  * collision and camera as in a fight, with no encounter and no combat buttons.
  */
-export function hubRoomSetup(hub: HubLayoutDef): RoomSetup {
+export function hubRoomSetup(
+  hub: HubLayoutDef,
+  arrival: 'campfire' | 'portal' = 'campfire',
+): RoomSetup {
   const template: RoomTemplateDef = {
     id: 'refuge',
     widthPx: hub.widthPx,
     heightPx: hub.heightPx,
     types: ['rest'],
     obstacles: hub.obstacles,
-    playerStart: hub.playerStart,
+    // Back from a run you step out of the portal (ROADMAP M5.2); otherwise at the campfire.
+    playerStart: arrival === 'portal' ? hub.portalArrival : hub.playerStart,
     // The room exit opens at once (no encounter) and becomes the portal hall.
     exit: hub.portal,
     spawnPoints: [],

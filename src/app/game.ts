@@ -1,5 +1,4 @@
 import { RIFT_SHOT } from '../content/abilities';
-import { EMBER_WASTES } from '../content/biomes/ember-wastes';
 import { BOONS } from '../content/boons';
 import { DIALOGUE } from '../content/dialogue';
 import { ELITES } from '../content/elites';
@@ -10,6 +9,7 @@ import { RELICS } from '../content/relics';
 import type { Speaker, StationId } from '../content/schema';
 import { statusIdSchema } from '../content/schema';
 import { SPELLS, spellById } from '../content/spells';
+import { worldBiome, worldById } from '../content/worlds';
 import { AudioEngine } from '../platform/audio/audio-engine';
 import type { MusicMode } from '../platform/audio/music-player';
 import {
@@ -81,6 +81,7 @@ import {
   unlockRelic,
   unlockSpell,
 } from '../sim/meta/profile';
+import { defaultWorld, isWorldPlayable } from '../sim/meta/worlds';
 import {
   addRelic,
   applyOutcomes,
@@ -539,9 +540,9 @@ export class Game {
    * The walkable refuge (GDD §2.3, ROADMAP M5.1): you arrive at the campfire; figures and
    * stations open their menus. Called again from a station's menu, it returns to walking.
    */
-  private showHub(): void {
+  private showHub(arrival: 'campfire' | 'portal' = 'campfire'): void {
     if (this.mode !== 'hub') {
-      const sim = createSim(randomSeed(), hubRoomSetup(REFUGE));
+      const sim = createSim(randomSeed(), hubRoomSetup(REFUGE, arrival));
       this.loadSim(sim);
       this.hubSim = sim;
       this.setMode('hub');
@@ -613,23 +614,7 @@ export class Game {
       return;
     }
     if (id === 'portal') {
-      const hasRun = loadRun(this.store) !== null;
-      this.ui.show({
-        ...base,
-        title: t('station.portal.title'),
-        speaker: null,
-        line: null,
-        actions: hasRun
-          ? [
-              { label: t('hub.continue'), onClick: () => this.continueRun(), primary: true },
-              {
-                label: t('hub.abandon'),
-                confirmLabel: t('hub.abandon_confirm'),
-                onClick: () => this.abandonRun(),
-              },
-            ]
-          : [{ label: t('hub.depart'), onClick: () => this.startRun(), primary: true }],
-      });
+      this.showWorldMap();
       return;
     }
     const p = this.profile;
@@ -643,6 +628,21 @@ export class Game {
         { label: t('hub.to_title'), onClick: () => this.showTitle() },
       ],
       footer: t('hub.stats', { runs: p.runs, wins: p.wins, rooms: p.bestRooms }),
+    });
+  }
+
+  /** The portal hall (ROADMAP M5.2): pick a world, or carry on with the run in progress. */
+  private showWorldMap(): void {
+    const saved = loadRun(this.store);
+    this.ui.show({
+      kind: 'worldMap',
+      profile: this.profile,
+      runWorld: saved?.worldId ?? null,
+      selected: defaultWorld(this.profile, this.profile.lastRun?.worldId ?? null).id,
+      onDepart: (worldId) => this.startRun(worldId),
+      onContinue: () => this.continueRun(),
+      onAbandon: () => this.abandonRun(),
+      onBack: () => this.showHub(),
     });
   }
 
@@ -791,12 +791,17 @@ export class Game {
     const last = this.lastRun;
     this.run = null;
     if (!last) {
-      this.showHub();
+      this.showHub('portal');
       return;
     }
     if (this.mode === 'room') this.loadSim(this.backdropSim());
     this.setMode('result');
-    this.ui.show({ kind: 'result', last, profile: this.profile, onContinue: () => this.showHub() });
+    this.ui.show({
+      kind: 'result',
+      last,
+      profile: this.profile,
+      onContinue: () => this.showHub('portal'),
+    });
   }
 
   private abandonRun(): void {
@@ -808,7 +813,9 @@ export class Game {
     }
   }
 
-  private startRun(): void {
+  private startRun(worldId: string): void {
+    const world = worldById(worldId);
+    if (!world || !isWorldPlayable(this.profile, world)) return;
     this.logRooms = [];
     this.logDamage = {};
     this.run = createRun(
@@ -816,6 +823,7 @@ export class Game {
       runMetaFor(this.profile),
       lockedRelics(this.profile),
       startSpellsFor(this.profile),
+      world.id,
     );
     saveRun(this.store, this.run);
     this.showMap();
@@ -928,7 +936,7 @@ export class Game {
     this.setMode('rest');
     const healAmount = Math.min(
       run.maxHp - run.hp,
-      Math.round(run.maxHp * EMBER_WASTES.restHealFraction),
+      Math.round(run.maxHp * worldBiome(run.worldId).restHealFraction),
     );
     const evolution = availableEvolutions(run)[0] ?? null;
     this.ui.show({

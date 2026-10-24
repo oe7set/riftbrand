@@ -838,14 +838,14 @@ Zuflucht (begehbar)
 - **Musik:** neuer Modus `refuge`, nur die ruhige Pad-Schicht.
 - **E2E-Smoke-Test:** Zuflucht betreten, zu Maren laufen, sprechen, Glutbaum öffnen, zurück, zum Portal laufen, aufbrechen.
 
-### M5.2 Portalhalle und Weltkarte ⬜
+### M5.2 Portalhalle und Weltkarte ✅
 **Umfang:**
-- [ ] **Portalhalle** mit einer Weltkarte als Overlay. Die Karte zeigt die Welten, Sperren und Bedingungen, den Boss-Status, Bestzeiten und Quest-Hinweise.
-- [ ] **Run-Struktur umbauen:**
+- [x] **Portalhalle** mit einer Weltkarte als Overlay. Die Karte zeigt die Welten, Sperren und Bedingungen, den Boss-Status, Bestzeiten und Quest-Hinweise.
+- [x] **Run-Struktur umbauen:**
   - Ein Run führt durch genau eine Welt (`worldId` im Run-Zustand).
   - Der Sieg über den Welt-Boss beendet den Run erfolgreich.
-- [ ] **Welt-Fortschritt im Profil:** freigeschaltete Welten, besiegte Bosse und Mini-Bosse, Bestzeiten.
-- [ ] Nach Tod oder Sieg: Ergebnis-Bildschirm, danach steht man vor dem Portal in der Zuflucht.
+- [x] **Welt-Fortschritt im Profil:** freigeschaltete Welten, besiegte Bosse und Mini-Bosse, Bestzeiten.
+- [x] Nach Tod oder Sieg: Ergebnis-Bildschirm, danach steht man vor dem Portal in der Zuflucht.
 
 **Technik:**
 - Biom-Daten werden zu Welt-Daten (`src/content/worlds/` bzw. Umbenennung von `biomes`).
@@ -857,6 +857,18 @@ Zuflucht (begehbar)
 - Migrationen: ein laufender Run vor dem Update lässt sich fortsetzen.
 
 **Abhängig von:** M5.1
+
+**Umgesetzt (Abweichungen vom Plan):**
+- **Welten auf der Karte:**
+  - Aschefelder (spielbar)
+  - Gläserne See, Sturmzitadelle und Der Riss: mit Freischalt-Bedingung sichtbar, aber erst mit M6 betretbar („Noch nicht erreichbar“).
+- **Freischaltung:** Der erste Sieg über den Boss einer Welt öffnet die nächste. Freigeschaltete Welten werden aus den Boss-Siegen abgeleitet, nicht extra gespeichert.
+- **Mini-Bosse:**
+  - Pro Duell-Aufstellung zählt ein Champion: Glut-Duellant und das Zwillingspaar.
+  - Die Karte zeigt „x/2“.
+- **Quest-Hinweise:** bis M5.6 ein fester Hinweis pro Welt: erst den Boss besiegen, dann alle Mini-Bosse, dann die Bestzeit.
+- **Bestzeit:** Sie zählt nur für gewonnene Runs. Siege vor dem Update haben keine Zeit.
+- **Biom-Daten** bleiben unter `content/biomes/`, Welten verweisen darauf (keine Umbenennung, kleinerer Diff).
 
 ### M5.3 Wiederaufbau der Zuflucht ⬜
 **Umfang:**
@@ -1101,7 +1113,7 @@ Richtwerte. Wenn sich die Reihenfolge der Pakete ändert, verschieben sich die N
 | nach M3 ✅ | **v5** | | | Einstellung „Aura-Ring um Vesper anzeigen“ (Standard: aus) |
 | nach M4.1 ✅ | **v6** | | | Sprachauswahl in den Einstellungen (Automatisch, English, Deutsch) |
 | M4.2 ✅ | **v7** | | | „Einfache Grafik“ (klassische Formen) |
-| M5.2 | | **v3** | **v9** | Welt-Fortschritt, `worldId` |
+| M5.2 ✅ | | **v3** | **v9** | Welt-Fortschritt, `worldId` |
 | M5.3 | | **v4** | | Materialien, Gebäude-Stufen |
 | M5.4 | | **v5** | | Rüstungen |
 | M5.6 | | **v6** | | Quest-Zustand |

@@ -10,6 +10,7 @@ export const REFUGE = defineHub({
   heightPx: 1150,
   playerStart: { x: 760, y: 760 },
   portal: { x: 700, y: 190 },
+  portalArrival: { x: 700, y: 310 },
   // Order matters: the refuge view draws its landmarks (tree, stall, tower, portal arch) onto
   // the first five obstacles.
   obstacles: [

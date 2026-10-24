@@ -112,6 +112,16 @@ describe('run save', () => {
     expect(migrated?.map.nodes.length).toBe(run.map.nodes.length);
   });
 
+  it('migrates v8 saves: a run in progress continues in the Ember Wastes', () => {
+    const { worldId: _w, duelsWon: _d, ...rest } = createRun(17);
+    const v8Run = { ...rest, biomeId: 'ember_wastes', currentNodeId: 0, visited: [0] };
+    const migrated = migrateRunSave({ version: 8, run: v8Run });
+    expect(migrated?.worldId).toBe('ember_wastes');
+    expect(migrated?.duelsWon).toEqual([]);
+    expect(migrated?.currentNodeId).toBe(0);
+    expect(migrated && 'biomeId' in migrated).toBe(false);
+  });
+
   it('clears the save', () => {
     const store = memoryStore();
     saveRun(store, createRun(5));

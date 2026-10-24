@@ -50,6 +50,37 @@ describe('profile save', () => {
     expect(p?.spellsDiscovered).toEqual(spellsDiscovered);
     expect(p?.loadout).toEqual(loadout);
   });
+
+  it('migrates a v2 profile: earlier runs and wins count for the Ember Wastes (M5.2)', () => {
+    const { worlds: _w, ...v2 } = createProfile();
+    v2.runs = 5;
+    v2.wins = 2;
+    const lastRun = {
+      result: 'won',
+      roomsCleared: 9,
+      kills: 80,
+      timeSec: 500,
+      killedBy: null,
+      dominant: null,
+      reachedBoss: true,
+      ember: 40,
+      dust: 3,
+    };
+    const p = migrateProfile({ version: 2, profile: { ...v2, lastRun } });
+    expect(p?.worlds.ember_wastes).toEqual({
+      runs: 5,
+      bossKills: 2,
+      bestTimeSec: null,
+      duelsWon: [],
+    });
+    expect(p?.lastRun?.worldId).toBe('ember_wastes');
+    expect(p?.lastRun?.unlockedWorlds).toEqual([]);
+  });
+
+  it('migrates a fresh v2 profile without world entries', () => {
+    const { worlds: _w, ...v2 } = createProfile();
+    expect(migrateProfile({ version: 2, profile: v2 })?.worlds).toEqual({});
+  });
 });
 
 describe('export and import', () => {

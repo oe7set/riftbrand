@@ -39,6 +39,16 @@ describe('walkable refuge (ROADMAP M5.1)', () => {
     expect(sim.c.posX[sim.playerEid]).toBeCloseTo(REFUGE.playerStart.x);
   });
 
+  it('back from a run you stand at the portal, in its reach (ROADMAP M5.2)', () => {
+    const sim = createSim(1, hubRoomSetup(REFUGE, 'portal'));
+    const x = sim.c.posX[sim.playerEid] as number;
+    const y = sim.c.posY[sim.playerEid] as number;
+    expect(x).toBeCloseTo(REFUGE.portalArrival.x);
+    expect(y).toBeCloseTo(REFUGE.portalArrival.y);
+    const portal = REFUGE.stations.findIndex((s) => s.id === 'portal');
+    expect(nearestStation(REFUGE.stations, x, y)).toBe(portal);
+  });
+
   it('collides with buildings like a room does', () => {
     const sim = createSim(1, hubRoomSetup(REFUGE));
     const input = createInputFrame();

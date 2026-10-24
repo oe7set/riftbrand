@@ -1,7 +1,8 @@
 import { z } from 'zod';
+import { FIRST_WORLD_ID } from '../../content/worlds';
 import { createProfile, type Profile } from '../../sim/meta/profile';
 
-export const PROFILE_VERSION = 2;
+export const PROFILE_VERSION = 3;
 const KEY = 'profile';
 const BACKUP_KEY = 'profile.backup';
 
@@ -15,6 +16,15 @@ const lastRunSchema = z.object({
   reachedBoss: z.boolean(),
   ember: z.number().int().min(0),
   dust: z.number().int().min(0),
+  worldId: z.string(),
+  unlockedWorlds: z.array(z.string()),
+});
+
+const worldProgressSchema = z.object({
+  runs: z.number().int().min(0),
+  bossKills: z.number().int().min(0),
+  bestTimeSec: z.number().int().min(0).nullable(),
+  duelsWon: z.array(z.string()),
 });
 
 const profileSchema = z.object({
@@ -31,6 +41,7 @@ const profileSchema = z.object({
   spellsUnlocked: z.array(z.string()),
   spellsDiscovered: z.array(z.string()),
   loadout: z.object({ active: z.string(), aura: z.string() }),
+  worlds: z.record(z.string(), worldProgressSchema),
 });
 
 const saveSchema = z.object({ version: z.literal(PROFILE_VERSION), profile: profileSchema });
@@ -51,6 +62,29 @@ function migrate1to2(raw: { version: number; profile?: Record<string, unknown> }
 }
 
 /**
+ * v2 → v3 (M5.2): world progress. Every earlier run was in the Ember Wastes, and a won run
+ * means its boss fell; old won runs didn't record their time, so there is no best time yet.
+ */
+function migrate2to3(raw: { version: number; profile?: Record<string, unknown> }): unknown {
+  const p = raw.profile ?? {};
+  const runs = typeof p.runs === 'number' ? p.runs : 0;
+  const wins = typeof p.wins === 'number' ? p.wins : 0;
+  const last = p.lastRun as Record<string, unknown> | null | undefined;
+  return {
+    ...raw,
+    version: 3,
+    profile: {
+      ...p,
+      lastRun: last ? { ...last, worldId: FIRST_WORLD_ID, unlockedWorlds: [] } : (last ?? null),
+      worlds:
+        runs > 0
+          ? { [FIRST_WORLD_ID]: { runs, bossKills: wins, bestTimeSec: null, duelsWon: [] } }
+          : {},
+    },
+  };
+}
+
+/**
  * Upgrades older profile saves step by step (vN → vN+1). Broken data yields null so the caller
  * can fall back to the backup slot: losing progress is the worst bug there is.
  */
@@ -58,6 +92,7 @@ export function migrateProfile(raw: unknown): Profile | null {
   if (typeof raw !== 'object' || raw === null) return null;
   let data = raw as { version?: unknown; profile?: Record<string, unknown> };
   if (data.version === 1) data = migrate1to2(data as { version: number }) as typeof data;
+  if (data.version === 2) data = migrate2to3(data as { version: number }) as typeof data;
   const parsed = saveSchema.safeParse(data);
   return parsed.success ? parsed.data.profile : null;
 }

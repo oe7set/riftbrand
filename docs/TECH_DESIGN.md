@@ -565,7 +565,31 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Oberfläche:** Screens `hubWalk` (durchlässiges Overlay mit Währungen und Hinweis, zählt nicht als Menü) und `station`. Der alte Hub-Menübildschirm ist entfallen.
 - **Musik:** Modus `refuge` (`REFUGE_LAYERS`).
 
-## 38. Risiken und Gegenmaßnahmen
+## 38. Stand nach M5.2 (Portalhalle und Weltkarte)
+- **Content:** `content/worlds/index.ts` mit `defineWorld` (`worldSchema`):
+  - Biom-Daten (oder `null`, solange die Welt noch nicht gebaut ist)
+  - Boss-Name, Freischaltung (`start` oder `boss` einer anderen Welt)
+  - Position auf der Karte und Farbe
+  - Die Biom-Dateien bleiben unter `content/biomes/`; eine Welt verweist auf ihr Biom. `worldBiome(id)` liefert das Biom für Map, Begegnungen und Rast.
+- **Run:**
+  - `RunState.worldId` ersetzt `biomeId`.
+  - `RunState.duelsWon` sammelt die besiegten Duell-Champions (erster Gegner der Aufstellung, deterministisch aus dem Raum-Seed).
+- **Profil:**
+  - `Profile.worlds[worldId]` speichert Runs, Boss-Siege, Bestzeit und Mini-Bosse.
+  - Freigeschaltete Welten werden nicht gespeichert, sondern aus den Boss-Siegen abgeleitet (`isWorldUnlocked`). So kann eine Freischaltung nie aus dem Takt geraten.
+  - `LastRun` bekommt `worldId` und `unlockedWorlds` für den Ergebnis-Bildschirm.
+- **Logik:** `sim/meta/worlds.ts` (`recordWorldRun`, `isWorldUnlocked`, `isWorldPlayable`, `defaultWorld`), aufgerufen aus `settleRun`.
+- **Speicherstände:**
+  - Run-Save **v9**: `worldId` statt `biomeId`, `duelsWon`. Alte Stände laufen in den Aschefeldern weiter.
+  - Profil **v3**: Bisherige Runs und Siege zählen für die Aschefelder. Bestzeiten gab es noch nicht, sie bleiben leer.
+- **Oberfläche:**
+  - Screen `worldMap`: Karte mit Pfaden, Welt-Details (Sperre, Boss, Mini-Bosse, Bestzeit, Hinweis) und Aufbrechen bzw. Fortsetzen oder Aufgeben.
+  - Der Ergebnis-Bildschirm nennt die Welt und neu geöffnete Welten.
+- **Zuflucht:**
+  - `hubRoomSetup(hub, 'portal')` setzt Vesper nach einem Run auf `portalArrival` vor dem Portal.
+  - Sonst startet man wie bisher am Lagerfeuer.
+
+## 39. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

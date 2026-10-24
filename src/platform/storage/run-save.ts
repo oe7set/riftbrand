@@ -1,9 +1,10 @@
 import { z } from 'zod';
+import { FIRST_WORLD_ID } from '../../content/worlds';
 import { type RunState, startSpellSlots } from '../../sim/run/run-state';
 import type { KeyValueStore } from './settings';
 
 const STORAGE_KEY = 'riftbrand.run';
-export const RUN_SAVE_VERSION = 8;
+export const RUN_SAVE_VERSION = 9;
 
 const mapNodeSchema = z.object({
   id: z.number().int().min(0),
@@ -21,7 +22,7 @@ const ownedSpellSchema = upgradeStateSchema.extend({ id: z.string() });
 
 const runSchema = z.object({
   seed: z.number().int().min(0),
-  biomeId: z.string(),
+  worldId: z.string(),
   map: z.object({ nodes: z.array(mapNodeSchema), layers: z.array(z.array(z.number().int())) }),
   currentNodeId: z.number().int().min(-1),
   visited: z.array(z.number().int()),
@@ -65,6 +66,7 @@ const runSchema = z.object({
   maxHpBonus: z.number().int(),
   spells: z.object({ active: ownedSpellSchema.nullable(), aura: ownedSpellSchema.nullable() }),
   cast: upgradeStateSchema,
+  duelsWon: z.array(z.string()),
 });
 
 const saveSchema = z.object({
@@ -157,6 +159,12 @@ function migrate7to8(raw: { version: number; run?: Record<string, unknown> }): u
   return { ...raw, version: 8 };
 }
 
+/** v8 → v9: runs lead through one world (M5.2); every older run was in the Ember Wastes. */
+function migrate8to9(raw: { version: number; run?: Record<string, unknown> }): unknown {
+  const { biomeId: _biome, ...run } = raw.run ?? {};
+  return { ...raw, version: 9, run: { ...run, worldId: FIRST_WORLD_ID, duelsWon: [] } };
+}
+
 export function migrateRunSave(raw: unknown): RunState | null {
   if (typeof raw !== 'object' || raw === null) return null;
   let data = raw as { version?: unknown; run?: Record<string, unknown> };
@@ -167,6 +175,7 @@ export function migrateRunSave(raw: unknown): RunState | null {
   if (data.version === 5) data = migrate5to6(data as { version: number }) as typeof data;
   if (data.version === 6) data = migrate6to7(data as { version: number }) as typeof data;
   if (data.version === 7) data = migrate7to8(data as { version: number }) as typeof data;
+  if (data.version === 8) data = migrate8to9(data as { version: number }) as typeof data;
   if (data.version !== RUN_SAVE_VERSION) return null;
   raw = data;
   const parsed = saveSchema.safeParse(raw);
