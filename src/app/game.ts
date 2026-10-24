@@ -1,4 +1,5 @@
 import { RIFT_SHOT } from '../content/abilities';
+import { artStyleById } from '../content/art/styles';
 import { BOONS } from '../content/boons';
 import { DIALOGUE } from '../content/dialogue';
 import { ELITES } from '../content/elites';
@@ -14,6 +15,7 @@ import { worldBiome, worldById } from '../content/worlds';
 import { AudioEngine } from '../platform/audio/audio-engine';
 import type { MusicMode } from '../platform/audio/music-player';
 import {
+  applyUiTheme,
   hasTouchScreen,
   nowMs,
   preferredLanguages,
@@ -473,7 +475,18 @@ export class Game {
 
   static async start(root: HTMLElement): Promise<Game> {
     setLocale(resolveLocale(preferredLanguages()));
-    const view = await GameView.create(readViewport());
+    // The art style (ROADMAP M4.5) is baked into every texture, so it is read before the view.
+    const style = artStyleById(loadSettings(browserStore()).artStyle);
+    applyUiTheme(style.id, {
+      '--rb-bg': style.ui.bg,
+      '--rb-fg': style.ui.fg,
+      '--rb-accent': style.ui.accent,
+      '--rb-panel': style.ui.panel,
+      '--rb-title': style.ui.title,
+      '--rb-font': style.ui.font,
+      '--rb-radius': `${style.ui.radiusPx}px`,
+    });
+    const view = await GameView.create(readViewport(), style);
     const profileStore = browserProfileStore();
     requestPersistentStorage();
     const game = new Game(root, view, profileStore, await loadProfile(profileStore));

@@ -780,7 +780,7 @@ Alles wird zunächst in den **Aschefeldern** gebaut und erprobt.
 
 ---
 
-### M4.5 Neue Stimmung: freundlicher und mit mehr Liebe ⬜ (PO-Wunsch E15)
+### M4.5 Neue Stimmung: freundlicher und mit mehr Liebe 🟡 (PO-Wunsch E15)
 **Ziel:** Riftbrand fühlt sich warm, einladend und liebevoll gestaltet an statt düster-technisch. Lesbarkeit und Game Feel bleiben unangetastet (Telegraphs, Spielfigur als markantestes Element).
 
 **Schritt 1, Stil-Prototyp (Entscheidung durch den PO):** dieselbe Szene (Zuflucht und ein Kampfraum) in **3 Richtungen**, im Spiel umschaltbar:
@@ -810,6 +810,18 @@ Für jede Richtung im Prototyp:
 - Leistungs-Budget wie in M4 (CPU ×4 auf dem Handy prüfen).
 
 **Abnahme:** Der PO wählt nach Schritt 1 eine Richtung (oder eine Mischung). Nach Schritt 2 sagt der PO: „So soll es aussehen.“
+
+**Stand Schritt 1 (Prototyp, ADR 0007):** ✅ umgesetzt, die Wahl des PO steht aus.
+- **Umschalten:** Pause → Einstellungen → „Stil (Prototyp, lädt neu)“ (Settings v8).
+- **Pro Stil umgesetzt:**
+  - Boden (Wiese mit Blumen, Bilderbuch-Gekritzel, Aquarell-Flecken) und Rand
+  - Hindernisse mit runden Ecken und Schatten
+  - Farben aller Rigs, Konturen und große Augen (A und B)
+  - Bloom-Stärke
+  - Umgebungs-Partikel: Glühwürmchen, Blätter, schwebende Lichtpunkte
+  - Menü-Farben, Schrift (Nunito, Baloo 2, Quicksand), Button-Form
+- **Noch neutral:** HUD, Wahrzeichen der Zuflucht, Kampf-Effekte und Icons. Sie folgen im Umbau.
+- **Test:** Er prüft, dass die Spielfigur in jedem Stil deutlich heller ist als der Boden (GDD §12.1 Regel 1).
 
 **Abhängig von:** M4, M5.4
 
@@ -1236,6 +1248,7 @@ Richtwerte. Wenn sich die Reihenfolge der Pakete ändert, verschieben sich die N
 | nach M3 ✅ | **v5** | | | Einstellung „Aura-Ring um Vesper anzeigen“ (Standard: aus) |
 | nach M4.1 ✅ | **v6** | | | Sprachauswahl in den Einstellungen (Automatisch, English, Deutsch) |
 | M4.2 ✅ | **v7** | | | „Einfache Grafik“ (klassische Formen) |
+| M4.5 (Prototyp) ✅ | **v8** | | | Kunst-Richtung `artStyle` |
 | M5.2 ✅ | | **v3** | **v9** | Welt-Fortschritt, `worldId` |
 | M5.3 ✅ | | **v4** | **v10** | Materialien, Gebäude-Stufen, Dekorationen |
 | M5.4 ✅ | | **v5** | **v11** | Rüstungen, Ausrüstung im Run |

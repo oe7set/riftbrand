@@ -1,4 +1,5 @@
 import { Container, Graphics, Sprite } from 'pixi.js';
+import type { ArtStyleDef } from '../../content/art/styles';
 import type { RoomState } from '../../sim/room';
 import { PALETTE } from './palette';
 import { crackPoints, scatterRandom } from './scatter';
@@ -15,7 +16,10 @@ export class RoomView {
   private openSec = 0;
   private time = 0;
 
-  constructor(textures: BakedTextures) {
+  constructor(
+    textures: BakedTextures,
+    private readonly style: ArtStyleDef,
+  ) {
     const make = (t: typeof textures.ring, tint: number) => {
       const s = new Sprite(t);
       s.anchor.set(0.5);
@@ -38,24 +42,42 @@ export class RoomView {
       const y = room.rects[i * 4 + 1] as number;
       const w = room.rects[i * 4 + 2] as number;
       const h = room.rects[i * 4 + 3] as number;
-      g.rect(x - 4, y - 4, w + 8, h + 8).stroke({
-        color: PALETTE.arenaEdge,
-        width: 6,
+      const o = this.style.obstacle;
+      if (this.style.ground.grid) {
+        g.rect(x - 4, y - 4, w + 8, h + 8).stroke({ color: o.stroke, width: 6, alpha: 0.08 });
+        g.rect(x, y, w, h)
+          .fill({ color: o.fill })
+          .stroke({ color: o.stroke, width: 2, alpha: 0.75 });
+        this.drawProps(g, x, y, w, h);
+        continue;
+      }
+      // Friendly styles: rounded blocks with a soft shadow below.
+      g.roundRect(x + 4, y + 8, w, h, 14).fill({ color: 0x000000, alpha: 0.18 });
+      g.roundRect(x, y, w, h, 14)
+        .fill({ color: o.fill })
+        .stroke({ color: o.stroke, width: o.strokeWidthPx, alpha: 0.95 });
+      g.roundRect(x + 6, y + 6, w - 12, Math.min(14, h * 0.25), 7).fill({
+        color: 0xffffff,
         alpha: 0.08,
       });
-      g.rect(x, y, w, h)
-        .fill({ color: 0x120e1f })
-        .stroke({ color: PALETTE.arenaEdge, width: 2, alpha: 0.75 });
-      this.drawProps(g, x, y, w, h);
     }
     for (let i = 0; i < room.circleCount; i++) {
       const x = room.circles[i * 3] as number;
       const y = room.circles[i * 3 + 1] as number;
       const r = room.circles[i * 3 + 2] as number;
-      g.circle(x, y, r + 4).stroke({ color: PALETTE.arenaEdge, width: 6, alpha: 0.08 });
+      const o = this.style.obstacle;
+      if (this.style.ground.grid) {
+        g.circle(x, y, r + 4).stroke({ color: o.stroke, width: 6, alpha: 0.08 });
+      } else {
+        g.ellipse(x + 3, y + 7, r, r * 0.9).fill({ color: 0x000000, alpha: 0.18 });
+      }
       g.circle(x, y, r)
-        .fill({ color: 0x120e1f })
-        .stroke({ color: PALETTE.arenaEdge, width: 2, alpha: 0.75 });
+        .fill({ color: o.fill })
+        .stroke({
+          color: o.stroke,
+          width: this.style.ground.grid ? 2 : o.strokeWidthPx,
+          alpha: this.style.ground.grid ? 0.75 : 0.95,
+        });
     }
   }
 

@@ -1,3 +1,9 @@
+// Fonts of the style prototype (ROADMAP M4.5), bundled so they work offline.
+import '@fontsource/baloo-2/latin-700.css';
+import '@fontsource/nunito/latin-400.css';
+import '@fontsource/nunito/latin-800.css';
+import '@fontsource/quicksand/latin-400.css';
+import '@fontsource/quicksand/latin-700.css';
 import { Game } from './app/game';
 import { preferredLanguages } from './platform/display';
 import { resolveLocale, setLocale, t } from './shared/i18n';

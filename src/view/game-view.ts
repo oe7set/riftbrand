@@ -2,6 +2,7 @@ import type { Texture } from 'pixi.js';
 import { autoDetectRenderer, Container, type Renderer } from 'pixi.js';
 import { AdvancedBloomFilter } from 'pixi-filters';
 import { RIFT_SHOT } from '../content/abilities';
+import type { ArtStyleDef } from '../content/art/styles';
 import { REFUGE } from '../content/hub/layout';
 import { PLAYER_RIG_ID, RIGS } from '../content/rigs';
 import type { Speaker } from '../content/schema';
@@ -30,7 +31,8 @@ import { rasterizeIcons } from './render/icons/rasterize';
 import { gameIconSpecs } from './render/icons/specs';
 import { PALETTE } from './render/palette';
 import { armoredRig, armorLookKey } from './render/rig/armor-look';
-import { type BakedRig, bakeRig, destroyBakedRig } from './render/rig/bake-rig';
+import { type BakedRig, type BakeLook, bakeRig, destroyBakedRig } from './render/rig/bake-rig';
+import { styleRig } from './render/rig/style-rig';
 import { RoomView } from './render/room-view';
 import { type BakedTextures, bakeTextures } from './render/textures';
 import { DamageNumbers } from './vfx/damage-numbers';
@@ -81,7 +83,8 @@ export class GameView {
   private readonly postFx = new Container();
   private readonly worldLayer = new Container();
   private readonly hudLayer = new Container();
-  private readonly arena = new ArenaView();
+  private readonly arena: ArenaView;
+  private readonly bakeLook: BakeLook;
   private readonly roomView: RoomView;
   private readonly exitScreen = { x: 0, y: 0 };
   private readonly fxParticles = new ParticleSystem(PARTICLE_CAPACITY);
@@ -102,14 +105,21 @@ export class GameView {
   private constructor(
     readonly renderer: Renderer,
     icons: { spells: Texture[]; statuses: Texture[] },
+    readonly style: ArtStyleDef,
   ) {
     this.textures = bakeTextures(renderer, icons);
     this.effects = new Effects(this.fxParticles, this.groundParticles, this.textures);
-    const rigs = RIGS.map((rig) => bakeRig(renderer, rig));
+    this.bakeLook = {
+      outlineUnits: style.rigs.outlineUnits,
+      outlineColor: style.rigs.outlineColor,
+      glow: style.rigs.glow,
+    };
+    this.arena = new ArenaView(style);
+    const rigs = RIGS.map((rig) => bakeRig(renderer, styleRig(rig, style), this.bakeLook));
     this.entities = new EntityView(this.textures, rigs, this.effects);
     this.hub = new HubView(REFUGE, rigs, this.textures);
     this.hub.visible = false;
-    this.roomView = new RoomView(this.textures);
+    this.roomView = new RoomView(this.textures, style);
     this.hud = new HudView(
       this.textures.white,
       this.textures.vignette,
@@ -136,7 +146,10 @@ export class GameView {
       this.damageNumbers.root,
       this.debugDraw.graphics,
     );
-    this.emberRain = new EmberRain(this.textures.dot);
+    this.emberRain = new EmberRain(
+      style.particles.kind === 'leaves' ? this.textures.spark : this.textures.dot,
+      style.particles,
+    );
     // Above the world, under the HUD; inside postFx so the bloom catches it.
     this.postFx.addChild(this.worldLayer, this.emberRain.root);
     this.hudLayer.addChild(this.hud.root, this.touchControls.root);
@@ -144,7 +157,7 @@ export class GameView {
     this.setGlowQuality('high');
   }
 
-  static async create(size: ViewSize): Promise<GameView> {
+  static async create(size: ViewSize, style: ArtStyleDef): Promise<GameView> {
     const renderer = await autoDetectRenderer({
       preference: 'webgl',
       width: size.width,
@@ -152,7 +165,7 @@ export class GameView {
       resolution: Math.min(size.devicePixelRatio, MAX_RESOLUTION),
       autoDensity: true,
       antialias: true,
-      backgroundColor: PALETTE.background,
+      backgroundColor: style.background,
       powerPreference: 'high-performance',
     });
     const specs = gameIconSpecs();
@@ -160,7 +173,7 @@ export class GameView {
       rasterizeIcons(specs.spells),
       rasterizeIcons(specs.statuses),
     ]);
-    const view = new GameView(renderer, { spells, statuses });
+    const view = new GameView(renderer, { spells, statuses }, style);
     view.resize(size);
     return view;
   }
@@ -175,7 +188,10 @@ export class GameView {
 
   /** "high" adds a real bloom pass; "low" relies on the baked glow halos only. */
   setGlowQuality(quality: GlowQuality): void {
-    this.postFx.filters = quality === 'high' ? [this.bloom] : [];
+    // Friendlier styles bloom less (or not at all); the halos are baked into their rigs.
+    const bloom = quality === 'high' && this.style.bloom > 0;
+    this.bloom.bloomScale = 0.9 * this.style.bloom;
+    this.postFx.filters = bloom ? [this.bloom] : [];
     this.emberRain.density = quality === 'high' ? 1 : 0.5;
     const budget = quality === 'high' ? PARTICLE_CAPACITY : PARTICLE_CAPACITY / 2;
     this.fxParticles.budget = budget;
@@ -190,7 +206,9 @@ export class GameView {
     const base = RIGS.find((r) => r.id === PLAYER_RIG_ID);
     const previous = this.playerArmorRig;
     this.playerArmorRig =
-      base && armorIds.length > 0 ? bakeRig(this.renderer, armoredRig(base, armorIds)) : null;
+      base && armorIds.length > 0
+        ? bakeRig(this.renderer, styleRig(armoredRig(base, armorIds), this.style), this.bakeLook)
+        : null;
     this.entities.setPlayerRig(this.playerArmorRig);
     if (previous) destroyBakedRig(previous);
   }

@@ -1,7 +1,8 @@
 import { z } from 'zod';
+import { artStyleIdSchema } from '../../content/art/styles';
 
 const STORAGE_KEY = 'riftbrand.settings';
-export const SETTINGS_VERSION = 7;
+export const SETTINGS_VERSION = 8;
 
 const unit = z.number().min(0).max(1);
 
@@ -18,7 +19,7 @@ const layoutProfile = z.partialRecord(
 
 /**
  * Player settings (GDD §13). Every field has a default via `.catch`, so a missing, corrupt or
- * older save never breaks loading: v1 → … → v7 is exactly that (new fields get their defaults).
+ * older save never breaks loading: v1 → … → v8 is exactly that (new fields get their defaults).
  * New fields → bump SETTINGS_VERSION and extend migrate.
  */
 const settingsSchema = z.object({
@@ -45,6 +46,8 @@ const settingsSchema = z.object({
   language: z.enum(['auto', 'en', 'de']).catch('auto'),
   // v7 (M4.2): classic glowing shapes instead of animated bodies, for weak devices.
   simpleGraphics: z.boolean().catch(false),
+  // v8 (M4.5): art direction of the style prototype; older saves keep today's neon look.
+  artStyle: artStyleIdSchema.catch('neon'),
 });
 
 export type Settings = z.infer<typeof settingsSchema>;
