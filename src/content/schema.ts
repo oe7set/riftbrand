@@ -1333,3 +1333,61 @@ export function defineTrade(def: TradeDef): TradeDef {
 export function defineCosmetic(def: CosmeticDef): CosmeticDef {
   return cosmeticSchema.parse(def);
 }
+
+// ── Quests (ROADMAP M5.6) ─────────────────────────────────────────────────
+
+/**
+ * What a quest asks for. Run objectives count across runs from the run's tally; `deliver` and
+ * `build` are checked against the profile when you talk to the giver.
+ */
+export const questObjectiveSchema = z.discriminatedUnion('kind', [
+  /** Find materials in runs (counted when a run ends, also on death). */
+  z.object({ kind: z.literal('collect'), material: id, count: z.number().int().positive() }),
+  /** Hand in materials from the stash. */
+  z.object({ kind: z.literal('deliver'), material: id, count: z.number().int().positive() }),
+  /** Kill enemies that carry a status. */
+  z.object({
+    kind: z.literal('statusKills'),
+    status: statusIdSchema,
+    count: z.number().int().positive(),
+  }),
+  /** Defeat a mini-boss (duel champion) or a world boss. */
+  z.object({ kind: z.literal('defeat'), enemy: id, count: z.number().int().positive() }),
+  /** Clear rooms without taking damage. */
+  z.object({ kind: z.literal('flawless'), count: z.number().int().positive() }),
+  /** Reach the boss of a world. */
+  z.object({ kind: z.literal('reachBoss'), world: id }),
+  /** Find a quest item: it turns up in an event room of the world while the quest is open. */
+  z.object({ kind: z.literal('findItem'), item: id, world: id }),
+  /** Have a building at least at this level. */
+  z.object({ kind: z.literal('build'), building: id, level: z.number().int().min(1).max(2) }),
+]);
+
+export const questRewardSchema = z.object({
+  ember: z.number().int().min(0).default(0),
+  dust: z.number().int().min(0).default(0),
+  materials: z.record(id, z.number().int().positive()).default({}),
+  /** A spell unlocked at Sel for free. */
+  spell: id.optional(),
+  /** A story flag (dialogue, later unlocks). */
+  flag: id.optional(),
+});
+
+export const questSchema = z.object({
+  id,
+  /** Errands repeat in rotation per giver; story quests form chains and happen once. */
+  kind: z.enum(['errand', 'story']),
+  giver: speakerSchema,
+  /** Quests that must be done first (story chains). */
+  requires: z.array(id).default([]),
+  objectives: z.array(questObjectiveSchema).min(1),
+  reward: questRewardSchema,
+});
+
+export type QuestDef = z.infer<typeof questSchema>;
+export type QuestObjective = z.infer<typeof questObjectiveSchema>;
+export type QuestReward = z.infer<typeof questRewardSchema>;
+
+export function defineQuest(def: z.input<typeof questSchema>): QuestDef {
+  return questSchema.parse(def);
+}

@@ -4,7 +4,7 @@ import { type RunState, startSpellSlots } from '../../sim/run/run-state';
 import type { KeyValueStore } from './settings';
 
 const STORAGE_KEY = 'riftbrand.run';
-export const RUN_SAVE_VERSION = 11;
+export const RUN_SAVE_VERSION = 12;
 
 const mapNodeSchema = z.object({
   id: z.number().int().min(0),
@@ -69,6 +69,11 @@ const runSchema = z.object({
   cast: upgradeStateSchema,
   duelsWon: z.array(z.string()),
   materials: z.record(z.string(), z.number().int().min(0)),
+  tally: z.object({
+    statusKills: z.record(z.string(), z.number().int().min(0)),
+    flawlessRooms: z.number().int().min(0),
+    items: z.array(z.string()),
+  }),
 });
 
 const saveSchema = z.object({
@@ -178,6 +183,15 @@ function migrate10to11(raw: { version: number; run?: Record<string, unknown> }):
   return { ...raw, version: 11, run: { ...raw.run, meta: { ...meta, armor: [] } } };
 }
 
+/** v11 → v12: quests count from the run (M5.6); a run in progress starts counting now. */
+function migrate11to12(raw: { version: number; run?: Record<string, unknown> }): unknown {
+  return {
+    ...raw,
+    version: 12,
+    run: { ...raw.run, tally: { statusKills: {}, flawlessRooms: 0, items: [] } },
+  };
+}
+
 export function migrateRunSave(raw: unknown): RunState | null {
   if (typeof raw !== 'object' || raw === null) return null;
   let data = raw as { version?: unknown; run?: Record<string, unknown> };
@@ -191,6 +205,7 @@ export function migrateRunSave(raw: unknown): RunState | null {
   if (data.version === 8) data = migrate8to9(data as { version: number }) as typeof data;
   if (data.version === 9) data = migrate9to10(data as { version: number }) as typeof data;
   if (data.version === 10) data = migrate10to11(data as { version: number }) as typeof data;
+  if (data.version === 11) data = migrate11to12(data as { version: number }) as typeof data;
   if (data.version !== RUN_SAVE_VERSION) return null;
   raw = data;
   const parsed = saveSchema.safeParse(raw);

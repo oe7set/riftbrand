@@ -7,7 +7,7 @@ import {
   type HitstopLevel,
   hitSourceSchema,
 } from '../../content/schema';
-import { Status } from '../../content/statuses';
+import { STATUS_COUNT, Status } from '../../content/statuses';
 import { TUNING } from '../../content/tuning';
 import { AiState, C, rememberHit, stacksOf, Token, wasHitBy } from '../ecs/components';
 import { destroyEntity } from '../ecs/world';
@@ -292,6 +292,14 @@ export function killEnemy(
     e.dirY = dirY;
     e.value = type;
     e.flags = c.eliteMod[eid] as number;
+  }
+  // Quests count kills by status (ROADMAP M5.6); frozen enemies count as chilled.
+  if (triggerEffects) {
+    for (let s = 0; s < STATUS_COUNT; s++) {
+      if (stacksOf(c, eid, s) > 0 || (s === Status.Chill && frozen)) {
+        state.statusKills[s] = (state.statusKills[s] as number) + 1;
+      }
+    }
   }
   // Spell follow-ups and the twin bond read this entity's slots, so they run before it clears.
   if (triggerEffects) onEnemyKilledWithSpells(state, eid, x, y);

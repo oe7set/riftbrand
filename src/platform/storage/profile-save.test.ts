@@ -106,6 +106,13 @@ describe('profile save', () => {
     expect(p?.market.week).toBe(-1);
   });
 
+  it('migrates a v6 profile: an empty quest log (M5.6)', () => {
+    const { quests: _q, ...v6 } = createProfile();
+    const p = migrateProfile({ version: 6, profile: v6 });
+    expect(p?.quests.active).toEqual([]);
+    expect(p?.quests.tracked).toBeNull();
+  });
+
   it('migrates a fresh v2 profile without world entries', () => {
     const { worlds: _w, ...v2 } = createProfile();
     expect(migrateProfile({ version: 2, profile: v2 })?.worlds).toEqual({});

@@ -1063,13 +1063,13 @@ Zuflucht (begehbar)
 - **Woche:** Montag bis Sonntag (UTC), berechnet in `platform/display.ts`. Das Angebot ist eine reine Funktion der Wochennummer (`weeklyOffer`).
 - **Profil v6:** `market` (Woche und Käufe), `cosmetics`, `cape`. Der Quest-Zustand kommt dadurch mit **v7** (M5.6).
 
-### M5.6 Quest-System ⬜
+### M5.6 Quest-System ✅
 **Umfang:**
-- [ ] **Quests als Daten** in `src/content/quests/` mit `defineQuest()`. Felder:
+- [x] **Quests als Daten** in `src/content/quests/` mit `defineQuest()`. Felder:
   - `kind: 'errand' | 'story'`, Auftraggeber, Voraussetzungen
   - Ziele und Belohnungen
   - Dialogzeilen (Annahme, Fortschritt, Abschluss)
-- [ ] **Ziel-Arten:**
+- [x] **Ziel-Arten:**
   - Material sammeln
   - Gegner mit einem Status besiegen („Besiege 30 vergiftete Gegner“)
   - einen Mini-Boss bzw. Boss besiegen
@@ -1078,12 +1078,12 @@ Zuflucht (begehbar)
   - einen Quest-Gegenstand finden (in einem Ereignis-Raum)
 
   Die Simulation kennt keine Quests. Der Fortschritt wird aus `SimEvents`-Zählern und dem Run-Bericht abgeleitet.
-- [ ] **Aufträge** (wiederholbar bzw. rotierend) von den Figuren, z. B. „Bring Toll 3 Glutkerne“.
-- [ ] **Story-Quests** in Ketten. Sie schalten Welten, Gebäude, Figuren und Zauber frei.
-- [ ] **Quest-Log** (Preact) mit Verfolgen-Funktion.
+- [x] **Aufträge** (wiederholbar bzw. rotierend) von den Figuren, z. B. „Bring Toll 3 Glutkerne“.
+- [x] **Story-Quests** in Ketten. Sie schalten Welten, Gebäude, Figuren und Zauber frei.
+- [x] **Quest-Log** (Preact) mit Verfolgen-Funktion.
   - kleiner Tracker im Run-HUD
   - Quest-Symbol an passenden Map-Knoten
-- [ ] **Startumfang:** 10 Aufträge und eine Story-Kette über die Aschefelder (5 Schritte).
+- [x] **Startumfang:** 10 Aufträge und eine Story-Kette über die Aschefelder (5 Schritte).
 
 **Technik:**
 - Auswertung rein und deterministisch in `src/sim/meta/quests.ts`.
@@ -1092,6 +1092,29 @@ Zuflucht (begehbar)
 **Tests:** Fortschritt je Ziel-Art, Voraussetzungen der Ketten, Migration.
 
 **Abhängig von:** M5.2
+
+**Umgesetzt (Abweichungen vom Plan):**
+- **Ziel-Arten** (`content/quests/`):
+  - `collect` (in Runs finden), `deliver` (aus dem Lager abgeben)
+  - `statusKills`, `defeat` (Mini-Boss immer, Welt-Boss nur bei Sieg), `flawless`
+  - `reachBoss`, `findItem` (taucht im nächsten Ereignis-Raum der Welt auf), `build`
+- **Zählung:**
+  - Die Simulation zählt nur Kills pro Status (`SimState.statusKills`).
+  - Alles andere kommt aus dem Run: `RunState.tally` mit Status-Kills, Räumen ohne Treffer und Fundstücken; dazu `materials`, `duelsWon` und `reachedBoss`.
+  - Verbucht wird in `settleRun`, also auch bei Tod.
+- **Aufträge:** 10 Stück bei Toll, Maren, Sel, Nix, Iskra und dem Archivar. Pro Figur ist einer offen; nach dem Abgeben kommt der nächste in Rotation.
+- **Story-Kette „Glut der Aschefelder“** bei Maren (5 Schritte):
+  1. das Herz erreichen
+  2. die Schmiede aufbauen
+  3. das Zwillingsfeuer besiegen
+  4. die Asche des Wächters finden: Belohnung Zauber Meteor und Flag `knows_warden`
+  5. der Wächter fällt: Flag `warden_defeated`
+- **Anzeige:**
+  - „!“ über Figuren mit neuem Auftrag, „✓“ zum Abgeben.
+  - Quest-Bildschirm mit Zeile der Figur, Zielen und Belohnung.
+  - Quest-Log am Lagerfeuer mit Verfolgen-Funktion.
+  - Tracker im Kampf-HUD und im Kopf der Run-Karte, ★ an passenden Knoten (Boss, Duell, Ereignis).
+- **Speicherstände:** Profil **v7** (`quests`), Run-Save **v12** (`tally`).
 
 ### M5.7 Story-Fundament ⬜
 **Umfang:**
@@ -1282,7 +1305,7 @@ Richtwerte. Wenn sich die Reihenfolge der Pakete ändert, verschieben sich die N
 | M5.3 ✅ | | **v4** | **v10** | Materialien, Gebäude-Stufen, Dekorationen |
 | M5.4 ✅ | | **v5** | **v11** | Rüstungen, Ausrüstung im Run |
 | M5.5 ✅ | | **v6** | | Wochenmarkt, Umhänge |
-| M5.6 | | **v7** | | Quest-Zustand |
+| M5.6 ✅ | | **v7** | **v12** | Quest-Zustand, Run-Zählung |
 
 ---
 

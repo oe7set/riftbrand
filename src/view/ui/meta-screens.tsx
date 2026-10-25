@@ -5,8 +5,16 @@ import { buildingById, DECORATIONS } from '../../content/hub/buildings';
 import { COSMETICS, cosmeticById, tradeById } from '../../content/hub/market';
 import { MATERIALS, materialById } from '../../content/materials';
 import { EMBER_TREE, treeNodeById } from '../../content/meta/ember-tree';
+import { questById } from '../../content/quests';
 import { RELICS, relicDescParams } from '../../content/relics';
-import type { CostDef, Speaker, WorldDef } from '../../content/schema';
+import type {
+  CostDef,
+  QuestDef,
+  QuestObjective,
+  QuestReward,
+  Speaker,
+  WorldDef,
+} from '../../content/schema';
 import { SPELLS } from '../../content/spells';
 import { WORLDS, worldById } from '../../content/worlds';
 import { type TranslationKey, t } from '../../shared/i18n';
@@ -33,6 +41,7 @@ import {
   spellUnlockCost,
   treeRank,
 } from '../../sim/meta/profile';
+import { objectiveHave, objectiveNeed, questStatus } from '../../sim/meta/quests';
 import {
   buildingLevel,
   canBuyDecoration,
@@ -96,6 +105,17 @@ export type MetaScreen =
       onBack(): void;
     }
   | { kind: 'decorations'; profile: Profile; onBuy(id: string): void; onBack(): void }
+  | {
+      /** One quest (ROADMAP M5.6): the giver's words, objectives, reward and what you can do. */
+      kind: 'quest';
+      profile: Profile;
+      questId: string;
+      onAccept(): void;
+      onClaim(): void;
+      onTrack(): void;
+      onBack(): void;
+    }
+  | { kind: 'questLog'; profile: Profile; onTrack(questId: string): void; onBack(): void }
   | {
       /** Nix's market (ROADMAP M5.5): this week's trades and capes, plus the wardrobe. */
       kind: 'market';
@@ -554,6 +574,183 @@ export function DecorationsScreen({
                 </div>
                 <div class="rb-card-name">{t(`decor.${d.id}.name` as TranslationKey)}</div>
                 {!owned && <CostList profile={profile} cost={d.cost} />}
+              </button>
+            );
+          })}
+        </div>
+      </Focus>
+      <div class="rb-menu">
+        <button type="button" class="rb-button rb-primary" onClick={onBack}>
+          {t('common.back')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** One objective as a sentence, e.g. "Defeat 30 burning enemies". */
+function objectiveText(o: QuestObjective): string {
+  switch (o.kind) {
+    case 'collect':
+      return t('quest.obj.collect', { n: o.count, name: materialName(o.material) });
+    case 'deliver':
+      return t('quest.obj.deliver', { n: o.count, name: materialName(o.material) });
+    case 'statusKills':
+      return t('quest.obj.status_kills', {
+        n: o.count,
+        status: t(`quest.status.${o.status}` as TranslationKey),
+      });
+    case 'defeat':
+      return t('quest.obj.defeat', { name: t(`enemy.${o.enemy}.name` as TranslationKey) });
+    case 'flawless':
+      return t('quest.obj.flawless', { n: o.count });
+    case 'reachBoss':
+      return t('quest.obj.reach_boss', { world: worldName(o.world) });
+    case 'findItem':
+      return t('quest.obj.find_item', {
+        name: t(`quest_item.${o.item}.name` as TranslationKey),
+        world: worldName(o.world),
+      });
+    case 'build':
+      return t(o.level > 1 ? 'quest.obj.expand' : 'quest.obj.build', {
+        name: t(`building.${o.building}.name` as TranslationKey),
+      });
+  }
+}
+
+function rewardText(r: QuestReward): string {
+  const parts: string[] = [];
+  if (r.ember > 0) parts.push(`✦ ${t('hub.ember', { n: r.ember })}`);
+  if (r.dust > 0) parts.push(`✧ ${t('hub.dust', { n: r.dust })}`);
+  for (const [id, n] of Object.entries(r.materials)) parts.push(`● ${n} ${materialName(id)}`);
+  if (r.spell)
+    parts.push(t('quest.reward_spell', { name: t(`spell.${r.spell}.name` as TranslationKey) }));
+  return parts.join(' · ');
+}
+
+function QuestProgress({ profile, quest }: { profile: Profile; quest: QuestDef }) {
+  return (
+    <ul class="rb-quest-objectives">
+      {quest.objectives.map((o, i) => {
+        const need = objectiveNeed(o);
+        const have = objectiveHave(profile, quest, i);
+        const active = profile.quests.active.includes(quest.id);
+        return (
+          <li key={`${quest.id}-${i}`} class={have >= need ? 'is-done' : ''}>
+            <span>{have >= need ? '✓' : '○'}</span> {objectiveText(o)}
+            {active && need > 1 && (
+              <span class="rb-quest-count">
+                {' '}
+                {have}/{need}
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+export function QuestScreen(s: Extract<MetaScreen, { kind: 'quest' }>) {
+  const quest = questById(s.questId);
+  if (!quest) return null;
+  const status = questStatus(s.profile, quest.id);
+  const line =
+    status === 'ready'
+      ? 'done'
+      : status === 'available'
+        ? 'offer'
+        : status === 'done'
+          ? 'done'
+          : 'desc';
+  const tracked = s.profile.quests.tracked === quest.id;
+  return (
+    <div class="rb-screen rb-center rb-station rb-quest">
+      <div class="rb-overlay-title">{t(`quest.${quest.id}.name` as TranslationKey)}</div>
+      <div class="rb-quest-kind">
+        {t(quest.kind === 'story' ? 'quest.kind_story' : 'quest.kind_errand')} ·{' '}
+        {t(`speaker.${quest.giver}` as TranslationKey)}
+      </div>
+      <div class="rb-speeches">
+        <div class={`rb-speech speaker-${quest.giver}`}>
+          <div class="rb-speech-name">{t(`speaker.${quest.giver}` as TranslationKey)}</div>
+          <div class="rb-speech-text">„{t(`quest.${quest.id}.${line}` as TranslationKey)}“</div>
+        </div>
+      </div>
+      <div class="rb-world-info rb-quest-info">
+        <QuestProgress profile={s.profile} quest={quest} />
+        <div class="rb-quest-reward">{t('quest.reward', { reward: rewardText(quest.reward) })}</div>
+      </div>
+      <Focus>
+        <div class="rb-menu">
+          {status === 'available' && (
+            <button type="button" class="rb-button rb-primary" data-autofocus onClick={s.onAccept}>
+              {t('quest.accept')}
+            </button>
+          )}
+          {status === 'ready' && (
+            <button type="button" class="rb-button rb-primary" data-autofocus onClick={s.onClaim}>
+              {t('quest.claim')}
+            </button>
+          )}
+          {status === 'active' && !tracked && (
+            <button type="button" class="rb-button" data-autofocus onClick={s.onTrack}>
+              {t('quest.track')}
+            </button>
+          )}
+          <button
+            type="button"
+            class="rb-button"
+            data-autofocus={
+              status === 'done' || (status === 'active' && tracked) ? true : undefined
+            }
+            onClick={s.onBack}
+          >
+            {t('common.back')}
+          </button>
+        </div>
+      </Focus>
+    </div>
+  );
+}
+
+export function QuestLogScreen({
+  profile,
+  onTrack,
+  onBack,
+}: Extract<MetaScreen, { kind: 'questLog' }>) {
+  const active = profile.quests.active
+    .map((id) => questById(id))
+    .filter((q): q is QuestDef => q !== undefined);
+  return (
+    <div class="rb-screen rb-center rb-boon-screen rb-quest-log" style={{ '--being': '#ffd36b' }}>
+      <div class="rb-being-name">{t('quest.log')}</div>
+      <div class="rb-being-quote">
+        {active.length === 0 ? t('quest.log_empty') : t('quest.log_hint')}
+      </div>
+      <Focus wide>
+        <div class="rb-cards">
+          {active.map((q, i) => {
+            const tracked = profile.quests.tracked === q.id;
+            const ready = questStatus(profile, q.id) === 'ready';
+            return (
+              <button
+                type="button"
+                key={q.id}
+                class={`rb-card rb-quest-card ${tracked ? 'is-tracked' : ''}`}
+                data-autofocus={i === 0 ? true : undefined}
+                onClick={() => onTrack(q.id)}
+              >
+                <div class="rb-card-head">
+                  <span class="rb-card-slot">
+                    {t(q.kind === 'story' ? 'quest.kind_story' : 'quest.kind_errand')}
+                  </span>
+                  <span class="rb-card-rarity">
+                    {ready ? t('quest.ready') : tracked ? t('quest.tracked') : t('quest.track')}
+                  </span>
+                </div>
+                <div class="rb-card-name">{t(`quest.${q.id}.name` as TranslationKey)}</div>
+                <QuestProgress profile={profile} quest={q} />
               </button>
             );
           })}

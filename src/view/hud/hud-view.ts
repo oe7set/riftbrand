@@ -57,6 +57,8 @@ export class HudView {
   private readonly vignette: Sprite;
   private readonly exitArrow: Sprite;
   private readonly shardLabel: Text;
+  /** Tracked quest under the bars (ROADMAP M5.6); set between rooms, not per frame. */
+  private readonly questLabel: Text;
   private readonly castBack: Sprite[] = [];
   private readonly castFill: Sprite[] = [];
   private readonly ultBack: Sprite;
@@ -164,6 +166,9 @@ export class HudView {
       style: { ...style, fontSize: 15, fill: PALETTE.shard },
     });
     this.shardLabel.anchor.set(0, 0);
+    this.questLabel = new Text({ text: '', style: { ...style, fontSize: 14, fill: 0xffe0a3 } });
+    this.questLabel.anchor.set(0, 0);
+    this.questLabel.visible = false;
     this.bossBack = bar(white, PALETTE.hpBack);
     this.bossLag = bar(white, 0xffffff);
     this.bossFill = bar(white, PALETTE.ultimate);
@@ -177,7 +182,13 @@ export class HudView {
       style: { ...style, fontSize: 15, fill: PALETTE.ultimate, letterSpacing: 4 },
     });
     this.bossName.anchor.set(0.5, 1);
-    this.root.addChild(this.waveLabel, this.banner, this.exitArrow, this.shardLabel);
+    this.root.addChild(
+      this.waveLabel,
+      this.banner,
+      this.exitArrow,
+      this.shardLabel,
+      this.questLabel,
+    );
     this.root.addChild(
       this.bossBack,
       this.bossLag,
@@ -334,6 +345,13 @@ export class HudView {
       narrow ? MARGIN_PX + HP_HEIGHT_PX + PIP_HEIGHT_PX + ULT_HEIGHT_PX + 22 : MARGIN_PX - 2,
     );
     this.banner.position.set(width / 2, height * 0.3);
+    // Under the spell icons on the left; they sit below the bars and the ultimate meter.
+    this.questLabel.position.set(MARGIN_PX, MARGIN_PX + HP_HEIGHT_PX + PIP_HEIGHT_PX + 58);
+  }
+
+  setQuestTracker(text: string | null): void {
+    this.questLabel.visible = text !== null;
+    if (text !== null && this.questLabel.text !== text) this.questLabel.text = text;
   }
 
   onWaveStart(wave: number, total: number): void {

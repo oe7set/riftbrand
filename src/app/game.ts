@@ -8,8 +8,9 @@ import { EVOLUTIONS } from '../content/evolutions';
 import { REFUGE } from '../content/hub/layout';
 import { DEFAULT_CAPE } from '../content/hub/market';
 import { MATERIALS } from '../content/materials';
+import { questById } from '../content/quests';
 import { RELICS } from '../content/relics';
-import type { Speaker, StationId } from '../content/schema';
+import type { RoomType, Speaker, StationId } from '../content/schema';
 import { statusIdSchema } from '../content/schema';
 import { SPELLS, spellById } from '../content/spells';
 import { worldBiome, worldById } from '../content/worlds';
@@ -89,6 +90,16 @@ import {
   unlockRelic,
   unlockSpell,
 } from '../sim/meta/profile';
+import {
+  acceptQuest,
+  claimQuest,
+  liveProgress,
+  questFrom,
+  questItemToFind,
+  questNodeTypes,
+  questStatus,
+  trackQuest,
+} from '../sim/meta/quests';
 import {
   addMaterials,
   buildingInhabited,
@@ -251,6 +262,8 @@ export class Game {
   private hubLines: Partial<Record<Speaker, string>> | null = null;
   /** Figures with an unheard line this visit (speech bubble in the refuge). */
   private hubFresh: Partial<Record<Speaker, boolean>> = {};
+  /** Bubble per figure: quest marks win over "…" (ROADMAP M5.6). */
+  private hubMarks: Partial<Record<Speaker, string>> = {};
   /** What the refuge view draws of the rebuild (ROADMAP M5.3); replaced whenever it changes. */
   private refugeLook: RefugeLook = { version: 0, levels: {}, decorations: [], growth: 0 };
   /** The refuge's room simulation, while it is loaded. */
@@ -596,6 +609,7 @@ export class Game {
       this.capeLook(),
     );
     this.hubMenu = false;
+    this.refreshHubMarks();
     this.input.releaseAll();
     this.input.setGameplayEnabled(true);
     this.stepper.reset();
@@ -618,6 +632,22 @@ export class Game {
       this.hubLines[speaker] = line.id;
       this.hubFresh[speaker] = true;
     }
+  }
+
+  /** Bubbles over the figures: "✓" quest to hand in, "!" quest on offer, "…" new line. */
+  private refreshHubMarks(): void {
+    const marks: Partial<Record<Speaker, string>> = {};
+    for (const station of REFUGE.stations) {
+      const speaker = station.npc?.speaker;
+      if (!speaker) continue;
+      if (station.building && !buildingInhabited(this.profile, station.building)) continue;
+      const quest = questFrom(this.profile, speaker);
+      const status = quest ? questStatus(this.profile, quest.id) : null;
+      if (status === 'ready') marks[speaker] = '✓';
+      else if (status === 'available') marks[speaker] = '!';
+      else if (this.hubFresh[speaker]) marks[speaker] = '…';
+    }
+    this.hubMarks = marks;
   }
 
   /** New look for the refuge view after anything was built or bought. */
@@ -675,6 +705,21 @@ export class Game {
       }
       this.hubFresh[speaker] = false;
     }
+    const quest = speaker ? questFrom(this.profile, speaker) : null;
+    if (quest) {
+      const status = questStatus(this.profile, quest.id);
+      const name = t(`quest.${quest.id}.name` as TranslationKey);
+      actions.push({
+        label:
+          status === 'ready'
+            ? t('quest.action_ready', { name })
+            : status === 'available'
+              ? t(quest.kind === 'story' ? 'quest.action_story' : 'quest.action_new', { name })
+              : t('quest.action_active', { name }),
+        onClick: () => this.showQuest(quest.id),
+        primary: status === 'ready' || status === 'available',
+      });
+    }
     if (id === 'maren')
       actions.push({ label: t('hub.tree'), onClick: () => this.showTree(), primary: true });
     if (id === 'nix') {
@@ -697,6 +742,7 @@ export class Game {
       if (hasUnlock(this.profile, 'decorations')) {
         actions.push({ label: t('hub.decorations'), onClick: () => this.showDecorations() });
       }
+      actions.push({ label: t('quest.log'), onClick: () => this.showQuestLog() });
       actions.push({ label: t('hub.profile'), onClick: () => this.showProfile(null) });
       actions.push({ label: t('hub.to_title'), onClick: () => this.showTitle() });
     }
@@ -781,6 +827,62 @@ export class Game {
       },
       onWearCape: (id) => {
         if (wearCape(this.profile, id)) refresh();
+      },
+      onBack: () => this.showHub(),
+    });
+  }
+
+  /** The tracked quest with its progress including this run, for the map and the HUD. */
+  private questTracker(): { text: string; nodeTypes: RoomType[] } | null {
+    const id = this.profile.quests.tracked;
+    const quest = id ? questById(id) : undefined;
+    if (!quest) return null;
+    const progress = liveProgress(this.profile, this.run, quest.id);
+    const open = progress.find(([have, need]) => have < need);
+    return {
+      text: t('hud.quest', {
+        name: t(`quest.${quest.id}.name` as TranslationKey),
+        progress: open ? (open[1] > 1 ? `${open[0]}/${open[1]}` : '') : '✓',
+      }),
+      nodeTypes: questNodeTypes(quest),
+    };
+  }
+
+  /** One quest (ROADMAP M5.6): what it asks, progress, reward; accept or hand in. */
+  private showQuest(questId: string): void {
+    this.ui.show({
+      kind: 'quest',
+      profile: this.profile,
+      questId,
+      onAccept: () => {
+        if (!acceptQuest(this.profile, questId)) return;
+        this.persistProfile();
+        this.audio.play('evolve', { pitch: 1.2, pitchVariation: 0, volume: 0.6 });
+        this.showQuest(questId);
+      },
+      onClaim: () => {
+        if (!claimQuest(this.profile, questId)) return;
+        this.persistProfile();
+        this.refreshRefuge();
+        this.audio.play('waveCleared', { pitchVariation: 0 });
+        this.showQuest(questId);
+      },
+      onTrack: () => {
+        if (trackQuest(this.profile, questId)) this.persistProfile();
+        this.showQuest(questId);
+      },
+      onBack: () => this.showHub(),
+    });
+  }
+
+  /** All open quests with progress; one can be tracked in the run HUD. */
+  private showQuestLog(): void {
+    this.ui.show({
+      kind: 'questLog',
+      profile: this.profile,
+      onTrack: (questId) => {
+        if (trackQuest(this.profile, questId)) this.persistProfile();
+        this.showQuestLog();
       },
       onBack: () => this.showHub(),
     });
@@ -1043,7 +1145,9 @@ export class Game {
     if (!run) return;
     if (this.mode === 'room') this.loadSim(this.backdropSim());
     this.setMode('map');
-    this.ui.show({ kind: 'map', run, onEnter: (id) => this.enterNode(id) });
+    const tracker = this.questTracker();
+    this.view.hud.setQuestTracker(tracker?.text ?? null);
+    this.ui.show({ kind: 'map', run, quest: tracker, onEnter: (id) => this.enterNode(id) });
   }
 
   private enterNode(nodeId: number): void {
@@ -1167,7 +1271,17 @@ export class Game {
       shards: this.sim.shards,
       ultCharge: this.sim.player.ultCharge,
       lastSparks: this.sim.lastSparks,
+      statusKills: this.sim.statusKills,
+      flawless: this.roomDamage() === 0,
     };
+  }
+
+  /** Damage the player took in the current room (all sources). */
+  private roomDamage(): number {
+    let damage = 0;
+    const tally = this.sim.damageBySource;
+    for (let i = 0; i < tally.length; i++) damage += Math.max(0, tally[i] as number);
+    return damage;
   }
 
   private finishRoom(): void {
@@ -1324,6 +1438,14 @@ export class Game {
           const option = event.options.find((o) => o.id === optionId);
           if (!option) return;
           const lines = applyOutcomes(run, node.id, optionId, option.outcomes).map(describeOutcome);
+          // An open quest's item turns up here (ROADMAP M5.6).
+          const item = questItemToFind(this.profile, run);
+          if (item) {
+            run.tally.items.push(item);
+            lines.push(
+              t('quest.item_found', { name: t(`quest_item.${item}.name` as TranslationKey) }),
+            );
+          }
           completeNonCombat(run);
           saveRun(this.store, run);
           show(lines.length > 0 ? lines : [t('event.result.nothing')]);
@@ -1335,6 +1457,7 @@ export class Game {
 
   private startArena(seed: number): void {
     this.run = null;
+    this.view.hud.setQuestTracker(null);
     const sim = createSim(seed);
     equipSpells(sim, startSpellSlots());
     this.loadSim(sim);
@@ -1627,7 +1750,7 @@ export class Game {
       this.mode === 'hub'
         ? {
             active: this.hubMenu ? -1 : this.hubActive,
-            fresh: this.hubFresh,
+            marks: this.hubMarks,
             locale: getLocale(),
             refuge: this.refugeLook,
           }

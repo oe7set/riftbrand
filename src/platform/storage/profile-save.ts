@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { DEFAULT_CAPE } from '../../content/hub/market';
+import { speakerSchema } from '../../content/schema';
 import { FIRST_WORLD_ID } from '../../content/worlds';
 import { createProfile, type Profile } from '../../sim/meta/profile';
 
-export const PROFILE_VERSION = 6;
+export const PROFILE_VERSION = 7;
 const KEY = 'profile';
 const BACKUP_KEY = 'profile.backup';
 
@@ -60,6 +61,13 @@ const profileSchema = z.object({
   }),
   cosmetics: z.array(z.string()),
   cape: z.string(),
+  quests: z.object({
+    active: z.array(z.string()),
+    done: z.array(z.string()),
+    progress: z.record(z.string(), z.array(z.number().int().min(0))),
+    errandsDone: z.partialRecord(speakerSchema, z.number().int().min(0)),
+    tracked: z.string().nullable(),
+  }),
 });
 
 const saveSchema = z.object({ version: z.literal(PROFILE_VERSION), profile: profileSchema });
@@ -138,6 +146,18 @@ function migrate5to6(raw: { version: number; profile?: Record<string, unknown> }
   };
 }
 
+/** v6 → v7 (M5.6): quests; nothing accepted yet. */
+function migrate6to7(raw: { version: number; profile?: Record<string, unknown> }): unknown {
+  return {
+    ...raw,
+    version: 7,
+    profile: {
+      ...raw.profile,
+      quests: { active: [], done: [], progress: {}, errandsDone: {}, tracked: null },
+    },
+  };
+}
+
 /**
  * Upgrades older profile saves step by step (vN → vN+1). Broken data yields null so the caller
  * can fall back to the backup slot: losing progress is the worst bug there is.
@@ -150,6 +170,7 @@ export function migrateProfile(raw: unknown): Profile | null {
   if (data.version === 3) data = migrate3to4(data as { version: number }) as typeof data;
   if (data.version === 4) data = migrate4to5(data as { version: number }) as typeof data;
   if (data.version === 5) data = migrate5to6(data as { version: number }) as typeof data;
+  if (data.version === 6) data = migrate6to7(data as { version: number }) as typeof data;
   const parsed = saveSchema.safeParse(data);
   return parsed.success ? parsed.data.profile : null;
 }
