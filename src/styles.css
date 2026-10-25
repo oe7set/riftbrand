@@ -1516,3 +1516,54 @@ body {
 :root[data-style="storybook"] .rb-logo {
   color: #ffe0a3;
 }
+
+/* Nix's market (ROADMAP M5.5). */
+
+.rb-market-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.rb-market-heading {
+  margin-top: 6px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--rb-title);
+}
+
+.rb-market-trade {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.rb-market-arrow {
+  color: var(--rb-accent);
+}
+
+.rb-cape-swatch {
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px 6px 50% 50%;
+  background: var(--cape);
+  border: 3px solid #1d1418;
+  vertical-align: middle;
+}
+
+.rb-wardrobe {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.rb-market-card {
+  min-height: 0;
+}

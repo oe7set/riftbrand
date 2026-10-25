@@ -23,6 +23,7 @@ import {
   DecorationsScreen,
   ForgeScreen,
   HubWalkScreen,
+  MarketScreen,
   MaterialChips,
   type MetaScreen,
   ProfileScreen,
@@ -936,6 +937,8 @@ export function UiRoot({ screen }: { screen: Screen }) {
       return <DecorationsScreen {...screen} />;
     case 'forge':
       return <ForgeScreen {...screen} />;
+    case 'market':
+      return <MarketScreen {...screen} />;
     case 'tree':
       return <TreeScreen {...screen} />;
     case 'wares':

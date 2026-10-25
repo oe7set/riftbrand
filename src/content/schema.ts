@@ -1302,3 +1302,34 @@ export function defineArmorSet(def: ArmorSetDef): ArmorSetDef {
   }
   return set;
 }
+
+// ── Nix's market (ROADMAP M5.5) ────────────────────────────────────────────
+
+/** A material trade in the weekly offer: give one bundle, get another. */
+export const tradeSchema = z.object({
+  id,
+  give: costSchema,
+  get: costSchema,
+  /** How often it can be made per week. */
+  stock: z.number().int().min(1).max(9),
+});
+
+/** Pure cosmetics (GDD §2.3): Vesper's cape colour, bought with Glut. */
+export const cosmeticSchema = z.object({
+  id,
+  kind: z.literal('cape'),
+  color: z.number().int().min(0).max(0xffffff),
+  /** Glut price; 0 = owned from the start. */
+  ember: z.number().int().min(0),
+});
+
+export type TradeDef = z.infer<typeof tradeSchema>;
+export type CosmeticDef = z.infer<typeof cosmeticSchema>;
+
+export function defineTrade(def: TradeDef): TradeDef {
+  return tradeSchema.parse(def);
+}
+
+export function defineCosmetic(def: CosmeticDef): CosmeticDef {
+  return cosmeticSchema.parse(def);
+}
