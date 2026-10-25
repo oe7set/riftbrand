@@ -55,7 +55,7 @@ Ein kleines Fragment am Rand des Risses mit einer Handvoll Überlebender. Die Zu
 | **Iskra, die Kartografin** | Neugierig, redet zu schnell | Brand-Stufen (Heat), tägliche bzw. wöchentliche Seeds, Kartenwissen |
 | **Der Archivar** | Gesichtslos, spricht in Rätseln | Codex, Prophezeiungen, Lore |
 | **Nix, die Händlerin** | Zwielichtig und charmant, taucht auch in Runs auf | Kosmetik, Relikt-Pool-Freischaltungen, Shop-Räume |
-| **???** | Wird später enthüllt | Treiber der Story und des wahren Endes |
+| **???** (der Wanderer) | Wird später enthüllt (siehe `docs/STORY.md`) | Treiber der Story und des wahren Endes |
 
 **Umgesetzt (M2.6):** Die Zuflucht ist ein Hub-Bildschirm mit **Maren** (Glutbaum) und **Nix** (schaltet Relikte gegen Rissstaub für den Pool frei: Henkersmal, Zweiter Atem, Atemstein und der Fluch Glasknochen sind anfangs gesperrt). Beide sprechen bei jedem Besuch eine Zeile (ca. 28 Zeilen insgesamt). Die Zuflucht wächst noch nicht sichtbar.
 
@@ -98,6 +98,8 @@ Die Wesen jenseits des Risses wollen, dass die Gebrandmarkte das Herz erreicht. 
 | 2 | **Gläserne See** | gefrorenes Meer, Spiegelungen | Kristall-Wesen, Fernkampf, Schilde | **Die Spiegelkönigin**: Klone und Täuschung |
 | 3 | **Sturmzitadelle** | zerrissene Burg im ewigen Gewitter | schnelle Gegner, Kettenfallen | **Der Donnerkreis**: Arena-Wechsel, Geschwindigkeit |
 | 4 | **Der Riss** | Leere, Geometrie bricht zusammen | Mischung aus allem, verzerrte Elite-Gegner | **Das Herz des Brandes**: mehrphasig, Story-Finale |
+
+**Story-Bibel:** Hauptbogen, Figuren und Enden stehen verbindlich in [`docs/STORY.md`](./STORY.md) (vom PO freigegeben am 2026-10-25).
 
 ### 2.6 Erzählweise
 - **Kurze Dialoge** mit Hub-Figuren nach jedem Run, ausgewählt nach Kontext: Wie bist du gestorben? Wer hat dich getötet? Welche Wesen hast du gewählt? Was ist neu freigeschaltet?

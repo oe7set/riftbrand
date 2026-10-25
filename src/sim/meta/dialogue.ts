@@ -16,6 +16,9 @@ function matches(line: DialogueLineDef, profile: Profile): boolean {
   if (w.reachedBoss !== undefined && (last?.reachedBoss ?? false) !== w.reachedBoss) return false;
   if (w.hasFlag !== undefined && !profile.flags.includes(w.hasFlag)) return false;
   if (w.lacksFlag !== undefined && profile.flags.includes(w.lacksFlag)) return false;
+  if (w.questDone !== undefined && !profile.quests.done.includes(w.questDone)) return false;
+  if (w.questActive !== undefined && !profile.quests.active.includes(w.questActive)) return false;
+  if (w.building !== undefined && (profile.buildings[w.building] ?? 0) < 1) return false;
   return true;
 }
 

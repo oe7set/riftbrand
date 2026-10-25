@@ -913,6 +913,19 @@ export const SFX = {
       delaySec: 0.05,
     },
   ],
+  /** One syllable of a figure's gibberish voice in scenes (ROADMAP M5.7); pitched per speaker. */
+  talk: [
+    {
+      wave: 'triangle',
+      freq: 420,
+      freqEnd: 380,
+      attackSec: 0.004,
+      sustainSec: 0.03,
+      releaseSec: 0.04,
+      volume: 0.16,
+      lowpass: 2400,
+    },
+  ],
 } satisfies Record<string, SfxRecipe>;
 
 export type SfxId = keyof typeof SFX;

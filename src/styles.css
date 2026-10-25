@@ -1634,3 +1634,49 @@ body {
   font-weight: 700;
   color: #ffe0a3;
 }
+
+/* Story scenes (ROADMAP M5.7): a picture-book speech box at the bottom. */
+.rb-scene {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px 16px max(24px, env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(42, 29, 30, 0.55), transparent 45%);
+}
+
+.rb-scene-box {
+  width: min(640px, 100%);
+  padding: 14px 18px 12px;
+  border: 3px solid #1d1418;
+  border-radius: 18px;
+  box-shadow: 0 5px 0 #1d1418;
+  background: #fff6e6;
+  color: #2a1d2e;
+}
+
+.rb-scene-name {
+  display: inline-block;
+  margin-top: -30px;
+  padding: 2px 12px;
+  border: 3px solid #1d1418;
+  border-radius: 12px;
+  background: var(--speaker);
+  color: #2a1d2e;
+  font-weight: 800;
+}
+
+.rb-scene-text {
+  min-height: 3.2em;
+  margin-top: 8px;
+  font-size: 19px;
+  line-height: 1.45;
+}
+
+.rb-scene-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}

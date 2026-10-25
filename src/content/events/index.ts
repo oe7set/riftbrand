@@ -51,6 +51,36 @@ export const EVENTS: readonly EventDef[] = [
       { id: 'leave', outcomes: [] },
     ],
   }),
+  // ── The Wanderer (docs/STORY.md §4): a hooded stranger who knows too much ──
+  defineEvent({
+    id: 'wanderer_fire',
+    options: [
+      { id: 'sit', outcomes: [{ type: 'heal', fraction: 0.25 }] },
+      { id: 'ask', outcomes: [{ type: 'shards', amount: 35 }] },
+      { id: 'leave', outcomes: [] },
+    ],
+  }),
+  defineEvent({
+    id: 'wanderer_gift',
+    options: [
+      { id: 'take', outcomes: [{ type: 'relic', pool: 'common' }] },
+      { id: 'refuse', outcomes: [{ type: 'maxHp', amount: 5 }] },
+    ],
+  }),
+  defineEvent({
+    id: 'wanderer_warning',
+    options: [
+      { id: 'listen', outcomes: [{ type: 'heal', fraction: 0.15 }] },
+      {
+        id: 'follow',
+        requiresHpAbove: 12,
+        outcomes: [
+          { type: 'damage', amount: 10 },
+          { type: 'shards', amount: 70 },
+        ],
+      },
+    ],
+  }),
 ];
 
 export function eventById(id: string): EventDef | undefined {
