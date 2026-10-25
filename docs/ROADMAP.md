@@ -1118,7 +1118,7 @@ Zuflucht (begehbar)
 
 ### M5.7 Story-Fundament ⬜
 **Umfang:**
-- [ ] **`docs/STORY.md` als Story-Bibel.** Der PO gibt sie vor der Umsetzung frei. Inhalt:
+- [ ] **`docs/STORY.md` als Story-Bibel.** Der PO gibt sie vor der Umsetzung frei (Entwurf v0.1 liegt vor, 2026-10-25). Inhalt:
   - Hauptbogen über alle Welten
   - Bögen der Figuren
   - das Rätsel um Vesper und die Figur „???“
