@@ -53,7 +53,8 @@ export interface HubFrame {
   /** Station index in reach, -1 = none. */
   active: number;
   /** Speakers with a new line this visit (speech bubble). */
-  fresh: Readonly<Partial<Record<Speaker, boolean>>>;
+  /** Bubble over each figure: "…" new line, "!" quest on offer, "✓" quest to hand in. */
+  marks: Readonly<Partial<Record<Speaker, string>>>;
   locale: string;
   /** Rebuilt state of the refuge (ROADMAP M5.3). */
   refuge: RefugeLook;
@@ -321,7 +322,7 @@ export class GameView {
     this.emberRain.update(simDtSec, cam.x, cam.y, cam.zoom, cam.viewWidth, cam.viewHeight);
     this.roomView.sync(sim.room, realDtSec);
     this.entities.sync(sim, alpha, realDtSec, simDtSec);
-    if (hub) this.hub.sync(realDtSec, px, py, hub.active, hub.fresh, hub.locale, hub.refuge);
+    if (hub) this.hub.sync(realDtSec, px, py, hub.active, hub.marks, hub.locale, hub.refuge);
     this.fxParticles.update(realDtSec);
     this.groundParticles.update(realDtSec);
     this.damageNumbers.update(realDtSec);

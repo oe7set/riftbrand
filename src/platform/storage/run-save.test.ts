@@ -135,6 +135,12 @@ describe('run save', () => {
     expect(migrated?.meta.armor).toEqual([]);
   });
 
+  it('migrates v11 saves: the run starts counting for quests (M5.6)', () => {
+    const { tally: _t, ...v11Run } = createRun(20);
+    const migrated = migrateRunSave({ version: 11, run: v11Run });
+    expect(migrated?.tally).toEqual({ statusKills: {}, flawlessRooms: 0, items: [] });
+  });
+
   it('clears the save', () => {
     const store = memoryStore();
     saveRun(store, createRun(5));

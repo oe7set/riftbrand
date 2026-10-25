@@ -532,6 +532,20 @@ body {
   animation: rb-pulse 1.4s ease-in-out infinite;
 }
 
+/* Nodes where the tracked quest can make progress (ROADMAP M5.6). */
+.rb-node.quest::after {
+  content: "★";
+  position: absolute;
+  top: -10px;
+  right: -8px;
+  font-size: 16px;
+  line-height: 1;
+  color: #ffd36b;
+  text-shadow:
+    0 0 2px #1d1418,
+    1px 1px 0 #1d1418;
+}
+
 .rb-node.available.selected {
   transform: scale(1.18);
   background: rgba(127, 246, 255, 0.18);
@@ -1566,4 +1580,57 @@ body {
 
 .rb-market-card {
   min-height: 0;
+}
+
+/* Quests (ROADMAP M5.6). */
+.rb-quest-kind {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.rb-quest-info {
+  --world: #ffd36b;
+}
+
+.rb-quest-objectives {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+  font-size: 15px;
+}
+
+.rb-quest-objectives li {
+  margin-top: 4px;
+}
+
+.rb-quest-objectives li.is-done {
+  color: #9fd88a;
+}
+
+.rb-quest-count {
+  font-weight: 800;
+  color: var(--rb-title);
+}
+
+.rb-quest-reward {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #ffd36b;
+}
+
+.rb-quest-card {
+  min-height: 0;
+}
+
+.rb-quest-card.is-tracked {
+  border-color: #ffd36b;
+  box-shadow: 0 0 0 3px #ffd36b;
+}
+
+.rb-map-quest {
+  padding: 2px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffe0a3;
 }

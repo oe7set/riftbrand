@@ -1,6 +1,7 @@
 import { RIFT_SHOT } from '../content/abilities';
 import { ELITES, eliteOf } from '../content/elites';
 import { attackOf, ENEMIES } from '../content/enemies';
+import { STATUS_COUNT } from '../content/statuses';
 import { TUNING } from '../content/tuning';
 import type { InputFrame } from '../shared/input-frame';
 import { createSpatialHash, type SpatialHash } from './collision/spatial-hash';
@@ -90,6 +91,8 @@ export interface SimState {
   lastSparkHeal: number;
   /** Enemy type that dealt the final blow (-1 = unknown), for hub dialogue. */
   killedBy: number;
+  /** Player kills of enemies carrying each status (index = StatusIndex), for quests (M5.6). */
+  statusKills: Int32Array;
   /** Damage taken per enemy type (index 255 = unknown source), for the run log. */
   readonly damageBySource: Float64Array;
   /** Damage dealt per player source (DEALT_SOURCES order), for the simulator report. */
@@ -153,6 +156,7 @@ export function createSim(seed: number, setup?: RoomSetup): SimState {
     lastSparks: 0,
     lastSparkHeal: 0,
     killedBy: -1,
+    statusKills: new Int32Array(STATUS_COUNT),
     damageBySource: new Float64Array(256),
     damageDealt: new Float64Array(DEALT_SOURCES.length),
     shards: 0,

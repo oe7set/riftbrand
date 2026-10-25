@@ -27,6 +27,8 @@ import {
   MaterialChips,
   type MetaScreen,
   ProfileScreen,
+  QuestLogScreen,
+  QuestScreen,
   ResultScreen,
   SpellTowerScreen,
   StationScreen,
@@ -51,7 +53,13 @@ export type Screen =
       onRefuge(): void;
       onArena(): void;
     }
-  | { kind: 'map'; run: RunState; onEnter(nodeId: number): void }
+  | {
+      kind: 'map';
+      run: RunState;
+      /** The tracked quest (ROADMAP M5.6): a line in the header and a symbol on its nodes. */
+      quest: { text: string; nodeTypes: readonly RoomType[] } | null;
+      onEnter(nodeId: number): void;
+    }
   | {
       kind: 'rest';
       run: RunState;
@@ -176,7 +184,7 @@ const NODE_DESC_KEYS: Record<RoomType, TranslationKey> = {
   duel: 'node.duel.desc',
 };
 
-function MapScreen({ run, onEnter }: Extract<Screen, { kind: 'map' }>) {
+function MapScreen({ run, quest, onEnter }: Extract<Screen, { kind: 'map' }>) {
   const available = availableNodes(run);
   const availableIds = new Set(available.map((n) => n.id));
   const [selected, setSelected] = useState<number>(available[0]?.id ?? -1);
@@ -222,6 +230,7 @@ function MapScreen({ run, onEnter }: Extract<Screen, { kind: 'map' }>) {
           </span>
         </div>
       </header>
+      {quest && <div class="rb-map-quest">{quest.text}</div>}
       <BoonChips run={run} />
       <div class="rb-map-scroll" ref={scrollRef}>
         <div class="rb-map-canvas" style={{ height: `${height}px` }}>
@@ -257,7 +266,7 @@ function MapScreen({ run, onEnter }: Extract<Screen, { kind: 'map' }>) {
               <button
                 type="button"
                 key={n.id}
-                class={`rb-node ${state} type-${n.type} ${selected === n.id ? 'selected' : ''}`}
+                class={`rb-node ${state} type-${n.type} ${selected === n.id ? 'selected' : ''} ${quest?.nodeTypes.includes(n.type) && state !== 'visited' ? 'quest' : ''}`}
                 style={{ left: `${n.x * 100}%`, top: `${yOf(n.layer)}px` }}
                 disabled={state !== 'available'}
                 aria-label={t(NODE_NAME_KEYS[n.type])}
@@ -939,6 +948,10 @@ export function UiRoot({ screen }: { screen: Screen }) {
       return <ForgeScreen {...screen} />;
     case 'market':
       return <MarketScreen {...screen} />;
+    case 'quest':
+      return <QuestScreen {...screen} />;
+    case 'questLog':
+      return <QuestLogScreen {...screen} />;
     case 'tree':
       return <TreeScreen {...screen} />;
     case 'wares':

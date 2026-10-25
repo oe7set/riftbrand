@@ -8,6 +8,7 @@ import { dominantBeing, type OwnedArmor } from '../effects/build';
 import type { RunState, SpellSlots } from '../run/run-state';
 import { MAX_UPGRADE_LEVEL } from '../run/upgrades';
 import { equippedArmor } from './forge';
+import { applyRunToQuests, emptyQuestState, type QuestState } from './quests';
 import { addMaterials } from './refuge';
 import { recordWorldRun, type WorldProgress } from './worlds';
 
@@ -72,6 +73,8 @@ export interface Profile {
   cosmetics: string[];
   /** The cape Vesper wears. */
   cape: string;
+  /** Quest log (ROADMAP M5.6). */
+  quests: QuestState;
 }
 
 export function createProfile(): Profile {
@@ -98,6 +101,7 @@ export function createProfile(): Profile {
     market: { week: -1, bought: {} },
     cosmetics: [],
     cape: DEFAULT_CAPE,
+    quests: emptyQuestState(),
   };
 }
 
@@ -357,6 +361,7 @@ export function settleRun(
   };
   recordRun(profile, last);
   addMaterials(profile, run.materials);
+  applyRunToQuests(profile, run, result);
   discoverRunSpells(profile, run);
   return last;
 }

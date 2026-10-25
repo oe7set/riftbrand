@@ -287,15 +287,15 @@ export class HubView {
   }
 
   /**
-   * `active` is the station index in reach (-1 = none); `fresh` tells which speakers have a new
-   * line for this visit.
+   * `active` is the station index in reach (-1 = none); `marks` is the bubble over each figure:
+   * "…" for a new line, "!" for a quest on offer, "✓" for one to hand in (ROADMAP M5.6).
    */
   sync(
     dtSec: number,
     playerX: number,
     playerY: number,
     active: number,
-    fresh: Readonly<Partial<Record<Speaker, boolean>>>,
+    marks: Readonly<Partial<Record<Speaker, string>>>,
     locale: string,
     look: RefugeLook,
   ): void {
@@ -334,7 +334,9 @@ export class HubView {
         s.y - npc.rig.baked.layout.rig.heightUnits * NPC_RADIUS_PX * 1.3 - LABEL_OFFSET_PX;
       if (relabel) npc.label.text = t(`speaker.${npc.speaker}` as TranslationKey);
       npc.label.position.set(s.x, top);
-      npc.bubble.visible = fresh[npc.speaker] === true;
+      const mark = marks[npc.speaker];
+      npc.bubble.visible = mark !== undefined;
+      if (mark !== undefined && npc.bubble.text !== mark) npc.bubble.text = mark;
       npc.bubble.position.set(s.x + 2, top - 16 + Math.sin(this.time * 3) * 2);
     }
     const flicker = 0.9 + 0.1 * Math.sin(this.time * 13) + 0.05 * Math.sin(this.time * 31);

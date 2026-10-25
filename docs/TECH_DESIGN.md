@@ -666,7 +666,20 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Darstellung:** `GameView.setPlayerLook(armor, cape)` ersetzt `setPlayerArmor` und backt Rüstung und Umhangfarbe in ein Vesper-Rig.
 - **Profil v6.**
 
-## 44. Risiken und Gegenmaßnahmen
+## 44. Stand nach M5.6 (Quests)
+- **Content:** `content/quests/index.ts` (`defineQuest`: Art, Auftraggeber, Voraussetzungen, Ziele, Belohnung). Texte unter `quest.<id>.name/desc/offer/done`.
+- **Logik:** `sim/meta/quests.ts`, rein und deterministisch.
+  - `questStatus`, `questFrom`: Story vor Auftrag, Aufträge rotieren.
+  - `acceptQuest`, `claimQuest`: Abgaben werden abgezogen, Belohnungen samt Zauber und Flags vergeben.
+  - `applyRunToQuests` wird von `settleRun` aufgerufen.
+  - `liveProgress` liefert die Zahlen für HUD und Karte.
+  - `questItemToFind` vergibt Fundstücke in Ereignis-Räumen.
+  - `questNodeTypes` bestimmt, wo der ★ auf der Karte steht.
+- **Simulation:** `SimState.statusKills` zählt Spieler-Kills pro Status in `killEnemy`; eingefroren zählt als unterkühlt.
+- **Run:** `RoomResult.statusKills` und `flawless` landen in `RunState.tally`.
+- **Speicherstände:** Profil v7, Run-Save v12.
+
+## 45. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

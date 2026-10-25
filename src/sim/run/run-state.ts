@@ -4,6 +4,7 @@ import { EVOLUTIONS } from '../../content/evolutions';
 import { ROOMS } from '../../content/rooms';
 import type { Rarity, RoomTemplateDef } from '../../content/schema';
 import { START_SPELLS } from '../../content/spells';
+import { STATUSES } from '../../content/statuses';
 import { TUNING } from '../../content/tuning';
 import { FIRST_WORLD_ID, worldBiome } from '../../content/worlds';
 import type { OwnedArmor, OwnedBoon, OwnedRelic } from '../effects/build';
@@ -95,6 +96,21 @@ export interface RunState {
   duelsWon: string[];
   /** Materials found so far (ROADMAP M5.3); they go to the stash even if the run is lost. */
   materials: Record<string, number>;
+  /** What quests count from this run (ROADMAP M5.6). */
+  tally: RunTally;
+}
+
+export interface RunTally {
+  /** Kills by status id (burn, chill, poison, blind). */
+  statusKills: Record<string, number>;
+  /** Rooms cleared without taking damage. */
+  flawlessRooms: number;
+  /** Quest items found in event rooms. */
+  items: string[];
+}
+
+export function emptyTally(): RunTally {
+  return { statusKills: {}, flawlessRooms: 0, items: [] };
 }
 
 export interface RoomSetup {
@@ -163,6 +179,7 @@ export function createRun(
     cast: { level: 1, branches: [] },
     duelsWon: [],
     materials: {},
+    tally: emptyTally(),
   };
   // Armour can raise max HP; the run starts at full health either way.
   applyMaxHp(run);
@@ -229,6 +246,10 @@ export interface RoomResult {
   shards: number;
   ultCharge: number;
   lastSparks: number;
+  /** Kills per status index in this room (quests). */
+  statusKills?: ArrayLike<number>;
+  /** No damage taken in this room. */
+  flawless?: boolean;
 }
 
 export function completeRoom(run: RunState, result: RoomResult): void {
@@ -238,6 +259,14 @@ export function completeRoom(run: RunState, result: RoomResult): void {
   run.ultCharge = result.ultCharge;
   run.lastSparks = result.lastSparks;
   run.roomsCleared++;
+  if (result.flawless) run.tally.flawlessRooms++;
+  if (result.statusKills) {
+    for (let i = 0; i < result.statusKills.length; i++) {
+      const n = result.statusKills[i] ?? 0;
+      const status = STATUSES[i]?.id;
+      if (n > 0 && status) run.tally.statusKills[status] = (run.tally.statusKills[status] ?? 0) + n;
+    }
+  }
   const node = run.map.nodes[run.currentNodeId];
   // Duels pay out like elite rooms (Glut and Rissstaub, ROADMAP M3.5).
   if (node?.type === 'elite' || node?.type === 'duel') run.clearedElite++;
