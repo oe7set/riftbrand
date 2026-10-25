@@ -61,6 +61,21 @@ export function nowMs(): number {
   return performance.now();
 }
 
+const DAY_MS = 86_400_000;
+/** 1970-01-01 was a Thursday; shifting by 3 days makes weeks start on Monday. */
+const MONDAY_SHIFT_DAYS = 3;
+
+/** Index of the current calendar week (UTC, Monday to Sunday), for Nix's weekly offer. */
+export function currentWeekIndex(): number {
+  return Math.floor((Math.floor(Date.now() / DAY_MS) + MONDAY_SHIFT_DAYS) / 7);
+}
+
+/** Whole days until the next week starts (1–7), for the "new offer in …" hint. */
+export function daysUntilNextWeek(): number {
+  const day = (Math.floor(Date.now() / DAY_MS) + MONDAY_SHIFT_DAYS) % 7;
+  return 7 - day;
+}
+
 /** Applies the menu look of an art style: CSS variables and a data attribute on <html>. */
 export function applyUiTheme(id: string, vars: Readonly<Record<string, string>>): void {
   const rootEl = document.documentElement;

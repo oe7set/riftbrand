@@ -1044,12 +1044,24 @@ Zuflucht (begehbar)
 - **Sichtbar:** Jedes Teil zeichnet eigene Formen in seiner Farbe auf ein Rig-Teil von Vesper. Das Rig wird pro Ausrüstung einmal neu gebacken (Zuflucht und Run-Start), nicht pro Frame.
 - **Waffen und Aspekte** beim Schmied folgen mit M6.5, zusammen mit den neuen Waffen.
 
-### M5.5 Markt, Händler und Zauberlehrer in der Zuflucht ⬜
-- [ ] **Nix' Markt:** Relikt-Freischaltungen (wie bisher), Materialien tauschen, Kosmetik.
-- [ ] **Sel, die Runenweberin**, zieht mit ihrem Zauber-Menü aus M3.6 in den Runenturm.
-- [ ] **Wöchentlich wechselndes Angebot**, deterministisch aus dem Datum (ohne Server).
+### M5.5 Markt, Händler und Zauberlehrer in der Zuflucht ✅
+- [x] **Nix' Markt:** Relikt-Freischaltungen (wie bisher), Materialien tauschen, Kosmetik.
+- [x] **Sel, die Runenweberin**, zieht mit ihrem Zauber-Menü aus M3.6 in den Runenturm (seit M5.1).
+- [x] **Wöchentlich wechselndes Angebot**, deterministisch aus dem Datum (ohne Server).
 
 **Abhängig von:** M5.3
+
+**Umgesetzt:**
+- **Wochenmarkt bei Nix** („Wochenmarkt“, die Relikte bleiben unter „Relikte“):
+  - jede Woche 3 von 6 Tauschangeboten, z. B. 4 Schlackeeisen → 1 Glutkern oder 1 Rissstaub → 4 Schlackeeisen
+  - je 2–3 Mal pro Woche
+- **Umhänge:**
+  - 6 Farben für Vespers Umhang, 2 davon jede Woche im Angebot, für 60–120 Glut
+  - Damit hat übrige Glut einen Zweck.
+  - Gekaufte Umhänge liegen in der **Garderobe** und lassen sich jederzeit wechseln.
+  - Sie sind sichtbar an Vesper, in der Zuflucht und im Run.
+- **Woche:** Montag bis Sonntag (UTC), berechnet in `platform/display.ts`. Das Angebot ist eine reine Funktion der Wochennummer (`weeklyOffer`).
+- **Profil v6:** `market` (Woche und Käufe), `cosmetics`, `cape`. Der Quest-Zustand kommt dadurch mit **v7** (M5.6).
 
 ### M5.6 Quest-System ⬜
 **Umfang:**
@@ -1075,7 +1087,7 @@ Zuflucht (begehbar)
 
 **Technik:**
 - Auswertung rein und deterministisch in `src/sim/meta/quests.ts`.
-- **Profil v6:** Quest-Zustand.
+- **Profil v7:** Quest-Zustand.
 
 **Tests:** Fortschritt je Ziel-Art, Voraussetzungen der Ketten, Migration.
 
@@ -1269,7 +1281,8 @@ Richtwerte. Wenn sich die Reihenfolge der Pakete ändert, verschieben sich die N
 | M5.2 ✅ | | **v3** | **v9** | Welt-Fortschritt, `worldId` |
 | M5.3 ✅ | | **v4** | **v10** | Materialien, Gebäude-Stufen, Dekorationen |
 | M5.4 ✅ | | **v5** | **v11** | Rüstungen, Ausrüstung im Run |
-| M5.6 | | **v6** | | Quest-Zustand |
+| M5.5 ✅ | | **v6** | | Wochenmarkt, Umhänge |
+| M5.6 | | **v7** | | Quest-Zustand |
 
 ---
 

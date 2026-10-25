@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { ARMOR, ARMOR_SETS, ARMOR_SLOTS, armorById, armorDescParams } from '../../content/armor';
 import { ENEMIES } from '../../content/enemies';
 import { buildingById, DECORATIONS } from '../../content/hub/buildings';
+import { COSMETICS, cosmeticById, tradeById } from '../../content/hub/market';
 import { MATERIALS, materialById } from '../../content/materials';
 import { EMBER_TREE, treeNodeById } from '../../content/meta/ember-tree';
 import { RELICS, relicDescParams } from '../../content/relics';
@@ -16,6 +17,13 @@ import {
   forgeMaxLevel,
   nextArmorCost,
 } from '../../sim/meta/forge';
+import {
+  canBuyCosmetic,
+  canTrade,
+  ownsCosmetic,
+  tradesLeft,
+  weeklyOffer,
+} from '../../sim/meta/market';
 import {
   canBuyRank,
   canUnlockSpell,
@@ -88,6 +96,17 @@ export type MetaScreen =
       onBack(): void;
     }
   | { kind: 'decorations'; profile: Profile; onBuy(id: string): void; onBack(): void }
+  | {
+      /** Nix's market (ROADMAP M5.5): this week's trades and capes, plus the wardrobe. */
+      kind: 'market';
+      profile: Profile;
+      week: number;
+      daysLeft: number;
+      onTrade(id: string): void;
+      onBuyCape(id: string): void;
+      onWearCape(id: string): void;
+      onBack(): void;
+    }
   | {
       /** Toll's forge (ROADMAP M5.4): craft, improve and equip armour for the next run. */
       kind: 'forge';
@@ -542,6 +561,120 @@ export function DecorationsScreen({
       </Focus>
       <div class="rb-menu">
         <button type="button" class="rb-button rb-primary" onClick={onBack}>
+          {t('common.back')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** "4 Slag iron + 1 Rift dust" as text, for a trade's sides. */
+function goods(cost: CostDef): string {
+  const parts = Object.entries(cost.materials).map(([id, n]) => `${n} ${materialName(id)}`);
+  if (cost.dust > 0) parts.push(t('market.dust', { n: cost.dust }));
+  return parts.join(' + ');
+}
+
+function CapeSwatch({ color }: { color: number }) {
+  return <span class="rb-cape-swatch" style={{ '--cape': hex(color) }} />;
+}
+
+export function MarketScreen(s: Extract<MetaScreen, { kind: 'market' }>) {
+  const offer = weeklyOffer(s.week);
+  const owned = COSMETICS.filter((c) => ownsCosmetic(s.profile, c.id));
+  let first = true;
+  const autofocus = () => {
+    const was = first;
+    first = false;
+    return was ? true : undefined;
+  };
+  return (
+    <div class="rb-screen rb-center rb-boon-screen rb-market" style={{ '--being': '#c46bff' }}>
+      <div class="rb-being-name">{t('market.title')}</div>
+      <div class="rb-being-quote">
+        {s.daysLeft === 1 ? t('market.hint_one') : t('market.hint', { n: s.daysLeft })}
+      </div>
+      <Currencies profile={s.profile} />
+      <Focus wide>
+        <div class="rb-market-body">
+          <div class="rb-market-heading">{t('market.trades')}</div>
+          <div class="rb-cards">
+            {offer.trades.map((id) => {
+              const def = tradeById(id);
+              if (!def) return null;
+              const check = canTrade(s.profile, id, s.week);
+              const left = s.profile.market.week === s.week ? tradesLeft(s.profile, id) : def.stock;
+              return (
+                <button
+                  type="button"
+                  key={id}
+                  class={`rb-card rb-shop-item rb-market-card ${left === 0 ? 'is-sold' : ''}`}
+                  disabled={check !== 'ok'}
+                  data-autofocus={autofocus()}
+                  onClick={() => s.onTrade(id)}
+                >
+                  <div class="rb-card-head">
+                    <span class="rb-card-slot">{t('market.trade')}</span>
+                    <span class="rb-card-rarity">
+                      {t('market.left', { n: left, max: def.stock })}
+                    </span>
+                  </div>
+                  <div class="rb-market-trade">
+                    <span>{goods(def.give)}</span>
+                    <span class="rb-market-arrow">➜</span>
+                    <span>{goods(def.get)}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <div class="rb-market-heading">{t('market.capes')}</div>
+          <div class="rb-cards">
+            {offer.capes.map((id) => {
+              const def = cosmeticById(id);
+              if (!def) return null;
+              const check = canBuyCosmetic(s.profile, id, s.week);
+              return (
+                <button
+                  type="button"
+                  key={id}
+                  class={`rb-card rb-shop-item rb-market-card ${check === 'owned' ? 'is-sold' : ''}`}
+                  disabled={check !== 'ok'}
+                  data-autofocus={autofocus()}
+                  onClick={() => s.onBuyCape(id)}
+                >
+                  <div class="rb-card-head">
+                    <span class="rb-card-slot">{t('market.cape')}</span>
+                    <span class="rb-card-rarity">
+                      {check === 'owned' ? t('market.owned') : `✦ ${def.ember}`}
+                    </span>
+                  </div>
+                  <div class="rb-card-title">
+                    <CapeSwatch color={def.color} />
+                    <div class="rb-card-name">{t(`cosmetic.${id}.name` as TranslationKey)}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <div class="rb-market-heading">{t('market.wardrobe')}</div>
+          <div class="rb-wardrobe">
+            {owned.map((c) => (
+              <button
+                type="button"
+                key={c.id}
+                class={`rb-button rb-small-button ${s.profile.cape === c.id ? 'rb-primary' : ''}`}
+                data-autofocus={autofocus()}
+                onClick={() => s.onWearCape(c.id)}
+              >
+                <CapeSwatch color={c.color} /> {t(`cosmetic.${c.id}.name` as TranslationKey)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Focus>
+      <div class="rb-menu">
+        <button type="button" class="rb-button rb-primary" onClick={s.onBack}>
           {t('common.back')}
         </button>
       </div>

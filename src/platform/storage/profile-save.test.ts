@@ -96,6 +96,16 @@ describe('profile save', () => {
     expect(p?.equipped).toEqual({});
   });
 
+  it('migrates a v5 profile: the market starts fresh with the red cape (M5.5)', () => {
+    const { market: _m, cosmetics: _c, cape: _cape, ...v5 } = createProfile();
+    v5.armor = { ember_helm: 2 };
+    const p = migrateProfile({ version: 5, profile: v5 });
+    expect(p?.armor.ember_helm).toBe(2);
+    expect(p?.cosmetics).toEqual([]);
+    expect(p?.cape).toBe('cape_red');
+    expect(p?.market.week).toBe(-1);
+  });
+
   it('migrates a fresh v2 profile without world entries', () => {
     const { worlds: _w, ...v2 } = createProfile();
     expect(migrateProfile({ version: 2, profile: v2 })?.worlds).toEqual({});

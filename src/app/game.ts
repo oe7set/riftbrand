@@ -6,6 +6,7 @@ import { ELITES } from '../content/elites';
 import { ENEMIES, ENEMY_TYPE } from '../content/enemies';
 import { EVOLUTIONS } from '../content/evolutions';
 import { REFUGE } from '../content/hub/layout';
+import { DEFAULT_CAPE } from '../content/hub/market';
 import { MATERIALS } from '../content/materials';
 import { RELICS } from '../content/relics';
 import type { Speaker, StationId } from '../content/schema';
@@ -16,6 +17,8 @@ import { AudioEngine } from '../platform/audio/audio-engine';
 import type { MusicMode } from '../platform/audio/music-player';
 import {
   applyUiTheme,
+  currentWeekIndex,
+  daysUntilNextWeek,
   hasTouchScreen,
   nowMs,
   preferredLanguages,
@@ -72,6 +75,7 @@ import { hashSim } from '../sim/hash';
 import { COMBAT_BUTTONS, hubInteractPressed, hubRoomSetup, nearestStation } from '../sim/hub/hub';
 import { markSeen, pickLine } from '../sim/meta/dialogue';
 import { equippedArmor, forgeArmor, toggleEquip } from '../sim/meta/forge';
+import { buyCosmetic, capeColor, syncMarketWeek, trade, wearCape } from '../sim/meta/market';
 import {
   buyRank,
   equipLoadout,
@@ -541,7 +545,10 @@ export class Game {
     const debug = { ...this.sim.debug };
     this.sim = sim;
     // Vesper wears the run's armour in rooms (ROADMAP M5.4); the refuge sets its own below.
-    this.view.setPlayerArmor(sim.armor.map((a) => a.id));
+    this.view.setPlayerLook(
+      sim.armor.map((a) => a.id),
+      this.capeLook(),
+    );
     // Keep debug toggles (god mode, waves) across rooms.
     sim.debug.godMode = debug.godMode;
     this.view.resetEffects();
@@ -584,7 +591,10 @@ export class Game {
       this.pickHubLines();
       this.refreshRefuge();
     }
-    this.view.setPlayerArmor(equippedArmor(this.profile).map((a) => a.id));
+    this.view.setPlayerLook(
+      equippedArmor(this.profile).map((a) => a.id),
+      this.capeLook(),
+    );
     this.hubMenu = false;
     this.input.releaseAll();
     this.input.setGameplayEnabled(true);
@@ -667,8 +677,10 @@ export class Game {
     }
     if (id === 'maren')
       actions.push({ label: t('hub.tree'), onClick: () => this.showTree(), primary: true });
-    if (id === 'nix')
-      actions.push({ label: t('hub.wares'), onClick: () => this.showWares(), primary: true });
+    if (id === 'nix') {
+      actions.push({ label: t('hub.market'), onClick: () => this.showMarket(), primary: true });
+      actions.push({ label: t('hub.wares'), onClick: () => this.showWares() });
+    }
     if (id === 'sel')
       actions.push({ label: t('hub.spells'), onClick: () => this.showSpells(), primary: true });
     if (id === 'forge' && hasUnlock(this.profile, 'armor')) {
@@ -730,6 +742,45 @@ export class Game {
         this.pickHubLines();
         this.audio.play('evolve', { pitch: 0.9, pitchVariation: 0, volume: 0.8 });
         this.showBuild(building);
+      },
+      onBack: () => this.showHub(),
+    });
+  }
+
+  /** Cape colour for Vesper's look; null keeps the art style's own red. */
+  private capeLook(): number | null {
+    return this.profile.cape === DEFAULT_CAPE ? null : capeColor(this.profile);
+  }
+
+  /** Nix's market (ROADMAP M5.5): this week's trades and capes, plus the wardrobe. */
+  private showMarket(): void {
+    const week = currentWeekIndex();
+    syncMarketWeek(this.profile, week);
+    const refresh = () => {
+      this.persistProfile();
+      this.view.setPlayerLook(
+        equippedArmor(this.profile).map((a) => a.id),
+        this.capeLook(),
+      );
+      this.showMarket();
+    };
+    this.ui.show({
+      kind: 'market',
+      profile: this.profile,
+      week,
+      daysLeft: daysUntilNextWeek(),
+      onTrade: (id) => {
+        if (!trade(this.profile, id, week)) return;
+        this.audio.play('evolve', { pitch: 1.3, pitchVariation: 0, volume: 0.6 });
+        refresh();
+      },
+      onBuyCape: (id) => {
+        if (!buyCosmetic(this.profile, id, week)) return;
+        this.audio.play('evolve', { pitch: 1.1, pitchVariation: 0, volume: 0.7 });
+        refresh();
+      },
+      onWearCape: (id) => {
+        if (wearCape(this.profile, id)) refresh();
       },
       onBack: () => this.showHub(),
     });

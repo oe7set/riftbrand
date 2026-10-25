@@ -1,3 +1,4 @@
+import { DEFAULT_CAPE } from '../../content/hub/market';
 import { EMBER_TREE, treeNodeById } from '../../content/meta/ember-tree';
 import { META_REWARDS } from '../../content/meta/rewards';
 import { RELICS, relicById } from '../../content/relics';
@@ -65,6 +66,12 @@ export interface Profile {
   armor: Record<string, number>;
   /** Piece worn in each slot for the next run. */
   equipped: Partial<Record<ArmorSlot, string>>;
+  /** Nix's weekly offer (ROADMAP M5.5): the week it belongs to and what was traded. */
+  market: { week: number; bought: Record<string, number> };
+  /** Capes bought at Nix; the starting cape is always owned. */
+  cosmetics: string[];
+  /** The cape Vesper wears. */
+  cape: string;
 }
 
 export function createProfile(): Profile {
@@ -88,6 +95,9 @@ export function createProfile(): Profile {
     decorations: [],
     armor: {},
     equipped: {},
+    market: { week: -1, bought: {} },
+    cosmetics: [],
+    cape: DEFAULT_CAPE,
   };
 }
 

@@ -5,7 +5,7 @@ import { RIFT_SHOT } from '../content/abilities';
 import type { ArtStyleDef } from '../content/art/style';
 import { REFUGE } from '../content/hub/layout';
 import { PLAYER_RIG_ID, RIGS } from '../content/rigs';
-import type { Speaker } from '../content/schema';
+import type { RigDef, Speaker } from '../content/schema';
 import { SPELLS, spellRadiusPx, spellReachPx } from '../content/spells';
 import { TUNING } from '../content/tuning';
 import type { InputDevice } from '../platform/input/input-manager';
@@ -199,17 +199,25 @@ export class GameView {
     this.groundParticles.budget = budget / 2;
   }
 
-  /** Bakes Vesper with the equipped armour (ROADMAP M5.4); only when the loadout changes. */
-  setPlayerArmor(armorIds: readonly string[]): void {
-    const key = armorLookKey(armorIds);
+  /**
+   * Bakes Vesper with the equipped armour (ROADMAP M5.4) and cape colour (M5.5, null = the
+   * style's own); only when the look changes.
+   */
+  setPlayerLook(armorIds: readonly string[], capeColor: number | null): void {
+    const key = `${armorLookKey(armorIds)}|${capeColor ?? ''}`;
     if (key === this.playerArmorKey) return;
     this.playerArmorKey = key;
     const base = RIGS.find((r) => r.id === PLAYER_RIG_ID);
     const previous = this.playerArmorRig;
-    this.playerArmorRig =
-      base && armorIds.length > 0
-        ? bakeRig(this.renderer, styleRig(armoredRig(base, armorIds), this.style), this.bakeLook)
-        : null;
+    let rig: RigDef | null = null;
+    if (base && (armorIds.length > 0 || capeColor !== null)) {
+      const styled = styleRig(armoredRig(base, armorIds), this.style);
+      rig =
+        capeColor === null
+          ? styled
+          : { ...styled, colors: { ...styled.colors, accent: capeColor } };
+    }
+    this.playerArmorRig = rig ? bakeRig(this.renderer, rig, this.bakeLook) : null;
     this.entities.setPlayerRig(this.playerArmorRig);
     if (previous) destroyBakedRig(previous);
   }

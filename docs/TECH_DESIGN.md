@@ -656,7 +656,17 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Freude:** `EntityView.celebrate()` wird von `feedback.ts` bei `Ev.RoomCleared` ausgelöst.
 - **Bodenpartikel** werden normal statt additiv gemischt.
 
-## 43. Risiken und Gegenmaßnahmen
+## 43. Stand nach M5.5 (Wochenmarkt)
+- **Content:** `content/hub/market.ts` (`TRADES` mit `defineTrade`, `COSMETICS` mit `defineCosmetic`, `MARKET` als Tunables).
+- **Logik:** `sim/meta/market.ts`.
+  - `weeklyOffer(week)` ist deterministisch: Seed-RNG aus `hashString('market:…:' + week)`.
+  - `syncMarketWeek` setzt die Käufe zu Wochenbeginn zurück.
+  - Dazu `trade`, `buyCosmetic`, `wearCape` und `capeColor`.
+- **Woche:** `currentWeekIndex()` und `daysUntilNextWeek()` in `platform/display.ts`; die Simulation bleibt frei von Datum und Uhrzeit.
+- **Darstellung:** `GameView.setPlayerLook(armor, cape)` ersetzt `setPlayerArmor` und backt Rüstung und Umhangfarbe in ein Vesper-Rig.
+- **Profil v6.**
+
+## 44. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |
