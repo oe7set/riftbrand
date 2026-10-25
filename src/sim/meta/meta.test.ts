@@ -231,6 +231,35 @@ describe('hub dialogue', () => {
   });
 });
 
+describe('story dialogue conditions (M5.7)', () => {
+  it('reacts to finished and active quests and rebuilt buildings', () => {
+    const p = createProfile();
+    p.flags.push('met_maren');
+    p.seenDialogue.push('maren_intro');
+    expect(pickLine(p, 'maren')?.id).not.toBe('maren_quest_forge');
+    p.quests.done.push('story_rekindle_forge');
+    expect(pickLine(p, 'maren')?.id).toBe('maren_quest_forge');
+    p.seenDialogue.push('maren_quest_forge');
+    p.quests.active.push('story_twin_fire');
+    expect(pickLine(p, 'maren')?.id).toBe('maren_twins_active');
+    p.seenDialogue.push('maren_twins_active');
+    p.buildings.forge = 1;
+    expect(pickLine(p, 'maren')?.id).toBe('maren_forge_built');
+  });
+
+  it('only refers to quests and buildings that exist', async () => {
+    const { QUESTS } = await import('../../content/quests');
+    const { BUILDINGS } = await import('../../content/hub/buildings');
+    const quests = new Set(QUESTS.map((q) => q.id));
+    const buildings = new Set(BUILDINGS.map((b) => b.id));
+    for (const { id, when } of DIALOGUE) {
+      if (when?.questDone) expect(quests.has(when.questDone), id).toBe(true);
+      if (when?.questActive) expect(quests.has(when.questActive), id).toBe(true);
+      if (when?.building) expect(buildings.has(when.building), id).toBe(true);
+    }
+  });
+});
+
 describe("Sel's rune tower (M3.6)", () => {
   it('unlocks a spell for ember and dust, once', () => {
     const p = rich();

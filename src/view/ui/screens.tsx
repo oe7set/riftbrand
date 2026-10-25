@@ -36,6 +36,7 @@ import {
   WaresScreen,
   WorldMapScreen,
 } from './meta-screens';
+import { SceneScreen, type SceneScreenProps } from './scene-screen';
 
 const MAP_ROW_PX = 92;
 const MAP_PAD_PX = 56;
@@ -43,6 +44,7 @@ const MAP_PAD_PX = 56;
 export type Screen =
   | MetaScreen
   | LayoutEditorScreen
+  | SceneScreenProps
   | { kind: 'none' }
   | {
       kind: 'title';
@@ -73,6 +75,8 @@ export type Screen =
   | {
       kind: 'boon';
       offer: BoonOffer;
+      /** The being's line, reacting to the build (ROADMAP M5.7). */
+      comment: string;
       onPick(option: BoonOption): void;
       /** Rerolls left (Ember Tree "Second Choice"); the button shows only when > 0. */
       rerolls: number;
@@ -406,14 +410,20 @@ const SLOT_KEYS: Record<BoonSlot, TranslationKey> = {
 };
 
 /** Three boon cards from one rift being (GDD §7.1). */
-function BoonScreen({ offer, onPick, rerolls, onReroll }: Extract<Screen, { kind: 'boon' }>) {
+function BoonScreen({
+  offer,
+  comment,
+  onPick,
+  rerolls,
+  onReroll,
+}: Extract<Screen, { kind: 'boon' }>) {
   const being = BEINGS[offer.being];
   return (
     <div class="rb-screen rb-center rb-boon-screen" style={{ '--being': being.css }}>
       <div class="rb-being">
         <div class="rb-being-name">{t(`being.${offer.being}.name` as TranslationKey)}</div>
         <div class="rb-being-title">{t(`being.${offer.being}.title` as TranslationKey)}</div>
-        <div class="rb-being-quote">„{t(`being.${offer.being}.quote` as TranslationKey)}“</div>
+        <div class="rb-being-quote">„{comment}“</div>
       </div>
       <div class="rb-overlay-hint">{t('reward.choose')}</div>
       <Autofocus wide>
@@ -950,6 +960,8 @@ export function UiRoot({ screen }: { screen: Screen }) {
       return <MarketScreen {...screen} />;
     case 'quest':
       return <QuestScreen {...screen} />;
+    case 'scene':
+      return <SceneScreen {...screen} />;
     case 'questLog':
       return <QuestLogScreen {...screen} />;
     case 'tree':

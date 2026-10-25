@@ -1,7 +1,6 @@
 # Riftbrand: Story-Bibel
 
-> **Status:** Entwurf v0.1 (2026-10-25), **wartet auf Freigabe durch den PO** (ROADMAP M5.7).
-> Bis zur Freigabe wird nichts davon ins Spiel geschrieben. Stellen mit ❓ sind offene Entscheidungen.
+> **Status:** v1.0, **vom PO freigegeben am 2026-10-25** (ROADMAP M5.7). Die Entscheidungen stehen in §9.
 > Verbindlich bleiben: Vesper ist geschlechtsneutral (keine Pronomen in Texten), Bilderbuch-Look (GDD §12.1), Ton „niedlich und frech mit dunklem Unterton“.
 
 ---
@@ -66,7 +65,7 @@ Früher brannte im Zentrum der Welt der **Weltenherd**, ein Feuer, das alle Län
   3. Maren gesteht (Welt 3)
   4. Im Riss: Der Wanderer stellt sich Vesper in den Weg. „Wenn du es heilst, gehe ich mit.“
   5. Finale
-- ❓ **Name und Geschlecht** des Wanderers sind frei wählbar. Vorschlag: Orren, männlich, älter.
+- **Orren** ist männlich und älter (PO, 2026-10-25).
 
 ---
 
@@ -88,7 +87,7 @@ Jede Welt bekommt eine **Story-Kette aus 5 Schritten** wie „Glut der Aschefeld
 | Figur | Wer | Bogen |
 |---|---|---|
 | **Maren, die Hüterin** | Letzte lebende Herdhüterin, mütterlich und streng. | **Schuld:** Sie wusste von Orrens Plan und hielt ihn nicht auf. Erst verschweigt sie es, dann gesteht sie (Welt 3). Am Ende entscheidet sie, ob sie Orren vergibt. |
-| **Nix, der Händler** | Zwielichtig und charmant, taucht auch in Runs auf. | **Herkunft:** Nix ist ein **kleines Wesen von drüben**, das lieber handelt als herrscht. Später zeigt sich: Nix verkauft auch an die anderen Wesen. Am Ende muss Nix sich für eine Seite entscheiden. ❓ Nix ist im Code „Händlerin“ und in den Texten neutral. Bitte festlegen. |
+| **Nix, die Händlerin** | Zwielichtig und charmant, taucht auch in Runs auf. | **Herkunft:** Nix ist ein **kleines Wesen von drüben**, das lieber handelt als herrscht (PO bestätigt). Später zeigt sich: Sie verkauft auch an die anderen Wesen. Am Ende muss sie sich für eine Seite entscheiden. |
 | **Sel, die Runenweberin** | Ruhig, spricht in Mustern. | **Lesen:** Sel liest das Brandmal wie einen Brief. Mit jeder Welt entziffert Sel mehr und am Ende Vespers wahren Namen. Sel fürchtet, was sie liest. |
 | **Toll, der Schmied** | Grummelig und perfektionistisch. | **Verlust:** Tolls Lehrling folgte einem der früheren Funken und kehrte nie zurück. Toll baut Vesper Rüstung, „damit es diesmal hält“. Ein Rüstungsteil des Lehrlings ist ein Fundstück in Welt 3. |
 | **Iskra, die Kartografin** | Neugierig, redet zu schnell. | **Entdeckung:** Iskra merkt, dass die Fragmente **zum Herz driften** und die Zeit drängt. Iskra kartiert Abkürzungen (Rätsel-Welten, M6.0) und bringt Humor in die Dringlichkeit. |
@@ -123,7 +122,7 @@ Jede Welt bekommt eine **Story-Kette aus 5 Schritten** wie „Glut der Aschefeld
    - Orren kann gehen. Maren hält seine Hand.
    - Die Fragmente beginnen, zurückzutreiben.
 
-❓ Soll das wahre Ende **bittersüß** sein (Vesper erlischt, damit der Herd brennt) oder **warm** (Vesper bleibt, wie oben)? Vorschlag: warm, passend zum Bilderbuch-Look.
+Das wahre Ende ist **warm**: Vesper bleibt (PO, 2026-10-25).
 
 ---
 
@@ -145,10 +144,10 @@ Jede Welt bekommt eine **Story-Kette aus 5 Schritten** wie „Glut der Aschefeld
 
 ---
 
-## 9. Offene Entscheidungen für den PO
+## 9. Entscheidungen des PO (2026-10-25)
 
-1. ❓ Grundidee „Vesper ist ein Funke des Weltenherds“: passt das?
-2. ❓ Der Wanderer ist Orren, Marens Gefährte, der den Herd zerbrach: passt das? Name und Geschlecht?
-3. ❓ Nix: Händler oder Händlerin? Kleines Wesen von drüben?
-4. ❓ Wahres Ende warm (Vesper bleibt) oder bittersüß (Vesper erlischt)?
-5. ❓ Wie viel Text verträgt das Spiel? Vorschlag: Szenen höchstens 6 Zeilen, Dialog in der Zuflucht 1 Zeile pro Figur und Besuch (wie jetzt).
+1. ✅ Grundidee „Vesper ist ein Funke des Weltenherds“: passt.
+2. ✅ Der Wanderer ist **Orren**, männlich, Marens Gefährte, der den Herd zerbrach.
+3. ✅ Nix ist **Händlerin** und ein **Wesen von drüben**.
+4. ✅ Wahres Ende **warm**: Vesper bleibt als Hüter des Herds.
+5. ✅ Textmenge passt: Szenen höchstens 6 Zeilen, in der Zuflucht 1 Zeile pro Figur und Besuch.

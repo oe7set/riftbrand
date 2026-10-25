@@ -10,9 +10,10 @@ import { DEFAULT_CAPE } from '../content/hub/market';
 import { MATERIALS } from '../content/materials';
 import { questById } from '../content/quests';
 import { RELICS } from '../content/relics';
-import type { RoomType, Speaker, StationId } from '../content/schema';
+import type { BeingId, RoomType, Speaker, StationId } from '../content/schema';
 import { statusIdSchema } from '../content/schema';
 import { SPELLS, spellById } from '../content/spells';
+import { sceneById, VOICE_PITCH } from '../content/story/scenes';
 import { worldBiome, worldById } from '../content/worlds';
 import { AudioEngine } from '../platform/audio/audio-engine';
 import type { MusicMode } from '../platform/audio/music-player';
@@ -70,7 +71,7 @@ import {
 } from '../sim/debug';
 import { C } from '../sim/ecs/components';
 import { dominantBeing } from '../sim/effects/build';
-import { packEnemy } from '../sim/enemy-code';
+import { enemyTypeFromCode, packEnemy } from '../sim/enemy-code';
 import { Ev, type EventBuffer } from '../sim/events';
 import { hashSim } from '../sim/hash';
 import { COMBAT_BUTTONS, hubInteractPressed, hubRoomSetup, nearestStation } from '../sim/hub/hub';
@@ -126,6 +127,7 @@ import {
   runStats,
   shopStock,
 } from '../sim/run/economy';
+import type { Encounter } from '../sim/run/encounter';
 import type { MapNode } from '../sim/run/map';
 import { addBoon, type BoonOffer } from '../sim/run/rewards';
 import {
@@ -186,7 +188,33 @@ const EXIT_TRANSITION_SEC = 0.35;
 const RESTART_BUTTONS = Button.Attack | Button.Dash | Button.Interact;
 
 /** Where the player is in the game flow (title → hub → map ⇄ room/rest → result → hub). */
-type Mode = 'title' | 'hub' | 'map' | 'rest' | 'reward' | 'room' | 'arena' | 'result';
+type Mode =
+  | 'title'
+  | 'hub'
+  | 'map'
+  | 'rest'
+  | 'reward'
+  | 'room'
+  | 'arena'
+  | 'result'
+  /** A story scene over a loaded room; the sim waits (ROADMAP M5.7). */
+  | 'scene';
+
+/**
+ * What a being says when it offers a boon (ROADMAP M5.7): its usual greeting on an empty
+ * build, pride when it already leads, a jab when another being does.
+ */
+function beingComment(being: BeingId, dominant: BeingId | null): string {
+  if (dominant === null) return t(`being.${being}.quote` as TranslationKey);
+  return t(`being.${being}.${dominant === being ? 'loyal' : 'rival'}` as TranslationKey);
+}
+
+/** Enemy id of an encounter's first enemy (the boss or duel champion). */
+function firstEnemyId(encounter: Encounter): string | null {
+  if (encounter.kind !== 'waves') return null;
+  const code = encounter.waves[0]?.[0];
+  return code === undefined ? null : (ENEMIES[enemyTypeFromCode(code)]?.id ?? null);
+}
 
 function describeOutcome(o: ResolvedOutcome): string {
   switch (o.type) {
@@ -1207,6 +1235,7 @@ export class Game {
     this.ui.show({
       kind: 'boon',
       offer,
+      comment: beingComment(offer.being, run.boons.length > 0 ? dominantBeing(run.boons) : null),
       rerolls: run.rerolls,
       onReroll: () => {
         if (!rerollOffer(run)) return;
@@ -1259,8 +1288,33 @@ export class Game {
     const run = this.run;
     const node = run?.map.nodes[run.currentNodeId];
     if (!run || !node) return;
-    this.loadSim(createSim(roomSeed(run, node.id), roomSetupFor(run, node)));
-    this.setMode('room');
+    const setup = roomSetupFor(run, node);
+    this.loadSim(createSim(roomSeed(run, node.id), setup));
+    // First meeting with a boss or champion: a short scene before the fight (ROADMAP M5.7).
+    const foe = node.type === 'boss' || node.type === 'duel' ? firstEnemyId(setup.encounter) : null;
+    this.playScene(foe ? `${foe}_intro` : null, () => this.setMode('room'));
+  }
+
+  /**
+   * Plays a story scene once per profile, then continues. Unknown or seen scenes continue
+   * at once, so callers don't need to check.
+   */
+  private playScene(sceneId: string | null, then: () => void): void {
+    const key = sceneId ? `scene:${sceneId}` : '';
+    if (!sceneId || !sceneById(sceneId) || this.profile.seenDialogue.includes(key)) {
+      then();
+      return;
+    }
+    this.profile.seenDialogue.push(key);
+    this.persistProfile();
+    this.setMode('scene');
+    this.ui.show({
+      kind: 'scene',
+      sceneId,
+      onBlip: (speaker) =>
+        this.audio.play('talk', { pitch: VOICE_PITCH[speaker] ?? 1, pitchVariation: 0.12 }),
+      onDone: then,
+    });
   }
 
   private roomResult() {
@@ -1290,8 +1344,12 @@ export class Game {
     this.logRoom(true);
     completeRoom(run, this.roomResult());
     if (run.status === 'won') {
-      this.endRun('won', null);
-      this.showResult();
+      // The first victory over a world's boss gets its closing words.
+      const boss = worldById(run.worldId)?.bossName;
+      this.playScene(boss ? `${boss}_outro` : null, () => {
+        this.endRun('won', null);
+        this.showResult();
+      });
       return;
     }
     const node = run.map.nodes[run.currentNodeId];

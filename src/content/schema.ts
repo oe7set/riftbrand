@@ -935,6 +935,12 @@ export const dialogueLineSchema = z.object({
       reachedBoss: z.boolean().optional(),
       hasFlag: id.optional(),
       lacksFlag: id.optional(),
+      /** Story quest finished (ROADMAP M5.7). */
+      questDone: id.optional(),
+      /** Quest currently accepted and not yet claimed. */
+      questActive: id.optional(),
+      /** Refuge building rebuilt to at least level 1. */
+      building: id.optional(),
     })
     .optional(),
   setsFlag: id.optional(),
@@ -1390,4 +1396,27 @@ export type QuestReward = z.infer<typeof questRewardSchema>;
 
 export function defineQuest(def: z.input<typeof questSchema>): QuestDef {
   return questSchema.parse(def);
+}
+
+// ── Story scenes (ROADMAP M5.7) ───────────────────────────────────────────
+
+/**
+ * Who speaks a scene line: a refuge figure, Vesper, the Wanderer, or an enemy (boss, champion)
+ * by enemy id. The view picks the name and the voice pitch from it.
+ */
+export const sceneSpeakerSchema = z.union([speakerSchema, z.enum(['vesper', 'wanderer']), id]);
+
+export const sceneSchema = z.object({
+  id,
+  /** Text in `scene.<id>.<n>` (1-based), one key per line. At most 6 lines (STORY.md §9). */
+  lines: z
+    .array(z.object({ speaker: sceneSpeakerSchema }))
+    .min(1)
+    .max(6),
+});
+
+export type SceneDef = z.infer<typeof sceneSchema>;
+
+export function defineScene(def: SceneDef): SceneDef {
+  return sceneSchema.parse(def);
 }

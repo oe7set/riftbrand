@@ -424,7 +424,8 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Todesursache:** `damagePlayer` bekommt den Gegnertyp der Quelle. Geschosse und Gefahrenzonen tragen dafür `enemyType` ihres Verursachers.
 - **Neu würfeln:** `rollBoonOffer` nimmt einen Salt. `rerollOffer` verbraucht eine Ladung und erhöht `RunState.rerollSalt`, damit das neue Angebot auch nach dem Neuladen gleich bleibt.
 - **Relikt-Pool:** Relikte mit `unlockCost` sind gesperrt, bis Nix sie verkauft. `rollRelic` filtert `run.lockedRelics` (Angebote, Shop, Ereignisse).
-- **Dialoge** (`content/dialogue/`, `sim/meta/dialogue.ts`): Zeilen mit Sprecher, Priorität, `once` und Bedingungen (Runs, Siege, letztes Ergebnis, Todesursache, dominantes Wesen, Boss erreicht, Flags). Es gewinnt die höchste ungesehene passende Zeile; Füllzeilen rotieren nach Run-Zahl.
+- **Dialoge** (`content/dialogue/`, `sim/meta/dialogue.ts`): Zeilen mit Sprecher, Priorität, `once` und Bedingungen (Runs, Siege, letztes Ergebnis, Todesursache, dominantes Wesen, Boss erreicht, Flags, seit M5.7 auch erledigte bzw. laufende Quests und wiederaufgebaute Gebäude). Es gewinnt die höchste ungesehene passende Zeile; Füllzeilen rotieren nach Run-Zahl.
+- **Szenen** (M5.7, `content/story/scenes.ts`, `view/ui/scene-screen.tsx`): kurze Text-Szenen mit Sprechern (Figur, `vesper`, `wanderer` oder Gegner-ID), Text in `scene.<id>.<n>`, Namen in `speaker.<id>`. `Game.playScene` zeigt jede Szene einmal (Eintrag `scene:<id>` in `seenDialogue`) im Modus `scene`, bevor der Raum startet bzw. das Ergebnis erscheint. Die Laute sind der Sound `talk`, abgespielt mit der Tonhöhe aus `VOICE_PITCH`; Tempo in `SCENE_TUNING`.
 - **Speicherung:** siehe ADR 0003 (IndexedDB, Backup-Slot, Export-Code).
 - **Oberfläche:** `view/ui/meta-screens.tsx` mit Zuflucht, Glutbaum, Nix' Waren, Speichern/Übertragen und Ergebnis. Textfelder sind von der WASD-Menünavigation ausgenommen.
 

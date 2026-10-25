@@ -1116,21 +1116,21 @@ Zuflucht (begehbar)
   - Tracker im Kampf-HUD und im Kopf der Run-Karte, ★ an passenden Knoten (Boss, Duell, Ereignis).
 - **Speicherstände:** Profil **v7** (`quests`), Run-Save **v12** (`tally`).
 
-### M5.7 Story-Fundament ⬜
+### M5.7 Story-Fundament ✅
 **Umfang:**
-- [ ] **`docs/STORY.md` als Story-Bibel.** Der PO gibt sie vor der Umsetzung frei (Entwurf v0.1 liegt vor, 2026-10-25). Inhalt:
+- [x] **`docs/STORY.md` als Story-Bibel.** Vom PO freigegeben am 2026-10-25. Inhalt:
   - Hauptbogen über alle Welten
   - Bögen der Figuren
   - das Rätsel um Vesper und die Figur „???“
   - wahres Ende und Ton
-- [ ] **Story im Run:**
-  - Boss-Intro und -Outro als kurze Szene: Kamerafahrt, Name, 2–3 Textzeilen
-  - Begegnungen mit wiederkehrenden Figuren in Ereignis-Räumen
-  - Wesen kommentieren den Build am Altar
-- [ ] **Story in der Zuflucht:**
-  - Das Dialogsystem bekommt Bedingungen zu Quests und Gebäuden.
-  - ca. 100 neue Zeilen
-- [ ] **Szenen-Baustein:** Text-Szene mit Figuren-Rigs, überspringbar, ohne Sprachausgabe. Stattdessen spricht jede Figur in kurzen Gibberish-Sounds.
+- [x] **Story im Run:**
+  - Boss-Intro und -Outro als kurze Szene mit Name und 2–3 Textzeilen (`content/story/scenes.ts`). Intro beim ersten Treffen mit Glutwächter, Glut-Duellant und Funke & Asche; Outro beim ersten Sieg über den Glutwächter. Noch offen: Kamerafahrt (kommt mit dem Feinschliff in M7).
+  - Der Wanderer begegnet Vesper in 3 Ereignis-Räumen (`wanderer_fire`, `wanderer_gift`, `wanderer_warning`). Weitere Begegnungen kommen mit jeder Welt (M6).
+  - Die Wesen kommentieren den Build am Altar (treu oder eifersüchtig, je nach dominantem Wesen).
+- [x] **Story in der Zuflucht:**
+  - Das Dialogsystem kennt die Bedingungen `questDone`, `questActive` und `building`.
+  - 80 neue Zeilen für alle sechs Figuren, entlang der Story-Kette „Glut der Aschefelder“ (Hinweise auf den Wanderer, die früheren Funken, Tolls Lehrling, das Treiben der Fragmente).
+- [x] **Szenen-Baustein:** Text-Szene über der Arena, überspringbar, ohne Sprachausgabe. Jede Figur spricht in kurzen Gibberish-Lauten mit eigener Tonhöhe (`VOICE_PITCH`). Jede Szene läuft nur einmal (`seenDialogue`). Tempo im Debug-Menü („story scenes“). Noch offen: Figuren-Rigs als Porträt in der Szene.
 
 **Abhängig von:** M5.1. Die Story-Bibel kann früher entstehen.
 
