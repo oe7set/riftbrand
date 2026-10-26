@@ -270,6 +270,12 @@ Alle Content-Typen sind in `content/schema/` als **Zod-Schemas** definiert. Die 
   - Beim Löschen eines Branchs wird die zugehörige Testversion entfernt.
   - GitHub Pages wird dazu auf „Deploy from branch: `gh-pages`“ gestellt (manuelle Einstellung im Repository).
 - **Service Worker:** Nur der Build von `main` registriert einen Service Worker. Dessen `navigateFallback` schließt `/dev/` aus, damit Testversionen nie vom Cache der Hauptversion abgefangen werden. Testversionen werden ohne Service Worker gebaut.
+- **Updates der installierten App:**
+  - Der Service Worker läuft im Modus `prompt`.
+  - `platform/pwa-update.ts` (`watchForUpdates`) prüft beim Start, alle 30 Minuten, beim Zurückkehren in den Vordergrund und wenn das Netz wiederkommt. Der Browser selbst prüft nur bei einer Navigation, eine offene App bliebe also auf ihrer Version.
+  - Eine gefundene Version wartet, bis der Spieler zustimmt: Hinweis unten (`app/update-toast.ts`) und ein Knopf im Pause-Menü (für das Gamepad).
+  - Beim Neuladen startet der aktuelle Raum von seinem Eingang, wie nach jedem Laden.
+  - Das Plugin ist immer eingebunden (`disable` ohne `ENABLE_PWA`), damit `virtual:pwa-register` auch in Testversionen auflöst. Dort tut es nichts.
 - **Versionierung:** `package.json`-Version und Git-Kurz-Hash werden im Spiel angezeigt (Titelbildschirm bzw. Debug-Menü) und in Run-Logs gespeichert.
 
 ---
@@ -737,5 +743,5 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 | Effekt-System wird zu komplex bzw. zu langsam | begrenzte Trigger- und Aktionsmenge, Budget pro Tick, Simulation zum Profilieren |
 | Content-Umfang (40+ Relikte, 4 Biome) | datengetriebene Pipeline und Content-Tests, Umfang nur nach Spaß-Prüfung pro Meilenstein |
 | Speicherstand-Verlust (Browser löscht Speicher) | `storage.persist()`, Export-Erinnerung, Backup-Slot |
-| Service Worker liefert veraltete Version aus | Update-Hinweis im Spiel („Neue Version, neu laden“), Versionsanzeige |
+| Service Worker liefert veraltete Version aus | Update-Prüfung alle 30 min und beim Öffnen, Hinweis „Neue Version bereit, neu laden“ (umgesetzt), Versionsanzeige |
 | iOS Safari (Audio, Vibration, PWA-Grenzen) | Audio-Freischaltung bei Geste, Haptik optional, ab der Beta auf iOS testen |

@@ -49,6 +49,9 @@ export class PauseOverlay {
   private readonly resume = document.createElement('button');
   private readonly toTitle = document.createElement('button');
   private readonly debug = document.createElement('button');
+  /** Shown while a new version waits (installed app); gamepad players reach it here. */
+  private readonly update = document.createElement('button');
+  private applyUpdate: (() => void) | null = null;
   /** Kept so a language change can redraw the open pause screen. */
   private lastDevice: InputDevice = 'keyboardMouse';
   private lastBuild: BuildSummary | null = null;
@@ -74,8 +77,12 @@ export class PauseOverlay {
     this.debug.type = 'button';
     this.debug.className = 'rb-button rb-small';
     this.debug.addEventListener('click', actions.toggleDebug);
+    this.update.type = 'button';
+    this.update.className = 'rb-button';
+    this.update.hidden = true;
+    this.update.addEventListener('click', () => this.applyUpdate?.());
     const row = div('rb-row');
-    row.append(this.toTitle, this.debug);
+    row.append(this.toTitle, this.update, this.debug);
     this.root.append(this.title, this.resume, this.hint, this.buildBox, this.settingsBox, row);
     this.root.hidden = true;
     isolate(this.root);
@@ -323,6 +330,7 @@ export class PauseOverlay {
     this.resume.textContent = t('pause.resume');
     this.toTitle.textContent = t('pause.to_title');
     this.debug.textContent = t('pause.debug');
+    this.update.textContent = t('pause.update');
     this.hint.textContent =
       device === 'touch'
         ? ''
@@ -330,6 +338,12 @@ export class PauseOverlay {
           ? t('pause.resume_gamepad')
           : t('pause.resume_keyboard');
     this.buildSettings();
+  }
+
+  /** Offers a waiting update in the pause menu (null hides the button). */
+  setUpdate(apply: (() => void) | null): void {
+    this.applyUpdate = apply;
+    this.update.hidden = apply === null;
   }
 
   get visible(): boolean {

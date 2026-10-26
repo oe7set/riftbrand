@@ -883,5 +883,9 @@
   "scene.mirror_queen_outro.1": "Das Eis singt ... Es tut weh. Ich hatte vergessen, dass Tauen wehtut.",
   "scene.mirror_queen_outro.2": "Einmal kam ein Mann mit Kapuze hier vorbei. Er sah in meinen Spiegel und weinte. Er kannte den Namen deiner Hüterin.",
   "scene.mirror_queen_outro.3": "Maren ... was verschweigst du mir?",
-  "material.frost_pearl.name": "Frostperle"
+  "material.frost_pearl.name": "Frostperle",
+  "update.ready": "Eine neue Version von Riftbrand ist bereit. Beim Neuladen startet der aktuelle Raum von vorn.",
+  "update.reload": "Jetzt neu laden",
+  "update.later": "Später",
+  "pause.update": "Update installieren"
 }

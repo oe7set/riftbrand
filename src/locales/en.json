@@ -883,5 +883,9 @@
   "scene.mirror_queen_outro.1": "The ice is singing... It hurts. I had forgotten that thawing hurts.",
   "scene.mirror_queen_outro.2": "A hooded man passed here once. He looked into my mirror and wept. He knew your keeper's name.",
   "scene.mirror_queen_outro.3": "Maren... what aren't you telling me?",
-  "material.frost_pearl.name": "Frost pearl"
+  "material.frost_pearl.name": "Frost pearl",
+  "update.ready": "A new version of Riftbrand is ready. Reloading restarts the current room from its start.",
+  "update.reload": "Reload now",
+  "update.later": "Later",
+  "pause.update": "Install update"
 }

@@ -33,6 +33,7 @@ import { Haptics } from '../platform/haptics';
 import { MenuAction } from '../platform/input/bindings';
 import { type InputDevice, InputManager } from '../platform/input/input-manager';
 import type { TouchButtonId } from '../platform/input/touch-layout';
+import { watchForUpdates } from '../platform/pwa-update';
 import {
   browserProfileStore,
   copyToClipboard,
@@ -177,6 +178,7 @@ import { DebugMenu, type DebugStats } from './debug/debug-menu';
 import { FeedbackDirector, type SlowMoRequest } from './feedback';
 import { FixedStepper } from './fixed-stepper';
 import { DeathOverlay, PauseOverlay } from './overlays';
+import { UpdateToast } from './update-toast';
 
 declare const __APP_VERSION__: string;
 declare const __GIT_HASH__: string;
@@ -547,6 +549,7 @@ export class Game {
     requestPersistentStorage();
     const game = new Game(root, view, profileStore, await loadProfile(profileStore));
     game.exposeDebugHandle();
+    game.watchUpdates(root);
     // ?seed=… jumps straight into the endless arena, handy for tuning and bug reports.
     const urlSeed = seedFromUrl();
     if (urlSeed !== null) game.startArena(urlSeed);
@@ -554,6 +557,15 @@ export class Game {
     game.lastFrameMs = nowMs();
     requestAnimationFrame(game.loop);
     return game;
+  }
+
+  /** Installed app: look for new versions and offer them (never reload on our own). */
+  private watchUpdates(root: HTMLElement): void {
+    const toast = new UpdateToast(root);
+    watchForUpdates((apply) => {
+      toast.show(apply);
+      this.pauseOverlay.setUpdate(apply);
+    });
   }
 
   // ── Flow ────────────────────────────────────────────────────────────────
