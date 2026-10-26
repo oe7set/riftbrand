@@ -926,6 +926,103 @@ export const SFX = {
       lowpass: 2400,
     },
   ],
+  /** A puzzle piece switches on (ROADMAP M6.0): a small bell; pitch rises with the order. */
+  chime: [
+    { wave: 'sine', freq: 880, attackSec: 0.002, sustainSec: 0.04, releaseSec: 0.45, volume: 0.2 },
+    {
+      wave: 'triangle',
+      freq: 1320,
+      attackSec: 0.002,
+      sustainSec: 0.02,
+      releaseSec: 0.3,
+      volume: 0.08,
+      delaySec: 0.01,
+    },
+  ],
+  /** Stone on stone: a block slides or a gate moves. */
+  rumble: [
+    {
+      wave: 'noise',
+      freq: 0,
+      attackSec: 0.01,
+      sustainSec: 0.12,
+      releaseSec: 0.12,
+      volume: 0.3,
+      lowpass: 420,
+    },
+    {
+      wave: 'square',
+      freq: 70,
+      freqEnd: 55,
+      attackSec: 0.01,
+      sustainSec: 0.1,
+      releaseSec: 0.1,
+      volume: 0.08,
+      lowpass: 300,
+    },
+  ],
+  /** A sequence went wrong and fizzles out. */
+  fizzle: [
+    {
+      wave: 'triangle',
+      freq: 392,
+      freqEnd: 196,
+      attackSec: 0.005,
+      sustainSec: 0.1,
+      releaseSec: 0.25,
+      volume: 0.2,
+    },
+    {
+      wave: 'noise',
+      freq: 0,
+      attackSec: 0.01,
+      sustainSec: 0.05,
+      releaseSec: 0.2,
+      volume: 0.12,
+      lowpass: 1600,
+      delaySec: 0.05,
+    },
+  ],
+  /** Puzzle solved: a rising four-note fanfare. */
+  solved: [
+    {
+      wave: 'triangle',
+      freq: 523,
+      attackSec: 0.005,
+      sustainSec: 0.08,
+      releaseSec: 0.4,
+      volume: 0.22,
+    },
+    {
+      wave: 'triangle',
+      freq: 659,
+      attackSec: 0.005,
+      sustainSec: 0.08,
+      releaseSec: 0.4,
+      volume: 0.22,
+      delaySec: 0.1,
+    },
+    {
+      wave: 'triangle',
+      freq: 784,
+      attackSec: 0.005,
+      sustainSec: 0.08,
+      releaseSec: 0.4,
+      volume: 0.22,
+      delaySec: 0.2,
+    },
+    {
+      wave: 'sine',
+      freq: 1047,
+      attackSec: 0.005,
+      sustainSec: 0.2,
+      releaseSec: 0.8,
+      volume: 0.26,
+      delaySec: 0.3,
+      vibratoHz: 6,
+      vibratoDepth: 0.01,
+    },
+  ],
 } satisfies Record<string, SfxRecipe>;
 
 export type SfxId = keyof typeof SFX;

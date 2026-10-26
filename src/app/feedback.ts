@@ -13,6 +13,7 @@ import {
   Ev,
   type EventBuffer,
   EvFlag,
+  PieceCode,
   ProjectileCode,
   type SimEvent,
   STATUS_CODES,
@@ -71,6 +72,8 @@ export class FeedbackDirector {
   /** One duel banner per room, even when two twins spawn. */
   championAnnounced = false;
   private afterimageTimer = 0;
+  /** Puzzle of the current room, for Iskra's hint text. */
+  private puzzleId: string | null = null;
   /** Scratch point for particles that start on a rigged body. */
   private readonly bodyPoint = { x: 0, y: 0 };
   private panWidth = 960;
@@ -95,6 +98,7 @@ export class FeedbackDirector {
 
   /** Continuous, per-frame feedback (dash afterimages, embers and poison bubbles on enemies). */
   update(sim: SimState, dtSec: number): void {
+    this.puzzleId = sim.room.puzzle?.def.id ?? null;
     this.emitStatusParticles(sim, dtSec);
     this.emitTrails(sim, dtSec);
     const p = sim.player;
@@ -646,7 +650,9 @@ export class FeedbackDirector {
         // The "ahh" moment of a room: slow motion, zoom punch, chord, portal opens.
         fx.waveCleared(e.x, e.y);
         fx.portal(e.x, e.y, 0.6, PALETTE.portal);
-        this.view.hud.onRoomCleared();
+        // A solved puzzle opens its exit the same way, but deserves its own word.
+        if (this.puzzleId) this.view.hud.onBanner(t('puzzle.solved'));
+        else this.view.hud.onRoomCleared();
         this.view.entities.celebrate();
         this.view.addZoomPunch(TUNING.lastEnemyZoomPunch);
         this.audio.play('waveCleared', { pitchVariation: 0 });
@@ -654,6 +660,70 @@ export class FeedbackDirector {
           scale: TUNING.lastEnemyTimeScale,
           durationSec: TUNING.lastEnemySlowMoSec,
         });
+        break;
+      case Ev.PieceChanged: {
+        if (e.flags === 0) {
+          if (e.value === PieceCode.Plate) this.audio.play('rumble', { volume: 0.5, pitch: 1.4 });
+          break;
+        }
+        const color =
+          e.value === PieceCode.Crystal
+            ? 0xd28bff
+            : e.value === PieceCode.Brazier
+              ? PALETTE.ember
+              : PALETTE.shard;
+        fx.spawnFlash(e.x, e.y, color);
+        fx.hitSparks(e.x, e.y, 0, -1, color, 10);
+        // Sequences climb a scale, so the ear hears the order too.
+        this.audio.play('chime', {
+          pitch: 1 + Math.max(0, e.amount - 1) * 0.12,
+          pitchVariation: 0,
+        });
+        this.haptics.pulse(12, 0.3);
+        break;
+      }
+      case Ev.PuzzleFail:
+        fx.hitSparks(e.x, e.y, 0, -1, 0x9a8aa8, 14);
+        shake.add(TUNING.shakeLightTrauma);
+        this.audio.play('fizzle', { pitchVariation: 0 });
+        this.haptics.pulse(30, 0.5);
+        break;
+      case Ev.PuzzleSolved:
+        this.audio.play('solved', { pitchVariation: 0 });
+        this.haptics.pulse(40, 0.6);
+        break;
+      case Ev.PuzzleFall:
+        fx.dashPuff(e.x, e.y, 0, -1);
+        this.view.damageNumbers.spawnText(
+          e.x,
+          e.y - 18,
+          `-${Math.round(e.amount)}`,
+          PALETTE.hpPlayer,
+          0.6,
+        );
+        this.view.hud.onPlayerHit();
+        this.audio.play('playerHit', { pitch: 0.8 });
+        this.haptics.pulse(40, 0.7);
+        break;
+      case Ev.PuzzleHint: {
+        const key = this.puzzleId ? `puzzle.${this.puzzleId}.hint` : null;
+        if (key) this.view.hud.onHint(t('puzzle.hint_from'), t(key as TranslationKey));
+        this.audio.play('talk', { pitch: 1.5, pitchVariation: 0.1 });
+        break;
+      }
+      case Ev.PuzzleReset:
+        this.audio.play('rumble', { pitch: 0.8 });
+        this.audio.play('fizzle', { pitch: 1.4, volume: 0.6 });
+        break;
+      case Ev.GateChanged:
+        this.audio.play('rumble', { pitch: e.flags === 1 ? 1 : 0.85 });
+        shake.add(TUNING.shakeLightTrauma * 0.5);
+        if (e.flags === 1) fx.hitSparks(e.x, e.y, 0, -1, PALETTE.shard, 8);
+        break;
+      case Ev.BlockPushed:
+        fx.dashPuff(e.x, e.y, e.dirX, e.dirY);
+        this.audio.play('rumble', { pitchVariation: 0.1 });
+        this.haptics.pulse(10, 0.3);
         break;
       case Ev.ExitReached:
         fx.perfectDash(e.x, e.y);

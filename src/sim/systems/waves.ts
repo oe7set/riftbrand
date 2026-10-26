@@ -168,7 +168,8 @@ export function startWave(state: SimState): void {
   }
 }
 
-function clearRoom(state: SimState): void {
+/** Opens the exit: the encounter is beaten or the puzzle solved. */
+export function clearRoom(state: SimState): void {
   const room = state.room;
   if (room.cleared) return;
   room.cleared = true;
@@ -294,6 +295,11 @@ export function waveSystem(state: SimState): void {
   processPending(state);
   if (state.gameOver) return;
   state.room.elapsedTicks++;
+  // Puzzle rooms open their exit when solved (sim/puzzle), not when a wave runs dry.
+  if (state.room.puzzle) {
+    exitSystem(state);
+    return;
+  }
   if (state.room.mode === 'arena') arenaSystem(state);
   else if (state.room.mode === 'horde') hordeSystem(state);
   else encounterSystem(state);

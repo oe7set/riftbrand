@@ -24,6 +24,9 @@ export const MATERIAL_DROPS = {
   eliteMax: 2,
   duelMin: 2,
   duelMax: 3,
+  /** Puzzle rooms (ROADMAP M6.0) always pay a little: brains over blades. */
+  puzzleMin: 1,
+  puzzleMax: 2,
   bossMin: 3,
   bossMax: 4,
 };

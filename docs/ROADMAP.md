@@ -128,6 +128,8 @@ Der PO findet das aktuelle Kampfmodell gut und möchte es **erweitern, ohne den 
 
 Ob K2 vor oder nach der Hub-Welt (M5) kommt, entscheidet der PO (❓). Die Nummerierung der Meilensteine wird angepasst, sobald das feststeht.
 
+**Entscheidung des PO (2026-10-26):** Block (K2.1), Sprung (K2.2) und die Kombo-Folgen, die darauf aufbauen (K2.3), sind **vorerst zurückgestellt**. Der Kampf bleibt, wie er ist. Weiter geht es mit M6.0 (Rätsel) und den übrigen Punkten.
+
 ---
 
 ## Glossar (Deutsch → Code)
@@ -1158,7 +1160,7 @@ Zuflucht (begehbar)
 - 3–4 Ereignisse
 - ein Status-Thema
 
-### M6.0 Rätsel-Räume und Erkundungs-Welten ⬜ (PO-Wunsch E16)
+### M6.0 Rätsel-Räume und Erkundungs-Welten 🟡 (PO-Wunsch E16)
 **Ziel:** Neben Kampf-Runs gibt es Welten aus **kleinen, verbundenen Räumen** (wie Cult of the Lamb bzw. ein kleiner Dungeon), in denen man Rätsel löst, um weiterzukommen.
 
 **Umfang:**
@@ -1166,17 +1168,21 @@ Zuflucht (begehbar)
   - Räume mit Türen nach Norden, Süden, Osten und Westen, eine Mini-Karte
   - gesperrte Türen, Schlüssel, Abkürzungen
   - Der Seed bestimmt das Netz.
-- [ ] **Rätsel-Elemente als Daten** (`content/puzzles/`, `definePuzzle`), die vorhandene Fähigkeiten nutzen:
-  - **Feuerschalen** mit Brand entzünden, in der richtigen Reihenfolge
-  - **Wasser** mit Frost einfrieren und darüber laufen
-  - **Druckplatten** und **schiebbare Blöcke**
-  - **Kristall-Schalter**, die man mit dem Riss-Geschoss trifft, auch über Abgründe
-  - **Lücken** und **zeitgesteuerte Tore**, die man mit dem Dash schafft
-  - **Runen-Reihenfolgen** mit Hinweisen im Raum
+- [x] **Rätsel-Elemente als Daten** (`content/puzzles/`, `definePuzzle`), die vorhandene Fähigkeiten nutzen (M6.0a):
+  - [x] **Feuerschalen**, die man mit der Klinge oder dem Riss-Geschoss entzündet, in der richtigen Reihenfolge. Punkte unter den Schalen zeigen die Reihenfolge.
+  - [ ] **Wasser** mit Frost einfrieren und darüber laufen (kommt mit der Gläsernen See, M6.1)
+  - [x] **Druckplatten** und **schiebbare Blöcke**
+  - [x] **Kristall-Schalter**, die man mit dem Riss-Geschoss trifft, auch über Abgründe
+  - [x] **Lücken**, die man mit dem Dash schafft, und **zeitgesteuerte Tore** (Kristall mit Haltezeit)
+  - [x] **Runen-Reihenfolgen** mit Punkten als Hinweis
 - [ ] **Raumtypen** in Rätsel-Welten: Rätsel, Kampf, Schatz, Rast und Wächter (Mini-Boss vor dem Weiterkommen).
-- [ ] **Rätsel-Räume in allen Welten:** In normalen Kampf-Runs taucht gelegentlich ein Rätsel-Raum mit Belohnung auf, als Abwechslung.
-- [ ] **Belohnungen:** Materialien, Truhen, Rüstungsteile, Abkürzungen zum Boss.
-- [ ] **Fairness:** keine Rätsel, die man ohne Hinweis nur durch Ausprobieren lösen kann. Nach mehreren Fehlversuchen kommt ein Hinweis von Iskra. Kein Fortschritt darf durch ein festgefahrenes Rätsel verloren gehen (Rücksetzen per Rune).
+- [x] **Rätsel-Räume in allen Welten:** In normalen Kampf-Runs taucht ab Ebene 2 gelegentlich ein Rätsel-Raum auf, höchstens 2 pro Karte. 6 Rätsel zum Start: „Die vier Schalen“, „Der Runenpfad“, „Der Glutschalter“, „Die Kristallinsel“, „Die Steinplatten“, „Die Zwillingsfeuer“.
+- [x] **Belohnungen:** ein Relikt, 1–2 Materialien und Scherben wie nach einem Kampf. Noch offen: Truhen, Rüstungsteile, Abkürzungen (mit dem Raum-Netz).
+- [x] **Fairness:**
+  - Reihenfolgen sind immer sichtbar.
+  - Nach 2 Fehlversuchen oder 40 s ohne Fortschritt gibt Iskra einen Hinweis.
+  - Ein Rücksetzstein stellt alles zurück, wo Blöcke festsitzen könnten.
+  - Ein Sturz in den Abgrund kostet 6 Leben, aber nie das letzte.
 
 **Technik:**
 - Rätsel-Zustand ist Simulationszustand (deterministisch, im Raum-Seed).
@@ -1185,7 +1191,7 @@ Zuflucht (begehbar)
 - Run-Save mit gelösten Rätseln und offenen Türen.
 
 **Tests:**
-- Jede Rätsel-Vorlage ist lösbar (Solver im Test).
+- Jede Rätsel-Vorlage ist lösbar (Solver im Test). ✅ `sim/puzzle.test.ts` spielt jedes Rätsel mit echten Eingaben durch.
 - Determinismus
 - Speichern und Laden mitten in der Welt
 

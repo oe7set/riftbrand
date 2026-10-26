@@ -104,6 +104,7 @@ export function buildEncounter(
     case 'altar':
     case 'shop':
     case 'event':
+    case 'puzzle':
       return { kind: 'none' };
   }
 }

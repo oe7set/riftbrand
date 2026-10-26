@@ -1,8 +1,9 @@
 import { BEING_IDS } from '../../content/boons/beings';
 import { ENEMIES } from '../../content/enemies';
 import { EVOLUTIONS } from '../../content/evolutions';
+import { PUZZLES } from '../../content/puzzles';
 import { ROOMS } from '../../content/rooms';
-import type { Rarity, RoomTemplateDef } from '../../content/schema';
+import type { PuzzleDef, Rarity, RoomTemplateDef } from '../../content/schema';
 import { START_SPELLS } from '../../content/spells';
 import { STATUSES } from '../../content/statuses';
 import { TUNING } from '../../content/tuning';
@@ -116,6 +117,8 @@ export function emptyTally(): RunTally {
 export interface RoomSetup {
   template: RoomTemplateDef;
   encounter: Encounter;
+  /** Puzzle pieces for puzzle nodes (ROADMAP M6.0). */
+  puzzle?: PuzzleDef;
   playerHp: number;
   playerMaxHp: number;
   boons: OwnedBoon[];
@@ -213,12 +216,46 @@ export function roomSeed(run: RunState, nodeId: number): number {
   return hashString(`${run.seed}:room:${nodeId}`);
 }
 
+/**
+ * The puzzle for a puzzle node: the run's puzzle nodes walk through the world's puzzles from a
+ * seeded start, so one run never repeats a puzzle while there are fresh ones.
+ */
+export function puzzleFor(run: RunState, node: MapNode): PuzzleDef | undefined {
+  const pool = PUZZLES.filter((p) => p.worlds.length === 0 || p.worlds.includes(run.worldId));
+  if (pool.length === 0) return undefined;
+  const puzzleNodes = run.map.nodes.filter((n) => n.type === 'puzzle');
+  const k = Math.max(
+    0,
+    puzzleNodes.findIndex((n) => n.id === node.id),
+  );
+  const first = nextInt(createRng(hashString(`${run.seed}:puzzles`)), 0, pool.length);
+  return pool[(first + k) % pool.length];
+}
+
+/** A puzzle's room geometry in template form. */
+export function puzzleTemplate(p: PuzzleDef): RoomTemplateDef {
+  return {
+    id: p.id,
+    widthPx: p.widthPx,
+    heightPx: p.heightPx,
+    types: ['puzzle'],
+    obstacles: p.obstacles,
+    playerStart: p.playerStart,
+    exit: p.exit,
+    spawnPoints: [],
+  };
+}
+
 export function roomSetupFor(run: RunState, node: MapNode): RoomSetup {
   const rng = createRng(roomSeed(run, node.id) ^ 0x5eed);
+  const puzzle = node.type === 'puzzle' ? puzzleFor(run, node) : undefined;
   const candidates = ROOMS.filter((r) => r.types.includes(node.type));
-  const template = candidates[nextInt(rng, 0, candidates.length)] ?? (ROOMS[0] as RoomTemplateDef);
+  const template = puzzle
+    ? puzzleTemplate(puzzle)
+    : (candidates[nextInt(rng, 0, candidates.length)] ?? (ROOMS[0] as RoomTemplateDef));
   return {
     template,
+    ...(puzzle ? { puzzle } : {}),
     encounter: buildEncounter(rng, worldBiome(run.worldId), node.type, node.layer),
     playerHp: run.hp,
     playerMaxHp: run.maxHp,

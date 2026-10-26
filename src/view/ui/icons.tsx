@@ -97,6 +97,11 @@ export function NodeIcon({ type }: { type: RoomType }) {
           <path d="M7.5 16.5 L16.5 7.5 M16.5 16.5 L7.5 7.5" />
         </g>
       )}
+      {type === 'puzzle' && (
+        <g {...STROKE}>
+          <path d="M5 8 H9.5 A2.5 2.5 0 1 1 14.5 8 H19 V12.5 A2.5 2.5 0 1 1 19 17.5 V20 H5 Z" />
+        </g>
+      )}
       {type === 'boss' && (
         <g {...STROKE}>
           <path d="M3 18 L5 7 L9.5 12 L12 5 L14.5 12 L19 7 L21 18 Z" />

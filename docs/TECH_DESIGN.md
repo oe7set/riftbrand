@@ -680,7 +680,27 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Run:** `RoomResult.statusKills` und `flawless` landen in `RunState.tally`.
 - **Speicherstände:** Profil v7, Run-Save v12.
 
-## 45. Risiken und Gegenmaßnahmen
+## 45. Stand nach M5.7 und M6.0a (Story im Spiel, Rätsel-Räume)
+- **Szenen:** siehe §25, Abschnitt „Szenen“ (`content/story/scenes.ts`, `view/ui/scene-screen.tsx`).
+- **Rätsel (ADR 0008):**
+  - Content: `content/puzzles/index.ts` (`definePuzzle`: Raum, Teile, Ziel-Gruppe, Welten) und `content/puzzles/tuning.ts` (`PUZZLE_TUNING`, im Debug-Menü).
+  - Simulation: `sim/puzzle.ts` (`loadPuzzle`, `puzzleSystem` nach den Geschossen, `puzzleMelee`, `puzzleShot`, `resetPuzzle`).
+  - `RoomState.puzzle`, `staticRectCount` und `staticCircleCount`. Die Grenzen stehen jetzt bei 64 Rechtecken und 64 Kreisen.
+  - Neue Ereignisse: `Ev.PieceChanged`, `PuzzleFail`, `PuzzleSolved`, `PuzzleFall`, `PuzzleHint`, `PuzzleReset`, `GateChanged`, `BlockPushed` (`PieceCode`).
+- **Run:**
+  - Knotentyp `puzzle` (Biom: `typeWeights.puzzle`, `puzzleMinLayer`, `maxPuzzles`).
+  - `puzzleFor()` wählt ohne Wiederholung im Run.
+  - Belohnung: Relikt, 1–2 Materialien, Scherben wie ein Kampf.
+  - Der Bot bucht Rätsel als gelöst nach 45 s.
+- **Darstellung:** `view/render/puzzle-view.ts`.
+  - Abgründe, Platten, Runen, Schalen und Torpfosten werden einmal pro Raum gezeichnet.
+  - Flammen, Kristalle, Blöcke, Leuchten und Gitter sind Sprites bzw. vorgebaute Formen, deren Werte sich pro Frame ändern.
+  - `RoomView` zeichnet nur die festen Hindernisse.
+  - HUD: `onHint(name, text)` zeigt Iskras Sprechkasten.
+- **Debug:** Abschnitt „Puzzles“ lädt jedes Rätsel einzeln.
+- **Speicherstand:** Run-Save **v13** (Knotentyp `puzzle`).
+
+## 46. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

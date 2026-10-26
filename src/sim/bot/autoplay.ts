@@ -213,6 +213,32 @@ function playRoom(
   return outcome;
 }
 
+/** Seconds a player is assumed to spend on a puzzle room; bots don't solve puzzles. */
+const PUZZLE_BOT_SEC = 45;
+
+/**
+ * Puzzle rooms (ROADMAP M6.0) have no fight, so the bot books them as solved after a typical
+ * time: what matters for balancing is their reward and the time they take.
+ */
+function solvePuzzle(run: RunState, node: MapNode, report: RunReport): void {
+  report.rooms.push({
+    type: node.type,
+    layer: node.layer,
+    timeSec: PUZZLE_BOT_SEC,
+    damageTaken: 0,
+    cleared: true,
+  });
+  completeRoom(run, {
+    hp: run.hp,
+    kills: 0,
+    timeSec: PUZZLE_BOT_SEC,
+    shards: run.shards,
+    ultCharge: run.ultCharge,
+    lastSparks: run.lastSparks,
+  });
+  grantReward(run, node);
+}
+
 /**
  * Plays a whole run headless with a bot (TECH_DESIGN §13). Deterministic: same seed, strategy
  * and meta give the same report.
@@ -263,7 +289,8 @@ export function autoplayRun(
       const option = event?.options.find((o) => eventOptionAvailable(run, o));
       if (event && option) applyOutcomes(run, node.id, option.id, option.outcomes);
       completeNonCombat(run);
-    } else {
+    } else if (node.type === 'puzzle') solvePuzzle(run, node, report);
+    else {
       const outcome = playRoom(run, node, strategy, report);
       if (outcome === 'timeout') report.result = 'timeout';
     }

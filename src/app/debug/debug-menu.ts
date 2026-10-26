@@ -46,6 +46,8 @@ export interface DebugHooks {
   giveEvolution(id: string): void;
   /** Adds stacks of a status to every enemy (status id from content/statuses). */
   applyStatus(id: string, stacks: number): void;
+  /** Loads a puzzle room on its own (ROADMAP M6.0). */
+  loadPuzzle(id: string): void;
 }
 
 export interface DebugStats {
@@ -102,6 +104,7 @@ export class DebugMenu {
     /** Elite spawn buttons: label plus packed enemy code. */
     eliteSpawns: ReadonlyArray<{ label: string; code: number }> = [],
     spellIds: readonly string[] = [],
+    puzzleIds: readonly string[] = [],
   ) {
     this.fpsChip = el('div', { className: 'rb-fps' });
     this.fpsChip.hidden = true;
@@ -193,6 +196,13 @@ export class DebugMenu {
             this.button(`Evolve: ${id}`, () => this.hooks.giveEvolution(id)),
           ),
         ]),
+      ]),
+      this.section('Puzzles', false, [
+        el(
+          'div',
+          { className: 'rb-debug-row' },
+          puzzleIds.map((id) => this.button(`Puzzle: ${id}`, () => this.hooks.loadPuzzle(id))),
+        ),
       ]),
       this.section('Run log', false, [
         el('div', { className: 'rb-debug-row' }, [

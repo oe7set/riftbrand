@@ -45,6 +45,16 @@ export function hashSim(state: SimState): number {
   h = fnv1a(h, state.room.hordeTicksLeft);
   h = fnv1a(h, state.room.cleared ? 1 : 0);
   h = fnv1a(h, state.room.exitReached ? 1 : 0);
+  const puzzle = state.room.puzzle;
+  if (puzzle) {
+    h = fnv1a(h, puzzle.solved ? 1 : 0);
+    h = fnv1a(h, puzzle.fails);
+    for (let i = 0; i < puzzle.count; i++) {
+      h = fnv1a(h, puzzle.active[i] as number);
+      h = mixFloat(h, puzzle.x[i] as number);
+      h = mixFloat(h, puzzle.y[i] as number);
+    }
+  }
   for (let eid = 0; eid < world.highWater; eid++) {
     const mask = world.masks[eid] as number;
     h = fnv1a(h, mask);

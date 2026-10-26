@@ -11,6 +11,7 @@ import { C } from '../ecs/components';
 import { areaBurst, type BurstSpec, fireOnComboFinisher, fireOnDash } from '../effects/runtime';
 import { BurstCode, Ev, pushEvent } from '../events';
 import { Buffered, type BufferedId, PlayerAction } from '../player-state';
+import { puzzleMelee } from '../puzzle';
 import type { SimState } from '../sim';
 import { secondsToTicks, TICK_DT_SEC } from '../time';
 import { activeSpellDef, releaseActiveSpell, startSpellCooldown } from './spells';
@@ -342,6 +343,7 @@ function meleeSweep(
   const pr = c.radius[eid] as number;
   const reach = reachPx + 40;
   const cosHalf = Math.cos((Math.min(arcDeg, 360) / 2) * DEG);
+  puzzleMelee(state, reachPx, arcDeg, p.dirX, p.dirY, p.swingId);
   const n = queryRect(
     state.spatial,
     px - reach,

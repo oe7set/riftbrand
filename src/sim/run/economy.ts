@@ -86,6 +86,9 @@ export function nodeReward(seed: number, node: Pick<MapNode, 'id' | 'type'>): No
       return { kind: 'upgrade' };
     case 'altar':
       return { kind: 'boon', being: rewardBeing(seed, node.id) };
+    case 'puzzle':
+      // ROADMAP M6.0: a solved puzzle opens a chest with a relic.
+      return { kind: 'relic', rarityBonus: 0 };
     default:
       return null;
   }
@@ -106,6 +109,7 @@ export function rollRoomMaterials(
   if (type === 'combat' || type === 'horde') count = nextFloat(rng) < d.combatChance ? 1 : 0;
   else if (type === 'elite') count = nextInt(rng, d.eliteMin, d.eliteMax + 1);
   else if (type === 'duel') count = nextInt(rng, d.duelMin, d.duelMax + 1);
+  else if (type === 'puzzle') count = nextInt(rng, d.puzzleMin, d.puzzleMax + 1);
   else if (type === 'boss') count = nextInt(rng, d.bossMin, d.bossMax + 1);
   const pool = MATERIALS.filter((m) => m.world === worldId);
   const total = pool.reduce((sum, m) => sum + m.weight, 0);
@@ -126,7 +130,7 @@ export function rollRoomMaterials(
 export function clearBonusShards(type: RoomType): number {
   if (type === 'elite' || type === 'duel') return RELIC_ECONOMY.eliteClearShards;
   if (type === 'horde') return RELIC_ECONOMY.hordeClearShards;
-  if (type === 'combat') return RELIC_ECONOMY.combatClearShards;
+  if (type === 'combat' || type === 'puzzle') return RELIC_ECONOMY.combatClearShards;
   return 0;
 }
 
