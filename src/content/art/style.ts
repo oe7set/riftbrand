@@ -22,7 +22,13 @@ const artStyleSchema = z.object({
     accents: z.array(color).min(1),
   }),
   edge: color,
-  obstacle: z.object({ fill: color, stroke: color, strokeWidthPx: z.number().positive() }),
+  obstacle: z.object({
+    fill: color,
+    stroke: color,
+    strokeWidthPx: z.number().positive(),
+    /** Tufts on top of the stones: moss in the meadow, snow caps on ice. */
+    moss: color.default(0x7fa05e),
+  }),
   rigs: z.object({
     /** Explicit colours per rig (the player first). */
     overrides: z.record(z.string(), rigColorsSchema),
@@ -40,7 +46,7 @@ const artStyleSchema = z.object({
   /** Bloom post effect on the high quality tier. */
   bloom: z.number().min(0).max(1.5),
   particles: z.object({
-    kind: z.enum(['leaves']),
+    kind: z.enum(['leaves', 'snow']),
     colors: z.array(color).min(1),
   }),
   /** Menu look: colours (CSS) and the font family loaded for it. */
@@ -72,7 +78,7 @@ export const ART_STYLE: ArtStyleDef = defineArtStyle({
     accents: [0x2c3a24, 0x7fa05e, 0xe8d9a8, 0xd9604a],
   },
   edge: 0x2a1d2e,
-  obstacle: { fill: 0x8a6a4e, stroke: 0x2a1d2e, strokeWidthPx: 5 },
+  obstacle: { fill: 0x8a6a4e, stroke: 0x2a1d2e, strokeWidthPx: 5, moss: 0x7fa05e },
   rigs: {
     overrides: {
       vesper: { body: 0xfff1d6, accent: 0xd94f4f, core: 0xffffff },

@@ -1,0 +1,37 @@
+import { defineEnemy } from '../../schema';
+
+/** Raureifglocke: a hovering bell whose toll freezes patches of floor into bursting rime. */
+export const FROST_BELL = defineEnemy({
+  id: 'frost_bell',
+  role: 'trapper',
+  maxHp: 38,
+  radiusPx: 15,
+  speedPxPerSec: 70,
+  poise: 10,
+  poiseRegenDelaySec: 1.5,
+  staggerSec: 0.5,
+  weight: 0.4,
+  statusResist: 0,
+  keepDistanceMinPx: 220,
+  keepDistanceMaxPx: 320,
+  token: 'ranged',
+  waveCost: 2,
+  shardValue: 4,
+  minWave: 2,
+  attack: {
+    kind: 'mine',
+    triggerRangePx: 400,
+    windupSec: 0.75,
+    activeSec: 0.1,
+    recoverySec: 0.7,
+    cooldownMinSec: 3.2,
+    cooldownMaxSec: 4.4,
+    damage: 13,
+    trackFraction: 0.8,
+    count: 3,
+    spreadPx: 90,
+    blastRadiusPx: 50,
+    fuseSec: 1.3,
+  },
+  visual: { color: 0x9fd8ee, sides: 8, rotationDeg: 22.5 },
+});

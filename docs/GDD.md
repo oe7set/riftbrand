@@ -122,7 +122,7 @@ Run (8–12 min)     Welt im Portal wählen → Map der Welt → Build aufbauen 
 Meta (Tage)        Glut/Rissstaub ausgeben → Freischaltungen → Story-Dialog → neue Welt offen → nächster Run
 ```
 
-**Welten (seit M5.2):** Ein Run führt durch genau **eine** Welt (A3). In der Portalhalle der Zuflucht wählt man die Welt auf einer Weltkarte. Wer den Boss einer Welt zum ersten Mal besiegt, öffnet die nächste: Aschefelder → Gläserne See → Sturmzitadelle → Der Riss. Bisher ist nur die Aschefelder spielbar; die anderen Welten stehen schon auf der Karte und kommen mit M6. Der Durchmarsch durch alle Welten am Stück folgt als Endgame-Modus (M7).
+**Welten (seit M5.2):** Ein Run führt durch genau **eine** Welt (A3). In der Portalhalle der Zuflucht wählt man die Welt auf einer Weltkarte. Wer den Boss einer Welt zum ersten Mal besiegt, öffnet die nächste: Aschefelder → Gläserne See → Sturmzitadelle → Der Riss. Spielbar sind die Aschefelder (Pfad-Karte) und seit M6.1 die Gläserne See (Raum-Netz, §6.2b). Die anderen Welten stehen schon auf der Karte und kommen mit M6. Der Durchmarsch durch alle Welten am Stück folgt als Endgame-Modus (M7).
 
 **Rätsel-Welten (geplant, M6.0):** Manche Welten bestehen aus kleinen, verbundenen Räumen statt einer Pfad-Karte (ähnlich Cult of the Lamb). Man löst Rätsel mit den eigenen Fähigkeiten, um weiterzukommen: Brand entzündet Feuerschalen, Frost friert Wasser ein, das Riss-Geschoss trifft Kristall-Schalter, der Dash überwindet Lücken. Rätsel-Räume tauchen als Abwechslung auch in normalen Runs auf.
 
@@ -612,7 +612,7 @@ Der PO hat aus drei Richtungen das **Bilderbuch** gewählt (2026-10-24, ROADMAP 
   1. Der Spieler ist das hellste bzw. markanteste Element: cremeweiß mit Tintenkontur (ein Test prüft den Kontrast zum Boden).
   2. Gegnerische Angriffe sind warm und rot-orange mit runden Formen. Eigene Angriffe haben die Farbe des Wesens und längliche Formen.
   3. Telegraphs = Form + Füllanimation + Sound (bei Farbenblindheit zusätzlich ein Muster).
-- Weitere Welten bekommen eigene Paletten im selben Bilderbuch-Stil (z. B. Gläserne See: Türkis und Weiß).
+- Weitere Welten bekommen eigene Paletten im selben Bilderbuch-Stil. Die Gläserne See (M6.1) hat eisblauen Boden, Kristallsteine mit Schneekappen und Schnee statt Blättern.
 
 ### 12.2 Audio
 - **Soundeffekte:** prozedural mit einem Synthesizer im Stil von ZzFX. Sie werden beim Laden einmal erzeugt und dann mit Variation in Tonhöhe und Lautstärke abgespielt.

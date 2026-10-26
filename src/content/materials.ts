@@ -5,7 +5,8 @@ import { registerTunables } from './tunables';
 export const MATERIALS: readonly MaterialDef[] = [
   defineMaterial({ id: 'slag_iron', world: 'ember_wastes', weight: 3, color: 0xa8b0c4 }),
   defineMaterial({ id: 'ember_core', world: 'ember_wastes', weight: 1, color: 0xff7a2e }),
-  defineMaterial({ id: 'sea_glass', world: 'glass_sea', weight: 1, color: 0x4fd8ff }),
+  defineMaterial({ id: 'sea_glass', world: 'glass_sea', weight: 3, color: 0x4fd8ff }),
+  defineMaterial({ id: 'frost_pearl', world: 'glass_sea', weight: 1, color: 0xe6f6ff }),
   defineMaterial({ id: 'storm_iron', world: 'storm_citadel', weight: 1, color: 0xc07bff }),
   defineMaterial({ id: 'rift_glass', world: 'the_rift', weight: 1, color: 0xff3d8a }),
 ];

@@ -1,9 +1,10 @@
 import { EMBER_WASTES } from '../biomes/ember-wastes';
+import { GLASS_SEA } from '../biomes/glass-sea';
 import { type BiomeDef, defineWorld, type WorldDef } from '../schema';
 
 /**
- * The world map (ROADMAP M5.2, GDD §3): one run leads through one world. Only the Ember Wastes
- * are built so far; the others show on the map with their unlock condition and arrive in M6.
+ * The world map (ROADMAP M5.2, GDD §3): one run leads through one world. The Ember Wastes and
+ * the Glass Sea (M6.1) are built; the others show on the map with their unlock condition.
  */
 export const WORLDS: readonly WorldDef[] = [
   defineWorld({
@@ -17,8 +18,8 @@ export const WORLDS: readonly WorldDef[] = [
   }),
   defineWorld({
     id: 'glass_sea',
-    biome: null,
-    bossName: null,
+    biome: GLASS_SEA,
+    bossName: 'mirror_queen',
     unlock: { kind: 'boss', world: 'ember_wastes' },
     mapX: 0.45,
     mapY: 0.3,

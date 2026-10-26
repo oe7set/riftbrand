@@ -40,9 +40,10 @@ describe('world unlocks (ROADMAP M5.2)', () => {
     run.playTimeSec = 600.4;
     expect(recordWorldRun(p, run, 'won')).toEqual(['glass_sea']);
     expect(isWorldUnlocked(p, world('glass_sea'))).toBe(true);
-    // Not built yet: on the map, but not enterable.
-    expect(isWorldPlayable(p, world('glass_sea'))).toBe(false);
+    // Built since M6.1, so open means playable; the next world is neither yet.
+    expect(isWorldPlayable(p, world('glass_sea'))).toBe(true);
     expect(isWorldUnlocked(p, world('storm_citadel'))).toBe(false);
+    expect(isWorldPlayable(p, world('storm_citadel'))).toBe(false);
     run.playTimeSec = 480;
     expect(recordWorldRun(p, run, 'won')).toEqual([]);
     expect(worldProgress(p, 'ember_wastes').bestTimeSec).toBe(480);

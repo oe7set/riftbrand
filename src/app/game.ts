@@ -474,6 +474,7 @@ export class Game {
         },
         loadPuzzle: (id) => this.startDebugPuzzle(id),
         startNetRun: () => this.startNetRun(FIRST_WORLD_ID),
+        startWorldRun: (worldId) => this.startNetRun(worldId),
       },
       ENEMIES.map((e) => e.id),
       this.version,
@@ -635,6 +636,7 @@ export class Game {
   private showHub(arrival: 'campfire' | 'portal' = 'campfire'): void {
     if (this.mode !== 'hub') {
       this.view.hud.setMinimap(null, -1, [], 0);
+      this.view.setWorld(null);
       const sim = createSim(randomSeed(), hubRoomSetup(REFUGE, arrival));
       this.loadSim(sim);
       this.hubSim = sim;
@@ -1161,7 +1163,7 @@ export class Game {
     this.showMap();
   }
 
-  /** Debug: a net run through the given world (ROADMAP M6.0b). */
+  /** Debug: a net run through the given world, unlocked or not (ROADMAP M6.0b/M6.1). */
   private startNetRun(worldId: string): void {
     this.logRooms = [];
     this.logDamage = {};
@@ -1379,6 +1381,7 @@ export class Game {
     const node = run?.map.nodes[run.currentNodeId];
     if (!run || !node) return;
     const setup = roomSetupFor(run, node);
+    this.view.setWorld(run.worldId);
     this.loadSim(createSim(roomSeed(run, node.id), setup));
     this.view.hud.clearHint();
     if (run.net) this.view.hud.setMinimap(run.map, node.id, run.visited, run.net.keys);
@@ -1634,6 +1637,7 @@ export class Game {
     this.run = null;
     this.view.hud.setQuestTracker(null);
     this.view.hud.setMinimap(null, -1, [], 0);
+    this.view.setWorld(null);
     const sim = createSim(seed);
     equipSpells(sim, startSpellSlots());
     this.loadSim(sim);

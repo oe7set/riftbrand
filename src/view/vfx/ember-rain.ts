@@ -39,7 +39,9 @@ export class EmberRain {
   private time = 0;
   /** Share of embers shown (the low quality tier halves it). */
   density = 1;
+  private kind: ArtStyleDef['particles']['kind'];
   constructor(texture: Texture, particles: ArtStyleDef['particles']) {
+    this.kind = particles.kind;
     const total = LAYERS.reduce((n, l) => n + l.count, 0);
     this.x = new Float32Array(total);
     this.y = new Float32Array(total);
@@ -50,9 +52,6 @@ export class EmberRain {
       for (let k = 0; k < l.count; k++, i++) {
         const s = new Sprite(texture);
         s.anchor.set(0.5);
-        s.tint = particles.colors[k % particles.colors.length] ?? 0xffffff;
-        // Leaves are the long spark shape, flattened so they read as leaves, not sparks.
-        s.scale.set(l.scale * 0.8, l.scale * 0.5);
         this.sprites.push(s);
         this.root.addChild(s);
         this.layer[i] = li;
@@ -62,6 +61,22 @@ export class EmberRain {
         this.phase[i] = i * 1.7;
       }
     });
+    this.setParticles(texture, particles);
+  }
+
+  /** Switches what drifts (per world, ROADMAP M6.1): leaves tumble, snow floats. */
+  setParticles(texture: Texture, particles: ArtStyleDef['particles']): void {
+    this.kind = particles.kind;
+    for (let i = 0; i < this.sprites.length; i++) {
+      const s = this.sprites[i] as Sprite;
+      const l = LAYERS[this.layer[i] as number] as RainLayer;
+      s.texture = texture;
+      s.tint = particles.colors[i % particles.colors.length] ?? 0xffffff;
+      // Leaves are the long spark shape, flattened so they read as leaves, not sparks.
+      if (particles.kind === 'leaves') s.scale.set(l.scale * 0.8, l.scale * 0.5);
+      else s.scale.set(l.scale * 0.55);
+      s.rotation = 0;
+    }
   }
 
   update(
@@ -86,15 +101,16 @@ export class EmberRain {
       sprite.visible = (i % 2 === 0 || this.density >= 1) && this.density > 0;
       if (!sprite.visible) continue;
       let x = (this.x[i] as number) + (WIND_PX_PER_SEC * dtSec - dx) * l.parallax;
-      let y = (this.y[i] as number) + l.speed * dtSec - dy * l.parallax;
+      const snow = this.kind === 'snow';
+      let y = (this.y[i] as number) + l.speed * (snow ? 0.7 : 1) * dtSec - dy * l.parallax;
       x = ((x % w) + w) % w;
       y = ((y % h) + h) % h;
       this.x[i] = x;
       this.y[i] = y;
       const phase = this.phase[i] as number;
       const swing = Math.sin(this.time * 1.3 + phase);
-      sprite.position.set(x - MARGIN_PX + swing * SWAY_PX, y - MARGIN_PX);
-      sprite.rotation = swing * 1.2 + phase;
+      sprite.position.set(x - MARGIN_PX + swing * SWAY_PX * (snow ? 0.6 : 1), y - MARGIN_PX);
+      if (!snow) sprite.rotation = swing * 1.2 + phase;
       sprite.alpha = l.alpha * (0.6 + 0.4 * Math.sin(this.time * 3 + phase));
     }
   }

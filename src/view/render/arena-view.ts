@@ -17,8 +17,15 @@ export class ArenaView {
   private width = 0;
   private height = 0;
 
-  constructor(private readonly style: ArtStyleDef) {
+  constructor(private style: ArtStyleDef) {
     this.root.addChild(this.ground, this.floor);
+  }
+
+  /** A world's own colours (ROADMAP M6.1); the floor is redrawn on the next sync. */
+  setStyle(style: ArtStyleDef): void {
+    this.style = style;
+    this.width = 0;
+    this.height = 0;
   }
 
   private drawGround(width: number, height: number): void {

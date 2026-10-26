@@ -7,6 +7,15 @@ import { CINDER_LAYER_RIG } from './cinder-layer';
 import { EMBER_DUELIST_RIG } from './ember-duelist';
 import { EMBER_MITE_RIG } from './ember-mite';
 import { EMBER_WARDEN_RIG } from './ember-warden';
+import { FROST_BELL_RIG } from './glass-sea/frost-bell';
+import { GLASS_FENCER_RIG } from './glass-sea/glass-fencer';
+import { GLASS_MITE_RIG } from './glass-sea/glass-mite';
+import { ICE_WHALE_RIG } from './glass-sea/ice-whale';
+import { MIRROR_KNIGHT_RIG } from './glass-sea/mirror-knight';
+import { MIRROR_QUEEN_RIG } from './glass-sea/mirror-queen';
+import { PRISM_SPITTER_RIG } from './glass-sea/prism-spitter';
+import { SHARD_GOLEM_RIG } from './glass-sea/shard-golem';
+import { TIDE_PRIEST_RIG } from './glass-sea/tide-priest';
 import { ISKRA_RIG } from './iskra';
 import { MAREN_RIG } from './maren';
 import { NIX_RIG } from './nix';
@@ -40,6 +49,16 @@ export const RIGS: readonly RigDef[] = [
   TOLL_RIG,
   ISKRA_RIG,
   ARCHIVIST_RIG,
+  // Gläserne See (ROADMAP M6.1)
+  GLASS_MITE_RIG,
+  PRISM_SPITTER_RIG,
+  MIRROR_KNIGHT_RIG,
+  SHARD_GOLEM_RIG,
+  FROST_BELL_RIG,
+  TIDE_PRIEST_RIG,
+  GLASS_FENCER_RIG,
+  ICE_WHALE_RIG,
+  MIRROR_QUEEN_RIG,
 ];
 
 export const PLAYER_RIG_ID = 'vesper';
@@ -56,6 +75,15 @@ export const ENEMY_RIGS: Readonly<Record<string, string>> = {
   twin_spark: 'twin_spark',
   twin_ash: 'twin_ash',
   ember_warden: 'ember_warden',
+  glass_mite: 'glass_mite',
+  prism_spitter: 'prism_spitter',
+  mirror_knight: 'mirror_knight',
+  shard_golem: 'shard_golem',
+  frost_bell: 'frost_bell',
+  tide_priest: 'tide_priest',
+  glass_fencer: 'glass_fencer',
+  ice_whale: 'ice_whale',
+  mirror_queen: 'mirror_queen',
 };
 
 export function rigIndex(id: string): number {

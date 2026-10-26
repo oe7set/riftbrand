@@ -4,9 +4,6 @@ import type { RoomState } from '../../sim/room';
 import { PALETTE } from './palette';
 import { scatterRandom } from './scatter';
 
-/** Moss on top of the stone blocks. */
-const MOSS = 0x7fa05e;
-
 import type { BakedTextures } from './textures';
 
 /** Static obstacles plus the exit portal that opens when a room is cleared. */
@@ -27,7 +24,7 @@ export class RoomView {
 
   constructor(
     textures: BakedTextures,
-    private readonly style: ArtStyleDef,
+    private style: ArtStyleDef,
   ) {
     const make = (t: typeof textures.ring, tint: number) => {
       const s = new Sprite(t);
@@ -157,7 +154,7 @@ export class RoomView {
       const mx = x + 12 + rand() * (w - 24);
       const mr = 7 + rand() * 6;
       g.ellipse(mx, y + 2, mr, mr * 0.6)
-        .fill({ color: MOSS })
+        .fill({ color: this.style.obstacle.moss })
         .stroke({ color: ink, width: 2.5 });
     }
     const cracks = 1 + Math.floor(rand() * 2);
@@ -170,6 +167,12 @@ export class RoomView {
         .lineTo(cx + len * 0.2, cy + len * 0.7)
         .stroke({ color: ink, width: 2.5, cap: 'round', join: 'round', alpha: 0.7 });
     }
+  }
+
+  /** A world's own stone colours (ROADMAP M6.1); obstacles redraw on the next sync. */
+  setStyle(style: ArtStyleDef): void {
+    this.style = style;
+    this.shownRoom = null;
   }
 
   sync(room: RoomState, dtSec: number): void {

@@ -343,10 +343,11 @@ export function autoplayRun(
   strategy: BotStrategy = 'balanced',
   meta: RunMeta = emptyRunMeta(),
   lockedRelics: readonly string[] = [],
-  /** Play the first world as a room net (ROADMAP M6.0b). */
+  /** Force a room net even where the world has none (ROADMAP M6.0b). */
   net = false,
+  worldId?: string,
 ): RunReport {
-  const run = createRun(seed, meta, lockedRelics, undefined, undefined, net);
+  const run = createRun(seed, meta, lockedRelics, undefined, worldId, net);
   const report: RunReport = {
     seed: run.seed,
     strategy,

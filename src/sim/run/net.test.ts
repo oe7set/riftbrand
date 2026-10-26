@@ -123,3 +123,23 @@ describe('room net runs (ROADMAP M6.0b)', () => {
     }
   });
 });
+
+describe('Glass Sea (ROADMAP M6.1)', () => {
+  it('is played as a room net with its own guardian and the Mirror Queen', async () => {
+    const { createRun, roomSetupFor } = await import('./run-state');
+    const { ENEMIES } = await import('../../content/enemies');
+    const { enemyTypeFromCode } = await import('../enemy-code');
+    for (let seed = 1; seed <= 10; seed++) {
+      const run = createRun(seed, undefined, [], undefined, 'glass_sea');
+      expect(run.map.layout).toBe('net');
+      const first = (node: MapNode) => {
+        const e = roomSetupFor(run, node).encounter;
+        return e.kind === 'waves' ? ENEMIES[enemyTypeFromCode(e.waves[0]?.[0] ?? 0)]?.id : null;
+      };
+      const boss = run.map.nodes.find((n) => n.type === 'boss') as MapNode;
+      const duel = run.map.nodes.find((n) => n.type === 'duel') as MapNode;
+      expect(first(boss)).toBe('mirror_queen');
+      expect(['glass_fencer', 'ice_whale']).toContain(first(duel));
+    }
+  });
+});
