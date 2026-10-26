@@ -147,6 +147,21 @@ describe('run save', () => {
     expect(migrated?.map).toEqual(run.map);
   });
 
+  it('migrates v13 saves unchanged: path runs know no nets (M6.0b)', () => {
+    const run = createRun(22);
+    expect(migrateRunSave({ version: 13, run })?.net).toBeUndefined();
+  });
+
+  it('round-trips a room-net run with keys, unlocked doors and cleared rooms', () => {
+    const store = memoryStore();
+    const run = createRun(23, undefined, [], undefined, undefined, true);
+    if (!run.net) throw new Error('expected a net run');
+    run.net.keys = 1;
+    run.net.cleared.push(2);
+    saveRun(store, run);
+    expect(loadRun(store)).toEqual(run);
+  });
+
   it('clears the save', () => {
     const store = memoryStore();
     saveRun(store, createRun(5));

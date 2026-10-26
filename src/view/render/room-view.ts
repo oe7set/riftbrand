@@ -17,6 +17,11 @@ export class RoomView {
   private readonly portalRingA: Sprite;
   private readonly portalRingB: Sprite;
   private shownRoom: RoomState | null = null;
+  /** Doors of a room net (ROADMAP M6.0b): bars and padlocks per door, toggled per frame. */
+  private readonly doorLayer = new Container();
+  private doorBars: Graphics[] = [];
+  private doorLocks: Graphics[] = [];
+  private doorGlows: Sprite[] = [];
   private openSec = 0;
   private time = 0;
 
@@ -34,7 +39,75 @@ export class RoomView {
     this.portalGlow = make(textures.disc, PALETTE.portal);
     this.portalRingA = make(textures.ring, 0xd8c4ff);
     this.portalRingB = make(textures.ring, PALETTE.portal);
-    this.root.addChild(this.obstacles, this.portalGlow, this.portalRingA, this.portalRingB);
+    this.root.addChild(
+      this.obstacles,
+      this.doorLayer,
+      this.portalGlow,
+      this.portalRingA,
+      this.portalRingB,
+    );
+    this.glowTexture = textures.softGlow;
+  }
+
+  private readonly glowTexture: BakedTextures['softGlow'];
+
+  /**
+   * Archways at the room's edges, drawn once per room as a north door and rotated into place.
+   * Bars stand in the opening while the room is not cleared; locked doors carry a padlock.
+   */
+  private drawDoors(room: RoomState): void {
+    for (const child of this.doorLayer.removeChildren()) child.destroy();
+    this.doorBars = [];
+    this.doorLocks = [];
+    this.doorGlows = [];
+    const ink = this.style.obstacle.stroke;
+    const stone = this.style.obstacle.fill;
+    for (let i = 0; i < room.doorCount; i++) {
+      const door = new Container();
+      door.position.set(room.doorX[i] as number, room.doorY[i] as number);
+      door.rotation = ((room.doorDir[i] as number) * Math.PI) / 2;
+      const glow = new Sprite(this.glowTexture);
+      glow.anchor.set(0.5);
+      glow.tint = 0xffe0a3;
+      glow.scale.set(1.3, 0.8);
+      glow.position.set(0, -24);
+      glow.blendMode = 'add';
+      const frame = new Graphics()
+        .rect(-46, -60, 92, 56)
+        .fill({ color: 0x3a2a33 })
+        .roundRect(-70, -64, 24, 70, 8)
+        .fill({ color: stone })
+        .stroke({ color: ink, width: 4 })
+        .roundRect(46, -64, 24, 70, 8)
+        .fill({ color: stone })
+        .stroke({ color: ink, width: 4 })
+        .roundRect(-74, -76, 148, 20, 8)
+        .fill({ color: stone })
+        .stroke({ color: ink, width: 4 });
+      const bars = new Graphics();
+      for (let k = 0; k < 5; k++) bars.roundRect(-38 + k * 17, -56, 7, 52, 3.5);
+      bars.fill({ color: 0x5b4a63 }).stroke({ color: ink, width: 2.5 });
+      bars.rect(-44, -36, 88, 6).fill({ color: 0x5b4a63 }).stroke({ color: ink, width: 2.5 });
+      const lock = new Graphics()
+        .roundRect(-9, -40, 18, 7, 3)
+        .stroke({ color: ink, width: 7 })
+        .roundRect(-9, -40, 18, 7, 3)
+        .stroke({ color: 0xffd36b, width: 3 })
+        .roundRect(-13, -34, 26, 20, 5)
+        .fill({ color: 0xffd36b })
+        .stroke({ color: ink, width: 3 })
+        .circle(0, -25, 3)
+        .fill({ color: ink });
+      // Undo the door's rotation so the padlock always stands upright.
+      lock.rotation = -door.rotation;
+      lock.pivot.set(0, -24);
+      lock.position.set(0, -24);
+      door.addChild(frame, glow, bars, lock);
+      this.doorLayer.addChild(door);
+      this.doorBars.push(bars);
+      this.doorLocks.push(lock);
+      this.doorGlows.push(glow);
+    }
   }
 
   /** Obstacles are redrawn only when a new room is loaded, never per frame. */
@@ -105,6 +178,21 @@ export class RoomView {
       this.shownRoom = room;
       this.openSec = 0;
       this.drawObstacles(room);
+      this.drawDoors(room);
+    }
+    if (room.doorCount > 0) {
+      // Nets leave by doors; the portal stays hidden.
+      this.portalGlow.visible = this.portalRingA.visible = this.portalRingB.visible = false;
+      const open = room.exitOpen || room.doorsAlwaysOpen;
+      for (let i = 0; i < room.doorCount; i++) {
+        const locked = room.doorLocked[i] === 1;
+        (this.doorBars[i] as Graphics).visible = !open || locked;
+        (this.doorLocks[i] as Graphics).visible = locked;
+        const glow = this.doorGlows[i] as Sprite;
+        glow.visible = open && !locked;
+        glow.alpha = 0.35 + Math.sin(this.time * 3 + i) * 0.08;
+      }
+      return;
     }
     const open = room.exitOpen;
     this.portalGlow.visible = this.portalRingA.visible = this.portalRingB.visible = open;

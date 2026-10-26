@@ -175,6 +175,8 @@ const NODE_NAME_KEYS: Record<RoomType, TranslationKey> = {
   boss: 'node.boss.name',
   duel: 'node.duel.name',
   puzzle: 'node.puzzle.name',
+  start: 'node.start.name',
+  treasure: 'node.treasure.name',
 };
 
 const NODE_DESC_KEYS: Record<RoomType, TranslationKey> = {
@@ -188,6 +190,8 @@ const NODE_DESC_KEYS: Record<RoomType, TranslationKey> = {
   boss: 'node.boss.desc',
   duel: 'node.duel.desc',
   puzzle: 'node.puzzle.desc',
+  start: 'node.start.desc',
+  treasure: 'node.treasure.desc',
 };
 
 function MapScreen({ run, quest, onEnter }: Extract<Screen, { kind: 'map' }>) {

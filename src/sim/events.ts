@@ -102,6 +102,10 @@ export const Ev = {
   GateChanged: 53,
   /** A block started sliding; dir = push direction. */
   BlockPushed: 54,
+  /** Room nets (ROADMAP M6.0b): the player touched a locked door without a key. value = dir. */
+  DoorLocked: 55,
+  /** A key opened a locked door. value = dir. */
+  DoorUnlocked: 56,
 } as const;
 
 /** Puzzle piece kinds in event payloads (ROADMAP M6.0). */

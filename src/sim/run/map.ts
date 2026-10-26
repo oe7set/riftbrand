@@ -7,14 +7,22 @@ export interface MapNode {
   /** Horizontal position 0..1 for display; order within a layer matches edge order. */
   x: number;
   type: RoomType;
-  /** Ids of nodes in the next layer this node leads to. */
+  /** Ids of nodes in the next layer this node leads to (in a room net: all neighbours). */
   next: number[];
+  /** Room nets (ROADMAP M6.0b): grid cell and the room behind each door (N, E, S, W; -1 = wall). */
+  gx?: number;
+  gy?: number;
+  doors?: number[];
+  /** Doors that need a key, one bit per direction. */
+  locked?: number;
 }
 
 export interface RunMap {
   nodes: MapNode[];
-  /** Node ids per layer, left to right. */
+  /** Node ids per layer, left to right (in a room net: by distance from the start). */
   layers: number[][];
+  /** Absent for the classic path map. */
+  layout?: 'net';
 }
 
 function pickWeighted(rng: Rng, weights: Array<[RoomType, number]>): RoomType {

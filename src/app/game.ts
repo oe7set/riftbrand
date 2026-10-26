@@ -15,7 +15,7 @@ import type { BeingId, RoomType, Speaker, StationId } from '../content/schema';
 import { statusIdSchema } from '../content/schema';
 import { SPELLS, spellById } from '../content/spells';
 import { sceneById, VOICE_PITCH } from '../content/story/scenes';
-import { worldBiome, worldById } from '../content/worlds';
+import { FIRST_WORLD_ID, worldBiome, worldById } from '../content/worlds';
 import { AudioEngine } from '../platform/audio/audio-engine';
 import type { MusicMode } from '../platform/audio/music-player';
 import {
@@ -136,9 +136,11 @@ import {
   completeNonCombat,
   completeRoom,
   createRun,
+  enterNetRoom,
   enterNode,
   evolve,
   failRun,
+  leaveRoom,
   offerFor,
   pickBoon,
   puzzleTemplate,
@@ -149,6 +151,7 @@ import {
   roomSeed,
   roomSetupFor,
   startSpellSlots,
+  unlockNetDoors,
 } from '../sim/run/run-state';
 import { branchTier, MAX_UPGRADE_LEVEL, type UpgradeOption } from '../sim/run/upgrades';
 import {
@@ -328,6 +331,8 @@ export class Game {
   private slowMoSec = 0;
   private deathOverlaySec = -1;
   private exitTransitionSec = -1;
+  /** Room nets: the door to take once the reward screens are done (-1 = stay). */
+  private pendingDoor = -1;
   private lastFrameMs = 0;
   private readonly stats: DebugStats;
   private readonly onEvents = (events: EventBuffer) => {
@@ -468,6 +473,7 @@ export class Game {
           if (parsed.success) debugApplyStatus(this.sim, parsed.data, stacks);
         },
         loadPuzzle: (id) => this.startDebugPuzzle(id),
+        startNetRun: () => this.startNetRun(FIRST_WORLD_ID),
       },
       ENEMIES.map((e) => e.id),
       this.version,
@@ -628,6 +634,7 @@ export class Game {
    */
   private showHub(arrival: 'campfire' | 'portal' = 'campfire'): void {
     if (this.mode !== 'hub') {
+      this.view.hud.setMinimap(null, -1, [], 0);
       const sim = createSim(randomSeed(), hubRoomSetup(REFUGE, arrival));
       this.loadSim(sim);
       this.hubSim = sim;
@@ -1154,6 +1161,70 @@ export class Game {
     this.showMap();
   }
 
+  /** Debug: a net run through the given world (ROADMAP M6.0b). */
+  private startNetRun(worldId: string): void {
+    this.logRooms = [];
+    this.logDamage = {};
+    this.run = createRun(
+      randomSeed(),
+      runMetaFor(this.profile),
+      lockedRelics(this.profile),
+      startSpellsFor(this.profile),
+      worldId,
+      true,
+    );
+    saveRun(this.store, this.run);
+    this.arriveNet();
+  }
+
+  /**
+   * Room nets (ROADMAP M6.0b): a room's own screen (rest, shop, event, treasure) shows on the
+   * first visit; after that, and for every other room, the player walks in through the door.
+   */
+  private arriveNet(): void {
+    const run = this.run;
+    const node = run?.map.nodes[run.currentNodeId];
+    if (!run?.net || !node) return;
+    this.view.hud.setMinimap(run.map, node.id, run.visited, run.net.keys);
+    const fresh = !run.net.cleared.includes(node.id);
+    if (fresh && node.type === 'rest') this.showRest();
+    else if (fresh && node.type === 'shop') this.showShop();
+    else if (fresh && node.type === 'event') this.showEvent();
+    else if (fresh && node.type === 'altar') this.showAltar();
+    else if (fresh && node.type === 'treasure') this.showTreasure();
+    else this.startRoom();
+  }
+
+  /** Treasure room: a chest with a choice of better relics, once. */
+  private showTreasure(): void {
+    const run = this.run;
+    const node = run?.map.nodes[run.currentNodeId];
+    if (!run || !node) return;
+    completeNonCombat(run);
+    saveRun(this.store, run);
+    this.audio.play('solved', { pitch: 0.9, pitchVariation: 0 });
+    this.showRelicChoice(rollRelicOffer(run.seed, node.id, 1, run.lockedRelics));
+  }
+
+  /** Leaves the current net room through the door the sim reported. */
+  private finishNetRoom(): void {
+    const run = this.run;
+    const node = run?.map.nodes[run.currentNodeId];
+    const room = this.sim.room;
+    if (!run?.net || !node || room.exitDoor < 0) return;
+    const dir = room.doorDir[room.exitDoor] as number;
+    if (room.keysUsed > 0) unlockNetDoors(run, [dir]);
+    const won = room.cleared && !run.net.cleared.includes(node.id) && node.type !== 'start';
+    this.pendingDoor = dir;
+    if (!won) {
+      leaveRoom(run, this.roomResult());
+      this.showMap();
+      return;
+    }
+    // A fresh clear pays out like any room; the door is taken afterwards (showMap).
+    this.finishRoom(true);
+  }
+
   private continueRun(): void {
     const run = loadRun(this.store);
     if (!run) {
@@ -1162,6 +1233,12 @@ export class Game {
     }
     this.run = run;
     const node = run.map.nodes[run.currentNodeId];
+    if (run.net) {
+      // Net runs save on every door: the current room restarts from its entry state.
+      this.pendingDoor = -1;
+      this.arriveNet();
+      return;
+    }
     // Saved on room entry: the room restarts from its entry state.
     if (run.status === 'room' && node) {
       if (node.type === 'rest') this.showRest();
@@ -1175,6 +1252,15 @@ export class Game {
   private showMap(): void {
     const run = this.run;
     if (!run) return;
+    if (run.net && run.status !== 'won' && run.status !== 'lost') {
+      // Nets have no map screen: go on through the door taken, or back into the room.
+      const door = this.pendingDoor;
+      this.pendingDoor = -1;
+      if (door >= 0) enterNetRoom(run, door);
+      saveRun(this.store, run);
+      this.arriveNet();
+      return;
+    }
     if (this.mode === 'room') this.loadSim(this.backdropSim());
     this.setMode('map');
     const tracker = this.questTracker();
@@ -1295,6 +1381,8 @@ export class Game {
     const setup = roomSetupFor(run, node);
     this.loadSim(createSim(roomSeed(run, node.id), setup));
     this.view.hud.clearHint();
+    if (run.net) this.view.hud.setMinimap(run.map, node.id, run.visited, run.net.keys);
+    else this.view.hud.setMinimap(null, -1, [], 0);
     if (setup.puzzle) {
       const name = t(`puzzle.${setup.puzzle.id}.name` as TranslationKey);
       this.view.hud.onBanner(name);
@@ -1347,9 +1435,13 @@ export class Game {
     return damage;
   }
 
-  private finishRoom(): void {
+  private finishRoom(fromNet = false): void {
     const run = this.run;
     if (!run) return;
+    if (run.net && !fromNet) {
+      this.finishNetRoom();
+      return;
+    }
     this.logRoom(true);
     completeRoom(run, this.roomResult());
     if (run.status === 'won') {
@@ -1533,6 +1625,7 @@ export class Game {
     const setup = roomSetupFor(createRun(seed), node);
     this.loadSim(createSim(seed, { ...setup, template: puzzleTemplate(def), puzzle: def }));
     this.view.hud.clearHint();
+    this.view.hud.setMinimap(null, -1, [], 0);
     this.view.hud.onBanner(t(`puzzle.${def.id}.name` as TranslationKey));
     this.setMode('arena');
   }
@@ -1540,6 +1633,7 @@ export class Game {
   private startArena(seed: number): void {
     this.run = null;
     this.view.hud.setQuestTracker(null);
+    this.view.hud.setMinimap(null, -1, [], 0);
     const sim = createSim(seed);
     equipSpells(sim, startSpellSlots());
     this.loadSim(sim);

@@ -373,8 +373,15 @@ Jeder Boss hat 2–3 Phasen, 4–6 Muster pro Phase, eine zornige Phase unter 30
 | **Rast** | ☾ | Lagerfeuer | 40 % Heilung **oder** Waffen-Upgrade |
 | **Ereignis** | ? | Text-Entscheidung mit Risiko gegen Belohnung | variabel, auch Fluch-Relikte |
 | **Rätsel** (M6.0) | Puzzleteil | kein Kampf: Feuerschalen, Kristalle, Platten, Blöcke, Tore und Abgründe; lösbar mit Klinge, Dash und Riss-Geschoss. Reihenfolgen sind sichtbar, Iskra gibt Hinweise. Höchstens 2 pro Map, ab Ebene 2. | ein Relikt, 1–2 Materialien, Scherben |
+| **Schatz** (M6.0b, nur im Raum-Netz) | Truhe | kein Kampf, eine Truhe | Auswahl aus 3 besseren Relikten |
 | **Riss-Prüfung** | ◈ | Herausforderung (Zeitlimit, „nicht getroffen werden“, nur Dash-Schaden) | bei Erfolg großer Bonus, bei Misserfolg nichts |
 | **Boss** | ♛ | Bosskampf | Rissstaub, Story, Heilung, Biom-Wechsel |
+
+### 6.2b Raum-Netz (M6.0b)
+- Manche Welten sind kein Pfad, sondern ein **Netz aus kleinen Räumen** auf einem Raster, mit Türen in alle Richtungen (wie ein kleiner Dungeon).
+- Man läuft frei hin und her. Kampfräume schließen ihre Türen, bis der Kampf gewonnen ist; besiegte Räume bleiben ruhig.
+- Der **Boss-Flügel** (Wächter-Duell, dann Boss) liegt hinter einer **verschlossenen Tür**. Jedes gelöste **Rätsel** gibt einen Schlüssel.
+- Eine **Minikarte** zeigt besuchte Räume, ihre Türen und was hinter ihnen liegt.
 
 ### 6.3 Räume
 - Arena-Räume aus **Vorlagen**: Form, Hindernisse, Gefahren, Spawn-Punkte. Varianten werden per Seed gebildet (Spiegelung, Hindernis-Sets).

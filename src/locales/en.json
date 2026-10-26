@@ -850,5 +850,12 @@
   "puzzle.stone_plates.name": "The Stone Plates",
   "puzzle.stone_plates.hint": "Walk into a block and keep leaning: it slides one step. Each plate wants a block. Stuck? Hit the reset stone.",
   "puzzle.twin_fires.name": "The Twin Fires",
-  "puzzle.twin_fires.hint": "One gate wants a weight on its plate, the other a spark on the floating crystal. Then light both fires."
+  "puzzle.twin_fires.hint": "One gate wants a weight on its plate, the other a spark on the floating crystal. Then light both fires.",
+  "node.start.name": "Entrance",
+  "node.start.desc": "Where you came in. Quiet, for now.",
+  "node.treasure.name": "Treasure",
+  "node.treasure.desc": "A forgotten chest waits here.",
+  "hud.keys": "Keys: {n}",
+  "door.locked": "Locked: a key opens it",
+  "puzzle.solved_key": "Solved! +1 key"
 }

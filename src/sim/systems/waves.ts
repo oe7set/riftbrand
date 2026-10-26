@@ -21,6 +21,7 @@ const SPAWN_MARGIN_PX = 60;
 const SPAWN_POSITION_TRIES = 16;
 const SPAWN_POINT_JITTER_PX = 50;
 const EXIT_RADIUS_PX = 40;
+const DOOR_ARM_MARGIN_PX = 30;
 
 /** Spawning for all room modes: endless arena, fixed encounter waves, timed horde. */
 export interface WaveState {
@@ -279,8 +280,70 @@ function arenaSystem(state: SimState): void {
   if (w.timerTicks <= 0) startWave(state);
 }
 
+/**
+ * Doors of a room net: open once the room is cleared (or always, in puzzle rooms). A door
+ * counts only after the player stepped away from it, so arriving never leaves again at once.
+ */
+function doorSystem(state: SimState): void {
+  const room = state.room;
+  if (room.exitReached) return;
+  const c = state.c;
+  const px = c.posX[state.playerEid] as number;
+  const py = c.posY[state.playerEid] as number;
+  const reach = EXIT_RADIUS_PX + (c.radius[state.playerEid] as number);
+  const open = room.exitOpen || room.doorsAlwaysOpen;
+  for (let i = 0; i < room.doorCount; i++) {
+    const dx = px - (room.doorX[i] as number);
+    const dy = py - (room.doorY[i] as number);
+    const d2 = dx * dx + dy * dy;
+    if (room.doorArmed[i] === 0) {
+      if (d2 > (reach + DOOR_ARM_MARGIN_PX) ** 2) room.doorArmed[i] = 1;
+      continue;
+    }
+    if (d2 > reach * reach || !open) continue;
+    const dir = room.doorDir[i] as number;
+    if (room.doorLocked[i] === 1) {
+      // Disarm either way: one message per approach, one key per door.
+      room.doorArmed[i] = 0;
+      if (room.keys - room.keysUsed <= 0) {
+        const e = pushEvent(
+          state.events,
+          Ev.DoorLocked,
+          room.doorX[i] as number,
+          room.doorY[i] as number,
+        );
+        if (e) e.value = dir;
+        continue;
+      }
+      room.keysUsed++;
+      room.doorLocked[i] = 0;
+      const e = pushEvent(
+        state.events,
+        Ev.DoorUnlocked,
+        room.doorX[i] as number,
+        room.doorY[i] as number,
+      );
+      if (e) e.value = dir;
+    }
+    room.exitReached = true;
+    room.exitDoor = i;
+    const e = pushEvent(
+      state.events,
+      Ev.ExitReached,
+      room.doorX[i] as number,
+      room.doorY[i] as number,
+    );
+    if (e) e.value = dir;
+    return;
+  }
+}
+
 function exitSystem(state: SimState): void {
   const room = state.room;
+  if (room.doorCount > 0) {
+    doorSystem(state);
+    return;
+  }
   if (!room.exitOpen || room.exitReached) return;
   const c = state.c;
   const dx = (c.posX[state.playerEid] as number) - room.exitX;

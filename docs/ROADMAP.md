@@ -1164,10 +1164,15 @@ Zuflucht (begehbar)
 **Ziel:** Neben Kampf-Runs gibt es Welten aus **kleinen, verbundenen Räumen** (wie Cult of the Lamb bzw. ein kleiner Dungeon), in denen man Rätsel löst, um weiterzukommen.
 
 **Umfang:**
-- [ ] **Raum-Netz** als zweite Welt-Struktur neben der Pfad-Karte:
-  - Räume mit Türen nach Norden, Süden, Osten und Westen, eine Mini-Karte
-  - gesperrte Türen, Schlüssel, Abkürzungen
-  - Der Seed bestimmt das Netz.
+- [x] **Raum-Netz** als zweite Welt-Struktur neben der Pfad-Karte (M6.0b):
+  - Räume auf einem Raster mit Türen nach Norden, Süden, Osten und Westen, aus dem Seed gewachsen (`sim/run/net.ts`). Dazu 2 Schleifen als Abkürzungen.
+  - Minikarte oben rechts: besuchte Räume, Türen und dahinterliegende Räume, Inhalte (Rätsel, Schatz, Rast, Shop, Wächter, Boss), verschlossene Türen und Schlüssel.
+  - Der Boss-Flügel (Wächter-Duell und Boss) liegt hinter einer verschlossenen Tür. Den Schlüssel gibt es für jedes gelöste Rätsel.
+  - Kampfräume schließen ihre Türen, bis der Kampf gewonnen ist. Besiegte Räume bleiben ruhig, wenn man zurückkommt.
+  - Rätsel-Räume sind Sackgassen. Das Layout dreht sich so, dass sein Eingang zur Tür zeigt; man darf sie ungelöst verlassen.
+  - Neue Raumtypen: Eingang und Schatz (Truhe mit Relikt-Auswahl, besser als normal).
+  - Speichern an jeder Tür (Run-Save v14).
+  - Noch offen: Einbahn-Abkürzungen. Eine Welt, die als Netz gespielt wird, kommt mit der Gläsernen See (M6.1). Bis dahin startet das Debug-Menü einen Netz-Run durch die Aschefelder.
 - [x] **Rätsel-Elemente als Daten** (`content/puzzles/`, `definePuzzle`), die vorhandene Fähigkeiten nutzen (M6.0a):
   - [x] **Feuerschalen**, die man mit der Klinge oder dem Riss-Geschoss entzündet, in der richtigen Reihenfolge. Punkte unter den Schalen zeigen die Reihenfolge.
   - [ ] **Wasser** mit Frost einfrieren und darüber laufen (kommt mit der Gläsernen See, M6.1)
@@ -1175,7 +1180,7 @@ Zuflucht (begehbar)
   - [x] **Kristall-Schalter**, die man mit dem Riss-Geschoss trifft, auch über Abgründe
   - [x] **Lücken**, die man mit dem Dash schafft, und **zeitgesteuerte Tore** (Kristall mit Haltezeit)
   - [x] **Runen-Reihenfolgen** mit Punkten als Hinweis
-- [ ] **Raumtypen** in Rätsel-Welten: Rätsel, Kampf, Schatz, Rast und Wächter (Mini-Boss vor dem Weiterkommen).
+- [x] **Raumtypen** in Rätsel-Welten: Rätsel, Kampf, Elite, Schatz, Rast, Shop und Wächter (Mini-Boss vor dem Boss).
 - [x] **Rätsel-Räume in allen Welten:** In normalen Kampf-Runs taucht ab Ebene 2 gelegentlich ein Rätsel-Raum auf, höchstens 2 pro Karte. 6 Rätsel zum Start: „Die vier Schalen“, „Der Runenpfad“, „Der Glutschalter“, „Die Kristallinsel“, „Die Steinplatten“, „Die Zwillingsfeuer“.
 - [x] **Belohnungen:** ein Relikt, 1–2 Materialien und Scherben wie nach einem Kampf. Noch offen: Truhen, Rüstungsteile, Abkürzungen (mit dem Raum-Netz).
 - [x] **Fairness:**
@@ -1188,7 +1193,7 @@ Zuflucht (begehbar)
 - Rätsel-Zustand ist Simulationszustand (deterministisch, im Raum-Seed).
 - Die Elemente sind Entities mit Komponenten.
 - Ereignisse wie `Ev.PuzzleSolved` steuern das Feedback.
-- Run-Save mit gelösten Rätseln und offenen Türen.
+- Run-Save mit gelösten Rätseln und offenen Türen. ✅ v14
 
 **Tests:**
 - Jede Rätsel-Vorlage ist lösbar (Solver im Test). ✅ `sim/puzzle.test.ts` spielt jedes Rätsel mit echten Eingaben durch.
