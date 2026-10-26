@@ -26,39 +26,40 @@ export default defineConfig({
   build: {
     target: 'es2022',
   },
-  plugins: enablePwa
-    ? [
-        VitePWA({
-          registerType: 'autoUpdate',
-          injectRegister: 'auto',
-          includeAssets: ['icons/icon.svg'],
-          manifest: {
-            name: 'Riftbrand',
-            short_name: 'Riftbrand',
-            description: 'A neon action roguelike.',
-            display: 'fullscreen',
-            orientation: 'any',
-            background_color: '#07060d',
-            theme_color: '#07060d',
-            icons: [
-              { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-              { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-              {
-                src: 'icons/icon-maskable-512.png',
-                sizes: '512x512',
-                type: 'image/png',
-                purpose: 'maskable',
-              },
-            ],
+  // Always present so `virtual:pwa-register` resolves; only the live deploy builds a worker.
+  plugins: [
+    VitePWA({
+      disable: !enablePwa,
+      // The game asks before reloading (src/platform/pwa-update.ts): never mid-fight.
+      registerType: 'prompt',
+      injectRegister: false,
+      includeAssets: ['icons/icon.svg'],
+      manifest: {
+        name: 'Riftbrand',
+        short_name: 'Riftbrand',
+        description: 'A neon action roguelike.',
+        display: 'fullscreen',
+        orientation: 'any',
+        background_color: '#07060d',
+        theme_color: '#07060d',
+        icons: [
+          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+          {
+            src: 'icons/icon-maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
           },
-          workbox: {
-            globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-            // Branch previews live under /dev/ on the same origin; never serve them from this cache.
-            navigateFallbackDenylist: [/\/dev\//],
-          },
-        }),
-      ]
-    : [],
+        ],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // Branch previews live under /dev/ on the same origin; never serve them from this cache.
+        navigateFallbackDenylist: [/\/dev\//],
+      },
+    }),
+  ],
   test: {
     include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
     environment: 'node',
