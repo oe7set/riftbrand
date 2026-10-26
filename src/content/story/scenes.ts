@@ -22,6 +22,23 @@ export const SCENES: readonly SceneDef[] = [
     id: 'twin_spark_intro',
     lines: [{ speaker: 'twin_spark' }, { speaker: 'twin_ash' }],
   }),
+  // ── Gläserne See (ROADMAP M6.1, docs/STORY.md Akt 2: grief, holding on) ──
+  defineScene({
+    id: 'glass_fencer_intro',
+    lines: [{ speaker: 'glass_fencer' }, { speaker: 'vesper' }],
+  }),
+  defineScene({
+    id: 'ice_whale_intro',
+    lines: [{ speaker: 'ice_whale' }, { speaker: 'vesper' }],
+  }),
+  defineScene({
+    id: 'mirror_queen_intro',
+    lines: [{ speaker: 'mirror_queen' }, { speaker: 'mirror_queen' }, { speaker: 'vesper' }],
+  }),
+  defineScene({
+    id: 'mirror_queen_outro',
+    lines: [{ speaker: 'mirror_queen' }, { speaker: 'mirror_queen' }, { speaker: 'vesper' }],
+  }),
 ];
 
 export function sceneById(id: string): SceneDef | undefined {
@@ -42,6 +59,9 @@ export const VOICE_PITCH: Readonly<Record<string, number>> = {
   ember_duelist: 0.9,
   twin_spark: 1.4,
   twin_ash: 0.8,
+  glass_fencer: 1.2,
+  ice_whale: 0.35,
+  mirror_queen: 0.95,
 };
 
 /** Typewriter speed and how often a syllable sounds while a line is written out. */

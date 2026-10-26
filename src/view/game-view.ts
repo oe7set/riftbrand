@@ -3,6 +3,7 @@ import { autoDetectRenderer, Container, type Renderer } from 'pixi.js';
 import { AdvancedBloomFilter } from 'pixi-filters';
 import { RIFT_SHOT } from '../content/abilities';
 import type { ArtStyleDef } from '../content/art/style';
+import { worldStyle } from '../content/art/world-looks';
 import { REFUGE } from '../content/hub/layout';
 import { PLAYER_RIG_ID, RIGS } from '../content/rigs';
 import type { RigDef, Speaker } from '../content/schema';
@@ -190,6 +191,25 @@ export class GameView {
 
   get particleCount(): number {
     return this.fxParticles.active + this.groundParticles.active;
+  }
+
+  private worldId: string | null = null;
+
+  /**
+   * Dresses the scene in a world's colours (ROADMAP M6.1): background, floor, stones and the
+   * drifting particles. `null` is the base style (refuge, arena).
+   */
+  setWorld(worldId: string | null): void {
+    if (worldId === this.worldId) return;
+    this.worldId = worldId;
+    const style = worldStyle(worldId);
+    this.renderer.background.color = style.background;
+    this.arena.setStyle(style);
+    this.roomView.setStyle(style);
+    this.emberRain.setParticles(
+      style.particles.kind === 'leaves' ? this.textures.spark : this.textures.dot,
+      style.particles,
+    );
   }
 
   /** "high" adds a real bloom pass; "low" relies on the baked glow halos only. */

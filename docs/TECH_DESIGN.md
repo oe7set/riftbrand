@@ -720,7 +720,15 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Darstellung:** `RoomView` zeichnet Torbögen mit Gitter, Vorhängeschloss und Leuchten. HUD `setMinimap()` zeichnet nur bei Raumwechsel neu.
 - **Bot und Simulator:** `playNet` erkundet nächstgelegene offene Räume zuerst, den Boss-Flügel zuletzt. `pnpm sim --net`.
 
-## 47. Risiken und Gegenmaßnahmen
+## 47. Stand nach M6.1a (Gläserne See)
+- **Welt-Optik:** `content/art/world-looks.ts` (`worldStyle(worldId)`) legt Hintergrund, Boden, Steine (inklusive `obstacle.moss`), Rand und Partikel (`leaves` bzw. `snow`) über den gemeinsamen Stil.
+  - `GameView.setWorld()` setzt sie: `ArenaView.setStyle`, `RoomView.setStyle`, `EmberRain.setParticles`.
+  - Zuflucht und Arena nutzen `null` (Grundstil).
+- **Gegner:** `content/enemies/glass-sea/` (9 Dateien, Typen 10–18, nur angehängt) und Rigs in `content/rigs/glass-sea/`.
+- **Biom:** `content/biomes/glass-sea.ts` mit `net`. In `WORLDS` hat die See jetzt Biom und `bossName: 'mirror_queen'`.
+- **Simulator:** `pnpm sim --world glass_sea`. Debug-Menü: „Start run: Glass Sea“.
+
+## 48. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

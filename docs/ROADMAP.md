@@ -1204,13 +1204,32 @@ Zuflucht (begehbar)
 
 **Abhängig von:** M5.2 (Welten), M4.5 (Stimmung)
 
-### M6.1 Gläserne See ⬜
+### M6.1 Gläserne See 🟡
 - **Thema:** Kristall, Fernkampf, Schilde, Spiegelungen. Wesen-Fokus: Vaelis.
-- **Mini-Bosse** (Vorschläge):
-  - **Spiegelfechterin:** Ein Klon ahmt die Angriffe des Spielers verzögert nach.
-  - **Eiswal-Wächter:** taucht unter das Eis ab und löst Schockwellen aus.
-- **Boss:** Die Spiegelkönigin (Klone und Täuschung).
-
+- [x] **Spielbar als erste Netz-Welt (M6.1a):**
+  - Biom `content/biomes/glass-sea.ts` mit Raum-Netz: 12–15 Räume, 2 Rätsel, Shop, Elite ab Abstand 3.
+  - Eigene Optik (`content/art/world-looks.ts`): eisblauer Boden, Kristallsteine mit Schneekappen, langsamer Schnee.
+  - Schwer genug: Der Simulator gewinnt 77,5 % ohne Meta-Fortschritt (Aschefelder: 88 %).
+- [x] **6 Gegner mit Rigs:**
+  - Glimmerling (Schwarm)
+  - Prismenspucker (breiter, langsamer Fächer)
+  - Spiegelritter (langer Ausfall)
+  - Scherbenkoloss (Stampfer)
+  - Raureifglocke (Reif-Minen)
+  - Gezeitenpriesterin (heilt)
+- [x] **Mini-Bosse** (bewachen den verschlossenen Flügel):
+  - **Spiegelfechterin:** Paraden mit dem Spiegel, Scherbenfächer; in Phase 3 treten ihre Spiegelbilder (Spiegelritter) heraus.
+  - **Eiswal-Wächter:** bricht im Kreis durchs Eis, Eis-Sprühregen, Schockwellen; ab Phase 2 rammt er quer durch den Raum.
+- [x] **Boss: Die Spiegelkönigin.** Glasfächer, Gleiten, gefrorene Augenblicke; ab 60 % kämpfen ihre Erinnerungen mit; unter 30 % hält sie nichts mehr zurück.
+- [x] **Szenen:**
+  - Intros für beide Mini-Bosse und die Königin
+  - Outro der Königin: Ein verhüllter Mann kannte den Namen von Vespers Hüterin (Story-Bibel, Akt 2).
+- [x] Material **Frostperle** neben dem Meerglas.
+- [ ] **M6.1b:**
+  - Wasser und Frost bzw. Lichtstrahl-Rätsel
+  - Story-Kette der See
+  - Rüstungs-Set, Musik, Ereignisse
+  - Zuflucht-Dialoge zur See
 ### M6.2 Sturmzitadelle ⬜
 - **Thema:** schnelle Gegner, Kettenfallen, Gewitter. Wesen-Fokus: Kyrr.
 - **Mini-Bosse** (Vorschläge):

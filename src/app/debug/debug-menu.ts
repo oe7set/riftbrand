@@ -50,6 +50,8 @@ export interface DebugHooks {
   loadPuzzle(id: string): void;
   /** Starts a run in the first world laid out as a room net (ROADMAP M6.0b). */
   startNetRun(): void;
+  /** Starts a run in a world regardless of unlocks (ROADMAP M6.1). */
+  startWorldRun(worldId: string): void;
 }
 
 export interface DebugStats {
@@ -207,6 +209,7 @@ export class DebugMenu {
         ),
         el('div', { className: 'rb-debug-row' }, [
           this.button('Start room-net run (Ember Wastes)', () => this.hooks.startNetRun()),
+          this.button('Start run: Glass Sea', () => this.hooks.startWorldRun('glass_sea')),
         ]),
       ]),
       this.section('Run log', false, [
