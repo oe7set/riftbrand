@@ -6,7 +6,7 @@ import { Button, createInputFrame, type InputFrame } from '../shared/input-frame
 import { Ev } from './events';
 import { hashSim } from './hash';
 import { PlayerAction } from './player-state';
-import { createRun, roomSetupFor } from './run/run-state';
+import { createRun, roomSetupFor, rotatePuzzle } from './run/run-state';
 import { createSim, type SimState, stepSim } from './sim';
 
 /** A sim for one puzzle room, built the way a run builds it. */
@@ -34,7 +34,34 @@ function puzzleSim(def: PuzzleDef, seed = 1): SimState {
 class Driver {
   readonly input: InputFrame = createInputFrame();
   readonly seen = new Set<number>();
-  constructor(readonly sim: SimState) {}
+  /**
+   * `turns`: the room was rotated by this many quarter turns (room nets, M6.0b); the scripted
+   * solution keeps its unrotated coordinates and the driver turns them.
+   */
+  constructor(
+    readonly sim: SimState,
+    readonly turns = 0,
+  ) {}
+
+  private turn(x: number, y: number): [number, number] {
+    const size = this.sim.arenaWidthPx;
+    for (let i = 0; i < this.turns; i++) [x, y] = [size - y, x];
+    return [x, y];
+  }
+
+  private turnDir(x: number, y: number): [number, number] {
+    for (let i = 0; i < this.turns; i++) [x, y] = [-y, x];
+    return [x, y];
+  }
+
+  /** A piece's position in the solution's (unrotated) coordinates. */
+  piece(index: number): { x: number; y: number } {
+    const size = this.sim.arenaWidthPx;
+    let x = this.sim.room.puzzle?.x[index] ?? 0;
+    let y = this.sim.room.puzzle?.y[index] ?? 0;
+    for (let i = 0; i < this.turns; i++) [x, y] = [y, size - x];
+    return { x, y };
+  }
 
   get x(): number {
     return this.sim.c.posX[this.sim.playerEid] ?? 0;
@@ -56,7 +83,8 @@ class Driver {
   }
 
   /** Walks in a straight line; fails the test if the way is blocked. */
-  walkTo(x: number, y: number, maxTicks = 600): void {
+  walkTo(ux: number, uy: number, maxTicks = 600): void {
+    const [x, y] = this.turn(ux, uy);
     for (let t = 0; t < maxTicks; t++) {
       const dx = x - this.x;
       const dy = y - this.y;
@@ -73,7 +101,8 @@ class Driver {
     expect(Math.hypot(x - this.x, y - this.y), `walk to ${x},${y}`).toBeLessThan(8);
   }
 
-  private aimAt(x: number, y: number): void {
+  private aimAt(ux: number, uy: number): void {
+    const [x, y] = this.turn(ux, uy);
     const dx = x - this.x;
     const dy = y - this.y;
     const d = Math.hypot(dx, dy) || 1;
@@ -102,7 +131,8 @@ class Driver {
     this.step(50);
   }
 
-  dash(dirX: number, dirY: number): void {
+  dash(ux: number, uy: number): void {
+    const [dirX, dirY] = this.turnDir(ux, uy);
     this.input.moveX = dirX;
     this.input.moveY = dirY;
     this.input.pressed = Button.Dash;
@@ -116,7 +146,8 @@ class Driver {
   }
 
   /** Leans into a direction until `done` holds (pushing a block). */
-  lean(dirX: number, dirY: number, done: () => boolean, maxTicks = 900): void {
+  lean(ux: number, uy: number, done: () => boolean, maxTicks = 900): void {
+    const [dirX, dirY] = this.turnDir(ux, uy);
     this.input.moveX = dirX;
     this.input.moveY = dirY;
     for (let t = 0; t < maxTicks && !done(); t++) this.step();
@@ -125,11 +156,6 @@ class Driver {
     this.step(12);
     expect(done(), 'lean').toBe(true);
   }
-}
-
-function blockAt(sim: SimState, index: number): { x: number; y: number } {
-  const p = sim.room.puzzle;
-  return { x: p?.x[index] ?? 0, y: p?.y[index] ?? 0 };
 }
 
 /**
@@ -176,15 +202,15 @@ const SOLUTIONS: Record<string, (d: Driver) => void> = {
   },
   stone_plates: (d) => {
     d.walkTo(372, 690);
-    d.lean(0, -1, () => blockAt(d.sim, 0).y <= 372.5);
+    d.lean(0, -1, () => d.piece(0).y <= 372.5);
     d.walkTo(560, 628);
-    d.lean(1, 0, () => blockAt(d.sim, 1).x >= 819.5);
+    d.lean(1, 0, () => d.piece(1).x >= 819.5);
     d.walkTo(500, 300);
     d.walkTo(500, 110);
   },
   twin_fires: (d) => {
     d.walkTo(690, 620);
-    d.lean(-1, 0, () => blockAt(d.sim, 4).x <= 500.5);
+    d.lean(-1, 0, () => d.piece(4).x <= 500.5);
     d.walkTo(560, 500);
     d.walkTo(160, 420);
     d.walkTo(160, 190);
@@ -217,6 +243,16 @@ describe('puzzle rooms (ROADMAP M6.0)', () => {
       // Solving never costs health.
       expect(sim.c.hp[sim.playerEid], def.id).toBe(sim.c.maxHp[sim.playerEid]);
       expect(sim.room.exitReached, `${def.id} exit`).toBe(true);
+    }
+  });
+
+  it('stays solvable when a room net turns the puzzle to face its door', () => {
+    for (const def of PUZZLES) {
+      for (let turns = 1; turns < 4; turns++) {
+        const sim = puzzleSim(rotatePuzzle(def, turns));
+        SOLUTIONS[def.id]?.(new Driver(sim, turns));
+        expect(sim.room.puzzle?.solved, `${def.id} turned ${turns}`).toBe(true);
+      }
     }
   });
 
@@ -291,11 +327,11 @@ describe('puzzle rooms (ROADMAP M6.0)', () => {
     const sim = puzzleSim(def);
     const d = new Driver(sim);
     d.walkTo(372, 690);
-    d.lean(0, -1, () => blockAt(sim, 0).y <= 564.5);
+    d.lean(0, -1, () => d.piece(0).y <= 564.5);
     d.walkTo(900, 846);
     d.strike(900, 900);
     expect(d.seen.has(Ev.PuzzleReset)).toBe(true);
-    expect(blockAt(sim, 0)).toEqual({ x: 372, y: 628 });
+    expect(d.piece(0)).toEqual({ x: 372, y: 628 });
   });
 
   it('is deterministic', () => {

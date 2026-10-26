@@ -4,6 +4,7 @@ import { ENEMIES } from '../../content/enemies';
 import { STATUS_COUNT, Status } from '../../content/statuses';
 import { type TranslationKey, t } from '../../shared/i18n';
 import { C, stacksOf } from '../../sim/ecs/components';
+import type { RunMap } from '../../sim/run/map';
 import type { SimState } from '../../sim/sim';
 import { partnerOf } from '../../sim/systems/champions';
 import { TICK_RATE_HZ } from '../../sim/time';
@@ -20,6 +21,20 @@ const BANNER_SEC = 1.6;
 /** How long a hint stays readable (puzzle rooms, ROADMAP M6.0). */
 const HINT_SEC = 10;
 const HINT_MAX_WIDTH_PX = 560;
+/** Minimap of a room net (ROADMAP M6.0b): cell size and gap in pixels. */
+const MINIMAP_CELL_PX = 16;
+const MINIMAP_GAP_PX = 6;
+/** Below the pause button in the top-right corner. */
+const MINIMAP_TOP_PX = 76;
+const ROOM_MARK: Readonly<Record<string, number>> = {
+  puzzle: 0x7ff6c8,
+  treasure: 0xffd36b,
+  rest: 0xff9a4a,
+  shop: 0xd28bff,
+  duel: 0xff7a5c,
+  boss: 0xff4d6d,
+  elite: 0xffa64d,
+};
 const STAMINA_PULSE_SEC = 0.35;
 const DAMAGE_FLASH_SEC = 0.35;
 const CAST_PIP_WIDTH_PX = 14;
@@ -99,6 +114,11 @@ export class HudView {
   private readonly hintBack = new Graphics();
   private readonly hintName: Text;
   private readonly hintText: Text;
+  private readonly minimap = new Container();
+  private readonly minimapGfx = new Graphics();
+  private readonly minimapKeys: Text;
+  private readonly minimapHere = new Graphics();
+  private minimapWidth = 0;
   private staminaPulseSec = 0;
   private damageFlashSec = 0;
   private width = 1;
@@ -207,8 +227,13 @@ export class HudView {
       },
     });
     this.hintBox.addChild(this.hintBack, this.hintName, this.hintText);
+    this.minimapKeys = new Text({ text: '', style: { ...style, fontSize: 15, fill: 0xffd36b } });
+    this.minimapKeys.anchor.set(1, 0);
+    this.minimap.addChild(this.minimapGfx, this.minimapHere, this.minimapKeys);
+    this.minimap.visible = false;
     this.hintBox.visible = false;
     this.root.addChild(
+      this.minimap,
       this.hintBox,
       this.waveLabel,
       this.banner,
@@ -367,6 +392,80 @@ export class HudView {
     this.hintSec = HINT_SEC;
   }
 
+  /**
+   * Draws the room net: rooms visited, doors seen from them, the rooms behind those doors as
+   * outlines, locked doors and the key count. Redrawn on each room change, never per frame.
+   */
+  setMinimap(
+    map: RunMap | null,
+    currentId: number,
+    visited: readonly number[],
+    keys: number,
+  ): void {
+    const g = this.minimapGfx.clear();
+    this.minimap.visible = map?.layout === 'net';
+    if (!map || !this.minimap.visible) return;
+    const seen = new Set(visited);
+    const known = new Set(visited);
+    for (const id of visited) for (const n of map.nodes[id]?.doors ?? []) if (n >= 0) known.add(n);
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    for (const id of known) {
+      const n = map.nodes[id];
+      minX = Math.min(minX, n?.gx ?? 0);
+      minY = Math.min(minY, n?.gy ?? 0);
+      maxX = Math.max(maxX, n?.gx ?? 0);
+    }
+    const step = MINIMAP_CELL_PX + MINIMAP_GAP_PX;
+    const cx = (gx: number) => (gx - minX) * step;
+    const cy = (gy: number) => (gy - minY) * step;
+    // Corridors first, under the rooms.
+    for (const id of seen) {
+      const n = map.nodes[id];
+      if (!n) continue;
+      n.doors?.forEach((other, d) => {
+        const o = map.nodes[other];
+        if (!o) return;
+        const ax = cx(n.gx ?? 0) + MINIMAP_CELL_PX / 2;
+        const ay = cy(n.gy ?? 0) + MINIMAP_CELL_PX / 2;
+        const bx = cx(o.gx ?? 0) + MINIMAP_CELL_PX / 2;
+        const by = cy(o.gy ?? 0) + MINIMAP_CELL_PX / 2;
+        const locked = ((n.locked ?? 0) & (1 << d)) !== 0;
+        g.moveTo(ax, ay)
+          .lineTo(bx, by)
+          .stroke({ color: locked ? 0xff4d6d : 0xfff1d6, width: 4 });
+      });
+    }
+    for (const id of known) {
+      const n = map.nodes[id];
+      if (!n) continue;
+      const x = cx(n.gx ?? 0);
+      const y = cy(n.gy ?? 0);
+      const visitedRoom = seen.has(id);
+      g.roundRect(x, y, MINIMAP_CELL_PX, MINIMAP_CELL_PX, 4)
+        .fill({ color: visitedRoom ? 0xfff1d6 : PALETTE.ink, alpha: visitedRoom ? 1 : 0.55 })
+        .stroke({ color: PALETTE.ink, width: 2.5 });
+      const mark = ROOM_MARK[n.type];
+      // Rooms show what they hold once seen; the boss announces itself from next door.
+      if (mark !== undefined && (visitedRoom || n.type === 'boss' || n.type === 'duel')) {
+        g.circle(x + MINIMAP_CELL_PX / 2, y + MINIMAP_CELL_PX / 2, 4)
+          .fill({ color: mark })
+          .stroke({ color: PALETTE.ink, width: 1.5 });
+      }
+    }
+    const here = map.nodes[currentId];
+    this.minimapHere
+      .clear()
+      .roundRect(-3, -3, MINIMAP_CELL_PX + 6, MINIMAP_CELL_PX + 6, 6)
+      .stroke({ color: PALETTE.ember, width: 3 });
+    this.minimapHere.position.set(cx(here?.gx ?? 0), cy(here?.gy ?? 0));
+    this.minimapWidth = (maxX - minX) * step + MINIMAP_CELL_PX;
+    this.minimapKeys.text = keys > 0 ? t('hud.keys', { n: keys }) : '';
+    this.minimapKeys.position.set(this.minimapWidth, -22);
+    this.minimap.position.set(this.width - MARGIN_PX - this.minimapWidth, MINIMAP_TOP_PX);
+  }
+
   clearHint(): void {
     this.hintSec = 0;
     this.hintBox.visible = false;
@@ -399,6 +498,7 @@ export class HudView {
       narrow ? MARGIN_PX + HP_HEIGHT_PX + PIP_HEIGHT_PX + ULT_HEIGHT_PX + 22 : MARGIN_PX - 2,
     );
     this.banner.position.set(width / 2, height * 0.3);
+    this.minimap.position.set(width - MARGIN_PX - this.minimapWidth, MINIMAP_TOP_PX);
     // Under the spell icons on the left; they sit below the bars and the ultimate meter.
     this.questLabel.position.set(MARGIN_PX, MARGIN_PX + HP_HEIGHT_PX + PIP_HEIGHT_PX + 58);
   }
@@ -468,7 +568,8 @@ export class HudView {
       exit.y > margin &&
       exit.x < this.width - margin &&
       exit.y < this.height - margin;
-    arrow.visible = sim.room.exitOpen && !sim.room.exitReached && !onScreen;
+    arrow.visible =
+      sim.room.exitOpen && !sim.room.exitReached && !onScreen && sim.room.doorCount === 0;
     if (!arrow.visible) return;
     const cx = this.width / 2;
     const cy = this.height / 2;
@@ -626,6 +727,7 @@ export class HudView {
     } else {
       this.banner.alpha = 0;
     }
+    if (this.minimap.visible) this.minimapHere.alpha = 0.6 + 0.4 * Math.sin(this.time * 5);
     if (this.hintSec > 0) {
       this.hintSec -= dtSec;
       this.hintBox.alpha = Math.min(1, this.hintSec, (HINT_SEC - this.hintSec) * 4);

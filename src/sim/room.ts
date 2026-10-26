@@ -7,6 +7,7 @@ export type RoomMode = 'arena' | 'waves' | 'horde';
 const MAX_RECTS = 64;
 const MAX_CIRCLES = 64;
 const MAX_SPAWN_POINTS = 16;
+const MAX_DOORS = 4;
 
 /** Static room geometry and encounter progress, kept in typed arrays like the rest of the sim. */
 export interface RoomState {
@@ -40,6 +41,25 @@ export interface RoomState {
   killsAtStart: number;
   /** Puzzle pieces (ROADMAP M6.0); null outside puzzle rooms. */
   puzzle: PuzzleState | null;
+  /**
+   * Doors of a room net (ROADMAP M6.0b), up to one per side; 0 = the single exit portal.
+   * A door is an exit once the room is cleared (or never had a fight); locked doors take a key.
+   */
+  doorCount: number;
+  readonly doorX: Float64Array;
+  readonly doorY: Float64Array;
+  /** Direction per door (net Dir: 0 N, 1 E, 2 S, 3 W). */
+  readonly doorDir: Int8Array;
+  readonly doorLocked: Uint8Array;
+  /** A door only counts once the player has stepped away from it (no instant re-exit). */
+  readonly doorArmed: Uint8Array;
+  /** Doors stay open even before the room is cleared (puzzle rooms you may leave unsolved). */
+  doorsAlwaysOpen: boolean;
+  /** Index of the door the player left by, -1 while inside. */
+  exitDoor: number;
+  /** Keys carried into the room, and keys spent on doors here. */
+  keys: number;
+  keysUsed: number;
 }
 
 export function createRoomState(): RoomState {
@@ -67,6 +87,16 @@ export function createRoomState(): RoomState {
     elapsedTicks: 0,
     killsAtStart: 0,
     puzzle: null,
+    doorCount: 0,
+    doorX: new Float64Array(MAX_DOORS),
+    doorY: new Float64Array(MAX_DOORS),
+    doorDir: new Int8Array(MAX_DOORS),
+    doorLocked: new Uint8Array(MAX_DOORS),
+    doorArmed: new Uint8Array(MAX_DOORS),
+    doorsAlwaysOpen: false,
+    exitDoor: -1,
+    keys: 0,
+    keysUsed: 0,
   };
 }
 
@@ -89,6 +119,28 @@ export function loadObstacles(room: RoomState, obstacles: readonly ObstacleDef[]
   }
   room.staticRectCount = room.rectCount;
   room.staticCircleCount = room.circleCount;
+}
+
+export interface DoorSetup {
+  dir: number;
+  x: number;
+  y: number;
+  locked: boolean;
+}
+
+export function loadDoors(room: RoomState, doors: readonly DoorSetup[], keys: number): void {
+  room.doorCount = Math.min(doors.length, MAX_DOORS);
+  for (let i = 0; i < room.doorCount; i++) {
+    const d = doors[i] as DoorSetup;
+    room.doorX[i] = d.x;
+    room.doorY[i] = d.y;
+    room.doorDir[i] = d.dir;
+    room.doorLocked[i] = d.locked ? 1 : 0;
+    room.doorArmed[i] = 0;
+  }
+  room.keys = keys;
+  room.keysUsed = 0;
+  room.exitDoor = -1;
 }
 
 export function loadSpawnPoints(

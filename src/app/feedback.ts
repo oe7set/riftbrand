@@ -74,6 +74,8 @@ export class FeedbackDirector {
   private afterimageTimer = 0;
   /** Puzzle of the current room, for Iskra's hint text. */
   private puzzleId: string | null = null;
+  /** In a room net, a solved puzzle also hands out a key (ROADMAP M6.0b). */
+  private inNet = false;
   /** Scratch point for particles that start on a rigged body. */
   private readonly bodyPoint = { x: 0, y: 0 };
   private panWidth = 960;
@@ -99,6 +101,7 @@ export class FeedbackDirector {
   /** Continuous, per-frame feedback (dash afterimages, embers and poison bubbles on enemies). */
   update(sim: SimState, dtSec: number): void {
     this.puzzleId = sim.room.puzzle?.def.id ?? null;
+    this.inNet = sim.room.doorCount > 0;
     this.emitStatusParticles(sim, dtSec);
     this.emitTrails(sim, dtSec);
     const p = sim.player;
@@ -651,7 +654,8 @@ export class FeedbackDirector {
         fx.waveCleared(e.x, e.y);
         fx.portal(e.x, e.y, 0.6, PALETTE.portal);
         // A solved puzzle opens its exit the same way, but deserves its own word.
-        if (this.puzzleId) this.view.hud.onBanner(t('puzzle.solved'));
+        if (this.puzzleId)
+          this.view.hud.onBanner(t(this.inNet ? 'puzzle.solved_key' : 'puzzle.solved'));
         else this.view.hud.onRoomCleared();
         this.view.entities.celebrate();
         this.view.addZoomPunch(TUNING.lastEnemyZoomPunch);
@@ -724,6 +728,16 @@ export class FeedbackDirector {
         fx.dashPuff(e.x, e.y, e.dirX, e.dirY);
         this.audio.play('rumble', { pitchVariation: 0.1 });
         this.haptics.pulse(10, 0.3);
+        break;
+      case Ev.DoorLocked:
+        this.view.hud.onBanner(t('door.locked'));
+        this.audio.play('fizzle', { pitch: 0.8, pitchVariation: 0 });
+        this.haptics.pulse(20, 0.4);
+        break;
+      case Ev.DoorUnlocked:
+        fx.hitSparks(e.x, e.y, 0, -1, PALETTE.shard, 14);
+        this.audio.play('chime', { pitch: 0.8, pitchVariation: 0 });
+        this.audio.play('rumble', { pitch: 0.9 });
         break;
       case Ev.ExitReached:
         fx.perfectDash(e.x, e.y);

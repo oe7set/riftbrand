@@ -12,6 +12,7 @@ import type { OwnedArmor, OwnedBoon, OwnedRelic } from '../effects/build';
 import { enemyTypeFromCode } from '../enemy-code';
 import { emptyRunMeta, type RunMeta } from '../meta/profile';
 import { createRng, hashString, nextInt } from '../rng/rng';
+import type { DoorSetup } from '../room';
 import {
   applyMaxHp,
   clearBonusShards,
@@ -22,6 +23,7 @@ import {
 } from './economy';
 import { buildEncounter, type Encounter } from './encounter';
 import { generateMap, type MapNode, type RunMap } from './map';
+import { DEFAULT_NET, doorLocked, generateNet, isFightType, opposite } from './net';
 import { addBoon, type BoonOffer, rewardRarityBonus, rollBoonOffer } from './rewards';
 import type { UpgradeState } from './upgrades';
 
@@ -97,6 +99,8 @@ export interface RunState {
   duelsWon: string[];
   /** Materials found so far (ROADMAP M5.3); they go to the stash even if the run is lost. */
   materials: Record<string, number>;
+  /** Room nets only (ROADMAP M6.0b). */
+  net?: NetProgress;
   /** What quests count from this run (ROADMAP M5.6). */
   tally: RunTally;
 }
@@ -110,6 +114,16 @@ export interface RunTally {
   items: string[];
 }
 
+/** Where the player is in a room net, and what they carry. */
+export interface NetProgress {
+  /** Keys from solved puzzles, not yet used on a locked door. */
+  keys: number;
+  /** Door (Dir) the player came in by; -1 in the start room. */
+  entryDir: number;
+  /** Rooms whose fight is won or whose visit is done; they stay calm when entered again. */
+  cleared: number[];
+}
+
 export function emptyTally(): RunTally {
   return { statusKills: {}, flawlessRooms: 0, items: [] };
 }
@@ -119,6 +133,12 @@ export interface RoomSetup {
   encounter: Encounter;
   /** Puzzle pieces for puzzle nodes (ROADMAP M6.0). */
   puzzle?: PuzzleDef;
+  /** Room nets (ROADMAP M6.0b): doors, the one the player came in by, keys carried. */
+  doors?: DoorSetup[];
+  entryDir?: number;
+  keys?: number;
+  /** Nothing to fight here (start, treasure, revisits): doors open at once. */
+  calm?: boolean;
   playerHp: number;
   playerMaxHp: number;
   boons: OwnedBoon[];
@@ -144,9 +164,14 @@ export function createRun(
   lockedRelics: readonly string[] = [],
   spells: SpellSlots = startSpellSlots(),
   worldId: string = FIRST_WORLD_ID,
+  /** Debug: play the world as a room net even if its biome has none (ROADMAP M6.0b). */
+  forceNet = false,
 ): RunState {
   const s = seed >>> 0;
-  const map = generateMap(createRng(hashString(`${s}:map`)), worldBiome(worldId));
+  const biome = worldBiome(worldId);
+  const netBiome = biome.net ? biome : forceNet ? { ...biome, net: DEFAULT_NET } : null;
+  const mapRng = createRng(hashString(`${s}:map`));
+  const map = netBiome ? generateNet(mapRng, netBiome) : generateMap(mapRng, biome);
   const run: RunState = {
     seed: s,
     worldId,
@@ -184,6 +209,13 @@ export function createRun(
     materials: {},
     tally: emptyTally(),
   };
+  if (map.layout === 'net') {
+    // A net run starts inside its entrance, not on a map.
+    run.net = { keys: 0, entryDir: -1, cleared: [0] };
+    run.currentNodeId = 0;
+    run.visited = [0];
+    run.status = 'room';
+  }
   // Armour can raise max HP; the run starts at full health either way.
   applyMaxHp(run);
   run.hp = run.maxHp;
@@ -246,17 +278,81 @@ export function puzzleTemplate(p: PuzzleDef): RoomTemplateDef {
   };
 }
 
-export function roomSetupFor(run: RunState, node: MapNode): RoomSetup {
+/** Door positions on the edges of a room: north, east, south, west. */
+function doorSpot(template: RoomTemplateDef, d: number): { x: number; y: number } {
+  const inset = 46;
+  const w = template.widthPx;
+  const h = template.heightPx;
+  if (d === 0) return { x: w / 2, y: inset };
+  if (d === 1) return { x: w - inset, y: h / 2 };
+  if (d === 2) return { x: w / 2, y: h - inset };
+  return { x: inset, y: h / 2 };
+}
+
+/** Rotates a square puzzle by quarter turns clockwise, so its entrance faces any door. */
+export function rotatePuzzle(p: PuzzleDef, turns: number): PuzzleDef {
+  const q = ((turns % 4) + 4) % 4;
+  if (q === 0) return p;
+  const size = p.widthPx;
+  const point = <T extends { x: number; y: number }>(o: T): T => {
+    let { x, y } = o;
+    for (let i = 0; i < q; i++) [x, y] = [size - y, x];
+    return { ...o, x, y };
+  };
+  const rect = <T extends { x: number; y: number; w: number; h: number }>(o: T): T => {
+    let { x, y, w, h } = o;
+    for (let i = 0; i < q; i++) [x, y, w, h] = [size - y - h, x, h, w];
+    return { ...o, x, y, w, h };
+  };
+  return {
+    ...p,
+    obstacles: p.obstacles.map((o) => (o.kind === 'rect' ? rect(o) : point(o))),
+    playerStart: point(p.playerStart),
+    exit: point(p.exit),
+    elements: p.elements.map((e) =>
+      e.kind === 'gate' || e.kind === 'chasm' ? rect(e) : point(e),
+    ) as PuzzleDef['elements'],
+  };
+}
+
+/** The room behind a net node: doors, the entrance, and whether anything is left to fight. */
+function netRoomSetup(run: RunState, node: MapNode): RoomSetup {
+  const net = run.net as NetProgress;
   const rng = createRng(roomSeed(run, node.id) ^ 0x5eed);
-  const puzzle = node.type === 'puzzle' ? puzzleFor(run, node) : undefined;
-  const candidates = ROOMS.filter((r) => r.types.includes(node.type));
+  const cleared = net.cleared.includes(node.id);
+  let puzzle = node.type === 'puzzle' ? puzzleFor(run, node) : undefined;
+  if (puzzle) {
+    // Puzzles are dead ends: turn the layout so its entrance (south) faces the only door.
+    const door = (node.doors ?? []).findIndex((n) => n >= 0);
+    puzzle = rotatePuzzle(puzzle, door >= 0 ? door - 2 : 0);
+  }
+  const fight = isFightType(node.type);
+  const candidates = ROOMS.filter((r) => r.types.includes(fight ? node.type : 'combat'));
   const template = puzzle
     ? puzzleTemplate(puzzle)
     : (candidates[nextInt(rng, 0, candidates.length)] ?? (ROOMS[0] as RoomTemplateDef));
+  const doors = (node.doors ?? []).flatMap((n, d) =>
+    n < 0 ? [] : [{ dir: d, ...doorSpot(template, d), locked: doorLocked(node, d) }],
+  );
+  const encounter =
+    cleared || !fight
+      ? ({ kind: 'none' } as const)
+      : buildEncounter(rng, worldBiome(run.worldId), node.type, node.layer);
   return {
+    ...baseSetup(run),
     template,
-    ...(puzzle ? { puzzle } : {}),
-    encounter: buildEncounter(rng, worldBiome(run.worldId), node.type, node.layer),
+    encounter,
+    ...(puzzle && !cleared ? { puzzle } : {}),
+    doors,
+    entryDir: net.entryDir,
+    keys: net.keys,
+    calm: cleared || (!fight && node.type !== 'puzzle'),
+  };
+}
+
+/** Everything a room takes over from the run, whatever the room. */
+function baseSetup(run: RunState): Omit<RoomSetup, 'template' | 'encounter'> {
+  return {
     playerHp: run.hp,
     playerMaxHp: run.maxHp,
     boons: run.boons,
@@ -272,6 +368,22 @@ export function roomSetupFor(run: RunState, node: MapNode): RoomSetup {
     spells: run.spells,
     cast: run.cast,
     armor: run.meta.armor,
+  };
+}
+
+export function roomSetupFor(run: RunState, node: MapNode): RoomSetup {
+  if (run.net) return netRoomSetup(run, node);
+  const rng = createRng(roomSeed(run, node.id) ^ 0x5eed);
+  const puzzle = node.type === 'puzzle' ? puzzleFor(run, node) : undefined;
+  const candidates = ROOMS.filter((r) => r.types.includes(node.type));
+  const template = puzzle
+    ? puzzleTemplate(puzzle)
+    : (candidates[nextInt(rng, 0, candidates.length)] ?? (ROOMS[0] as RoomTemplateDef));
+  return {
+    template,
+    ...(puzzle ? { puzzle } : {}),
+    encounter: buildEncounter(rng, worldBiome(run.worldId), node.type, node.layer),
+    ...baseSetup(run),
   };
 }
 
@@ -321,6 +433,62 @@ export function completeRoom(run: RunState, result: RoomResult): void {
   const bonus = node ? clearBonusShards(node.type) : 0;
   run.shards = result.shards + Math.round(bonus * (1 + runStats(run).shardGain));
   run.status = node?.type === 'boss' ? 'won' : 'map';
+  if (run.net && node) {
+    markNetCleared(run, node.id);
+    // ROADMAP M6.0b: a solved puzzle hands out the key to the boss wing.
+    if (node.type === 'puzzle') run.net.keys++;
+  }
+}
+
+function markNetCleared(run: RunState, nodeId: number): void {
+  if (run.net && !run.net.cleared.includes(nodeId)) run.net.cleared.push(nodeId);
+}
+
+/**
+ * Leaving a net room without a new clear (walking through a cleared room, or leaving a puzzle
+ * unsolved): health, time and shards carry over, nothing else is booked.
+ */
+export function leaveRoom(run: RunState, result: RoomResult): void {
+  run.hp = result.hp;
+  run.kills += result.kills;
+  run.playTimeSec += result.timeSec;
+  run.shards = result.shards;
+  run.ultCharge = result.ultCharge;
+  run.lastSparks = result.lastSparks;
+  run.status = 'map';
+}
+
+/** The rooms reachable through the doors of the current net room. */
+export function netNeighbours(run: RunState): MapNode[] {
+  const node = run.map.nodes[run.currentNodeId];
+  return (node?.doors ?? []).flatMap((id) => (id >= 0 ? [run.map.nodes[id] as MapNode] : []));
+}
+
+/** Uses keys on doors the sim opened (`dirs` are doors of the current room). */
+export function unlockNetDoors(run: RunState, dirs: readonly number[]): void {
+  const node = run.map.nodes[run.currentNodeId];
+  if (!run.net || !node) return;
+  for (const d of dirs) {
+    const other = run.map.nodes[node.doors?.[d] ?? -1];
+    if (((node.locked ?? 0) & (1 << d)) === 0) continue;
+    node.locked = (node.locked ?? 0) & ~(1 << d);
+    if (other) other.locked = (other.locked ?? 0) & ~(1 << opposite(d));
+    run.net.keys = Math.max(0, run.net.keys - 1);
+  }
+}
+
+/** Steps through the door `d` of the current net room into its neighbour. */
+export function enterNetRoom(run: RunState, d: number): MapNode {
+  const node = run.map.nodes[run.currentNodeId];
+  const next = run.map.nodes[node?.doors?.[d] ?? -1];
+  if (!run.net || !next) throw new Error(`no door ${d} here`);
+  run.currentNodeId = next.id;
+  if (!run.visited.includes(next.id)) run.visited.push(next.id);
+  run.net.entryDir = opposite(d);
+  run.rerollSalt = 0;
+  run.status = 'room';
+  if (next.type === 'boss') run.reachedBoss = true;
+  return next;
 }
 
 /** Books the duel's champion (the line-up's first enemy) as a beaten mini-boss. */
@@ -337,6 +505,7 @@ function recordDuel(run: RunState, node: MapNode): void {
 export function completeNonCombat(run: RunState): void {
   run.roomsCleared++;
   run.status = 'map';
+  markNetCleared(run, run.currentNodeId);
 }
 
 /** Rest node: heal a fraction of max HP (or evolve the weapon instead, see restEvolve). */
@@ -344,6 +513,7 @@ export function rest(run: RunState): number {
   const healed = Math.round(heal(run, run.maxHp * worldBiome(run.worldId).restHealFraction));
   run.roomsCleared++;
   run.status = 'map';
+  markNetCleared(run, run.currentNodeId);
   return healed;
 }
 

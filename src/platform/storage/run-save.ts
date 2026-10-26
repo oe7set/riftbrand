@@ -4,7 +4,7 @@ import { type RunState, startSpellSlots } from '../../sim/run/run-state';
 import type { KeyValueStore } from './settings';
 
 const STORAGE_KEY = 'riftbrand.run';
-export const RUN_SAVE_VERSION = 13;
+export const RUN_SAVE_VERSION = 14;
 
 const mapNodeSchema = z.object({
   id: z.number().int().min(0),
@@ -21,8 +21,14 @@ const mapNodeSchema = z.object({
     'event',
     'duel',
     'puzzle',
+    'start',
+    'treasure',
   ]),
   next: z.array(z.number().int().min(0)),
+  gx: z.number().int().optional(),
+  gy: z.number().int().optional(),
+  doors: z.array(z.number().int().min(-1)).length(4).optional(),
+  locked: z.number().int().min(0).optional(),
 });
 
 const upgradeStateSchema = z.object({
@@ -34,7 +40,11 @@ const ownedSpellSchema = upgradeStateSchema.extend({ id: z.string() });
 const runSchema = z.object({
   seed: z.number().int().min(0),
   worldId: z.string(),
-  map: z.object({ nodes: z.array(mapNodeSchema), layers: z.array(z.array(z.number().int())) }),
+  map: z.object({
+    nodes: z.array(mapNodeSchema),
+    layers: z.array(z.array(z.number().int())),
+    layout: z.literal('net').optional(),
+  }),
   currentNodeId: z.number().int().min(-1),
   visited: z.array(z.number().int()),
   status: z.enum(['map', 'room', 'won', 'lost']),
@@ -85,6 +95,13 @@ const runSchema = z.object({
     flawlessRooms: z.number().int().min(0),
     items: z.array(z.string()),
   }),
+  net: z
+    .object({
+      keys: z.number().int().min(0),
+      entryDir: z.number().int().min(-1).max(3),
+      cleared: z.array(z.number().int().min(0)),
+    })
+    .optional(),
 });
 
 const saveSchema = z.object({
@@ -208,6 +225,11 @@ function migrate12to13(raw: { version: number; run?: Record<string, unknown> }):
   return { ...raw, version: 13 };
 }
 
+/** v13 → v14: room nets (M6.0b) add optional fields; older runs are path runs, unchanged. */
+function migrate13to14(raw: { version: number; run?: Record<string, unknown> }): unknown {
+  return { ...raw, version: 14 };
+}
+
 export function migrateRunSave(raw: unknown): RunState | null {
   if (typeof raw !== 'object' || raw === null) return null;
   let data = raw as { version?: unknown; run?: Record<string, unknown> };
@@ -223,6 +245,7 @@ export function migrateRunSave(raw: unknown): RunState | null {
   if (data.version === 10) data = migrate10to11(data as { version: number }) as typeof data;
   if (data.version === 11) data = migrate11to12(data as { version: number }) as typeof data;
   if (data.version === 12) data = migrate12to13(data as { version: number }) as typeof data;
+  if (data.version === 13) data = migrate13to14(data as { version: number }) as typeof data;
   if (data.version !== RUN_SAVE_VERSION) return null;
   raw = data;
   const parsed = saveSchema.safeParse(raw);

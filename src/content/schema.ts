@@ -197,6 +197,9 @@ export const roomTypeSchema = z.enum([
   'duel',
   /** Puzzle room (ROADMAP M6.0): no fight, solve to open the exit. */
   'puzzle',
+  /** Room nets (ROADMAP M6.0b): the quiet room a net run starts in, and a treasure room. */
+  'start',
+  'treasure',
 ]);
 
 export const roomTemplateSchema = z.object({
@@ -263,6 +266,21 @@ export const biomeSchema = z.object({
   hordeDurationSec: z.number().positive(),
   hordeSpawnIntervalSec: z.number().positive(),
   restHealFraction: z.number().min(0).max(1),
+  /**
+   * Room net instead of the path map (ROADMAP M6.0b): rooms on a grid with doors, keys from
+   * puzzles, a locked boss wing.
+   */
+  net: z
+    .object({
+      roomsMin: z.number().int().min(6),
+      roomsMax: z.number().int().min(6),
+      puzzles: z.number().int().min(1),
+      /** Extra doors between neighbouring rooms, for shortcuts. */
+      loops: z.number().int().min(0),
+      eliteChance: z.number().min(0).max(1),
+      shop: z.boolean(),
+    })
+    .optional(),
 });
 
 // ── Boons (GDD §7.1) ──────────────────────────────────────────────────────

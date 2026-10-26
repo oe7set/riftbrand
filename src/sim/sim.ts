@@ -32,6 +32,7 @@ import { loadPuzzle, puzzleSystem } from './puzzle';
 import { createRngStreams, nextRange, type RngStreams } from './rng/rng';
 import {
   createRoomState,
+  loadDoors,
   loadEncounter,
   loadObstacles,
   loadSpawnPoints,
@@ -57,6 +58,8 @@ import { createWaveState, type WaveState, waveSystem } from './systems/waves';
 import { secondsToTicks, TICK_RATE_HZ } from './time';
 
 export const MAX_ENTITIES = 4096;
+/** How far inside a door the player appears when entering a room of a net. */
+const DOOR_SPAWN_INSET_PX = 120;
 
 export interface SimState {
   readonly seed: number;
@@ -197,12 +200,35 @@ export function createSim(seed: number, setup?: RoomSetup): SimState {
     state.room.exitX = t.exit.x;
     state.room.exitY = t.exit.y;
     if (setup.puzzle) state.room.puzzle = loadPuzzle(state.room, setup.puzzle);
-    state.playerEid = spawnPlayer(state, t.playerStart.x, t.playerStart.y);
+    let startX = t.playerStart.x;
+    let startY = t.playerStart.y;
+    let faceX = 0;
+    let faceY = -1;
+    if (setup.doors) {
+      loadDoors(state.room, setup.doors, setup.keys ?? 0);
+      state.room.doorsAlwaysOpen = setup.puzzle !== undefined;
+      const entry = setup.doors.find((d) => d.dir === setup.entryDir);
+      if (entry) {
+        // Step in through the door the player came by, facing into the room.
+        faceX =
+          entry.x < state.arenaWidthPx * 0.25 ? 1 : entry.x > state.arenaWidthPx * 0.75 ? -1 : 0;
+        faceY =
+          entry.y < state.arenaHeightPx * 0.25 ? 1 : entry.y > state.arenaHeightPx * 0.75 ? -1 : 0;
+        startX = entry.x + faceX * DOOR_SPAWN_INSET_PX;
+        startY = entry.y + faceY * DOOR_SPAWN_INSET_PX;
+      }
+    }
+    if (setup.calm) {
+      // Nothing to fight: the room counts as cleared from the start, without the fanfare
+      // (and without on-clear effects, so revisits can't farm them).
+      state.room.cleared = true;
+      state.room.exitOpen = true;
+    }
+    state.playerEid = spawnPlayer(state, startX, startY);
     state.c.maxHp[state.playerEid] = setup.playerMaxHp;
     state.c.hp[state.playerEid] = setup.playerHp;
-    // Face into the room.
-    state.c.facingX[state.playerEid] = 0;
-    state.c.facingY[state.playerEid] = -1;
+    state.c.facingX[state.playerEid] = faceX;
+    state.c.facingY[state.playerEid] = faceY;
   } else {
     state.playerEid = spawnPlayer(state, state.arenaWidthPx / 2, state.arenaHeightPx / 2);
   }

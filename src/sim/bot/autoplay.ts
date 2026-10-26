@@ -22,12 +22,14 @@ import {
   shopStock,
 } from '../run/economy';
 import type { MapNode } from '../run/map';
+import { doorLocked } from '../run/net';
 import {
   availableEvolutions,
   availableNodes,
   completeNonCombat,
   completeRoom,
   createRun,
+  enterNetRoom,
   enterNode,
   evolve,
   failRun,
@@ -38,6 +40,7 @@ import {
   rest,
   roomSeed,
   roomSetupFor,
+  unlockNetDoors,
 } from '../run/run-state';
 import { createSim, type SimState, stepSim } from '../sim';
 import { TICK_RATE_HZ } from '../time';
@@ -182,7 +185,8 @@ function playRoom(
       outcome = 'died';
       break;
     }
-    if (sim.room.exitReached) {
+    // In a net the bot needn't walk to a door: a cleared room is done.
+    if (sim.room.exitReached || (sim.room.doorCount > 0 && sim.room.cleared)) {
       outcome = 'cleared';
       break;
     }
@@ -239,6 +243,97 @@ function solvePuzzle(run: RunState, node: MapNode, report: RunReport): void {
   grantReward(run, node);
 }
 
+/** What the bot does in a room it has just entered (path map or net). */
+function visitNode(run: RunState, node: MapNode, strategy: BotStrategy, report: RunReport): void {
+  if (node.type === 'rest') {
+    const evo = availableEvolutions(run)[0];
+    if (evo && run.hp > run.maxHp * 0.6) {
+      evolve(run, evo);
+      completeNonCombat(run);
+    } else rest(run);
+  } else if (node.type === 'altar') {
+    const evo = availableEvolutions(run)[0];
+    if (evo) evolve(run, evo);
+    takeBoon(run, node);
+    completeNonCombat(run);
+  } else if (node.type === 'shop') visitShop(run, node);
+  else if (node.type === 'event') {
+    const event = eventFor(run.seed, node.id);
+    const option = event?.options.find((o) => eventOptionAvailable(run, o));
+    if (event && option) applyOutcomes(run, node.id, option.id, option.outcomes);
+    completeNonCombat(run);
+  } else if (node.type === 'treasure') {
+    const id = rollRelicOffer(run.seed, node.id, 1, run.lockedRelics)[0];
+    if (id) addRelic(run, id);
+    completeNonCombat(run);
+  } else if (node.type === 'start') completeNonCombat(run);
+  else if (node.type === 'puzzle') solvePuzzle(run, node, report);
+  else {
+    const outcome = playRoom(run, node, strategy, report);
+    if (outcome === 'timeout') report.result = 'timeout';
+  }
+}
+
+/**
+ * Room nets (ROADMAP M6.0b): the bot explores like a careful player. It walks to the nearest
+ * room not done yet through doors it can open, saves the guardian and boss for last, and uses
+ * its key on the locked door when that is the way on.
+ */
+function playNet(run: RunState, strategy: BotStrategy, report: RunReport): void {
+  const net = run.net;
+  if (!net) return;
+  for (let guard = 0; guard < 200 && run.status !== 'won' && run.status !== 'lost'; guard++) {
+    const path = netPath(run);
+    if (!path) break;
+    for (const d of path) {
+      const here = run.map.nodes[run.currentNodeId] as MapNode;
+      if (doorLocked(here, d)) unlockNetDoors(run, [d]);
+      enterNetRoom(run, d);
+    }
+    const node = run.map.nodes[run.currentNodeId] as MapNode;
+    if (!net.cleared.includes(node.id)) visitNode(run, node, strategy, report);
+    if (report.result === 'timeout') break;
+  }
+}
+
+/** Doors to the nearest room not done yet; the boss wing only when nothing else is left. */
+function netPath(run: RunState): number[] | null {
+  const net = run.net;
+  if (!net) return null;
+  const nodes = run.map.nodes;
+  const from = new Map<number, [number, number]>();
+  const queue = [run.currentNodeId];
+  const seen = new Set(queue);
+  let wingTarget = -1;
+  for (let q = 0; q < queue.length; q++) {
+    const id = queue[q] as number;
+    const node = nodes[id] as MapNode;
+    if (!net.cleared.includes(id) && id !== run.currentNodeId) {
+      if (node.type !== 'duel' && node.type !== 'boss') return pathTo(from, run.currentNodeId, id);
+      if (wingTarget < 0) wingTarget = id;
+    }
+    node.doors?.forEach((next, d) => {
+      if (next < 0 || seen.has(next)) return;
+      if (doorLocked(node, d) && net.keys <= 0) return;
+      seen.add(next);
+      from.set(next, [id, d]);
+      queue.push(next);
+    });
+  }
+  return wingTarget >= 0 ? pathTo(from, run.currentNodeId, wingTarget) : null;
+}
+
+function pathTo(from: Map<number, [number, number]>, start: number, target: number): number[] {
+  const dirs: number[] = [];
+  for (let id = target; id !== start; ) {
+    const step = from.get(id);
+    if (!step) break;
+    dirs.unshift(step[1]);
+    id = step[0];
+  }
+  return dirs;
+}
+
 /**
  * Plays a whole run headless with a bot (TECH_DESIGN §13). Deterministic: same seed, strategy
  * and meta give the same report.
@@ -248,8 +343,10 @@ export function autoplayRun(
   strategy: BotStrategy = 'balanced',
   meta: RunMeta = emptyRunMeta(),
   lockedRelics: readonly string[] = [],
+  /** Play the first world as a room net (ROADMAP M6.0b). */
+  net = false,
 ): RunReport {
-  const run = createRun(seed, meta, lockedRelics);
+  const run = createRun(seed, meta, lockedRelics, undefined, undefined, net);
   const report: RunReport = {
     seed: run.seed,
     strategy,
@@ -268,32 +365,12 @@ export function autoplayRun(
     damageDealt: {},
     spellCasts: 0,
   };
-  while (run.status === 'map') {
+  if (run.net) playNet(run, strategy, report);
+  while (!run.net && run.status === 'map') {
     const node = pickNode(run);
     if (!node) break;
     enterNode(run, node.id);
-    if (node.type === 'rest') {
-      const evo = availableEvolutions(run)[0];
-      if (evo && run.hp > run.maxHp * 0.6) {
-        evolve(run, evo);
-        completeNonCombat(run);
-      } else rest(run);
-    } else if (node.type === 'altar') {
-      const evo = availableEvolutions(run)[0];
-      if (evo) evolve(run, evo);
-      takeBoon(run, node);
-      completeNonCombat(run);
-    } else if (node.type === 'shop') visitShop(run, node);
-    else if (node.type === 'event') {
-      const event = eventFor(run.seed, node.id);
-      const option = event?.options.find((o) => eventOptionAvailable(run, o));
-      if (event && option) applyOutcomes(run, node.id, option.id, option.outcomes);
-      completeNonCombat(run);
-    } else if (node.type === 'puzzle') solvePuzzle(run, node, report);
-    else {
-      const outcome = playRoom(run, node, strategy, report);
-      if (outcome === 'timeout') report.result = 'timeout';
-    }
+    visitNode(run, node, strategy, report);
   }
   if (run.status === 'won') report.result = 'won';
   report.roomsCleared = run.roomsCleared;

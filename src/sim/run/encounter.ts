@@ -105,6 +105,8 @@ export function buildEncounter(
     case 'shop':
     case 'event':
     case 'puzzle':
+    case 'start':
+    case 'treasure':
       return { kind: 'none' };
   }
 }

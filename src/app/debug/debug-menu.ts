@@ -48,6 +48,8 @@ export interface DebugHooks {
   applyStatus(id: string, stacks: number): void;
   /** Loads a puzzle room on its own (ROADMAP M6.0). */
   loadPuzzle(id: string): void;
+  /** Starts a run in the first world laid out as a room net (ROADMAP M6.0b). */
+  startNetRun(): void;
 }
 
 export interface DebugStats {
@@ -203,6 +205,9 @@ export class DebugMenu {
           { className: 'rb-debug-row' },
           puzzleIds.map((id) => this.button(`Puzzle: ${id}`, () => this.hooks.loadPuzzle(id))),
         ),
+        el('div', { className: 'rb-debug-row' }, [
+          this.button('Start room-net run (Ember Wastes)', () => this.hooks.startNetRun()),
+        ]),
       ]),
       this.section('Run log', false, [
         el('div', { className: 'rb-debug-row' }, [

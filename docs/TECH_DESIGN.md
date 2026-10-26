@@ -700,7 +700,27 @@ Unit-Tests liegen **neben** dem Code (`foo.ts` + `foo.test.ts`).
 - **Debug:** Abschnitt „Puzzles“ lädt jedes Rätsel einzeln.
 - **Speicherstand:** Run-Save **v13** (Knotentyp `puzzle`).
 
-## 46. Risiken und Gegenmaßnahmen
+## 46. Stand nach M6.0b (Raum-Netz)
+- **ADR 0009.**
+- **Generator:** `sim/run/net.ts` (`generateNet`).
+  - Wachsender Baum auf einem Raster; ein Boss-Flügel (Wächter mit genau zwei Türen, Boss als Sackgasse) wird hinter dem fernsten Raum angehängt.
+  - Danach Schleifen außerhalb des Flügels.
+  - Eine verschlossene Tür vor dem Wächter; Rätsel und Schatz in Sackgassen; Rast in der Mitte; Shop; Elite ab Abstand 3.
+  - `layer` ist der Abstand vom Eingang und bestimmt die Stärke der Kämpfe.
+- **Daten:** `MapNode.gx/gy/doors/locked`, `RunMap.layout = 'net'`, `RunState.net` (`keys`, `entryDir`, `cleared`). Biom: `net` (Größe, Rätsel, Schleifen, Elite-Chance, Shop). `DEFAULT_NET` für den Debug-Netz-Run.
+- **Raum:** `netRoomSetup()` baut Türen an den Kantenmitten (`doorSpot`), dreht Rätsel (`rotatePuzzle`) zur Tür und setzt `calm` für Räume ohne Kampf bzw. besiegte Räume (gelten sofort als geschafft, ohne Raum-Effekte).
+- **Simulation:**
+  - `RoomState.door*`, `keys`, `keysUsed`, `exitDoor`, `doorsAlwaysOpen` (Rätsel).
+  - `doorSystem` statt Portal: Eine Tür zählt erst, wenn der Spieler sich einmal entfernt hat.
+  - Verschlossene Türen kosten einen Schlüssel (`Ev.DoorUnlocked`) oder melden `Ev.DoorLocked`.
+  - Der Spieler erscheint 120 px hinter der Eingangstür.
+- **Ablauf (`game.ts`):**
+  - `arriveNet()` zeigt beim ersten Besuch den Bildschirm des Raums (Rast, Shop, Ereignis, Altar, Schatz), sonst den begehbaren Raum.
+  - `finishNetRoom()` bucht einen frischen Sieg wie `finishRoom` mit Belohnung, sonst `leaveRoom()`. Danach führt `showMap()` durch die gemerkte Tür (`pendingDoor`).
+- **Darstellung:** `RoomView` zeichnet Torbögen mit Gitter, Vorhängeschloss und Leuchten. HUD `setMinimap()` zeichnet nur bei Raumwechsel neu.
+- **Bot und Simulator:** `playNet` erkundet nächstgelegene offene Räume zuerst, den Boss-Flügel zuletzt. `pnpm sim --net`.
+
+## 47. Risiken und Gegenmaßnahmen
 | Risiko | Gegenmaßnahme |
 |---|---|
 | Bloom bzw. Glow ist auf schwachen Geräten zu teuer | Qualitätsstufen mit vorgerendertem Glow ab M1 einplanen |

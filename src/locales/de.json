@@ -850,5 +850,12 @@
   "puzzle.stone_plates.name": "Die Steinplatten",
   "puzzle.stone_plates.hint": "Lauf gegen einen Block und drück weiter: Er rutscht ein Feld. Jede Platte will einen Block. Festgefahren? Schlag den Rücksetzstein.",
   "puzzle.twin_fires.name": "Die Zwillingsfeuer",
-  "puzzle.twin_fires.hint": "Ein Tor will ein Gewicht auf seiner Platte, das andere einen Funken im schwebenden Kristall. Dann zünde beide Feuer an."
+  "puzzle.twin_fires.hint": "Ein Tor will ein Gewicht auf seiner Platte, das andere einen Funken im schwebenden Kristall. Dann zünde beide Feuer an.",
+  "node.start.name": "Eingang",
+  "node.start.desc": "Hier bist du hereingekommen. Noch ist es ruhig.",
+  "node.treasure.name": "Schatz",
+  "node.treasure.desc": "Hier wartet eine vergessene Truhe.",
+  "hud.keys": "Schlüssel: {n}",
+  "door.locked": "Verschlossen: Ein Schlüssel öffnet sie",
+  "puzzle.solved_key": "Gelöst! +1 Schlüssel"
 }
