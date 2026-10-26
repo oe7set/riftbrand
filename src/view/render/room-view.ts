@@ -42,7 +42,8 @@ export class RoomView {
     const g = this.obstacles;
     g.clear();
     const o = this.style.obstacle;
-    for (let i = 0; i < room.rectCount; i++) {
+    // Only the template's obstacles; puzzle gates and blocks draw themselves (PuzzleView).
+    for (let i = 0; i < room.staticRectCount; i++) {
       const x = room.rects[i * 4] as number;
       const y = room.rects[i * 4 + 1] as number;
       const w = room.rects[i * 4 + 2] as number;
@@ -58,7 +59,7 @@ export class RoomView {
       });
       this.drawProps(g, x, y, w, h);
     }
-    for (let i = 0; i < room.circleCount; i++) {
+    for (let i = 0; i < room.staticCircleCount; i++) {
       const x = room.circles[i * 3] as number;
       const y = room.circles[i * 3 + 1] as number;
       const r = room.circles[i * 3 + 2] as number;

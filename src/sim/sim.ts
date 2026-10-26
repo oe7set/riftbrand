@@ -28,6 +28,7 @@ import { MAX_EFFECT_DEPTH } from './effects/runtime';
 import { statusSystem } from './effects/status';
 import { clearEvents, createEventBuffer, Ev, type EventBuffer, pushEvent } from './events';
 import { createPlayerState, type PlayerState } from './player-state';
+import { loadPuzzle, puzzleSystem } from './puzzle';
 import { createRngStreams, nextRange, type RngStreams } from './rng/rng';
 import {
   createRoomState,
@@ -195,6 +196,7 @@ export function createSim(seed: number, setup?: RoomSetup): SimState {
     loadEncounter(state.room, setup.encounter, TICK_RATE_HZ);
     state.room.exitX = t.exit.x;
     state.room.exitY = t.exit.y;
+    if (setup.puzzle) state.room.puzzle = loadPuzzle(state.room, setup.puzzle);
     state.playerEid = spawnPlayer(state, t.playerStart.x, t.playerStart.y);
     state.c.maxHp[state.playerEid] = setup.playerMaxHp;
     state.c.hp[state.playerEid] = setup.playerHp;
@@ -386,6 +388,7 @@ export function stepSim(state: SimState, input: InputFrame): void {
   drifterAiSystem(state);
   movementSystem(state);
   projectileSystem(state);
+  puzzleSystem(state);
   hazardSystem(state);
   separationSystem(state);
   waveSystem(state);

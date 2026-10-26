@@ -85,6 +85,35 @@ export const Ev = {
   TwinReviveStart: 45,
   /** A twin rose again. value = enemy type. */
   TwinRevived: 46,
+  /** Puzzle piece switched (ROADMAP M6.0). value = PieceCode, flags = 1 on / 0 off,
+   * amount = its order in a sequence (0 = none). */
+  PieceChanged: 47,
+  /** A sequence was activated in the wrong order and reset. value = PieceCode. */
+  PuzzleFail: 48,
+  /** The goal group is active; the exit opens. */
+  PuzzleSolved: 49,
+  /** The player fell into a chasm and was put back at (x, y). amount = damage. */
+  PuzzleFall: 50,
+  /** Iskra's hint for the current puzzle is due. */
+  PuzzleHint: 51,
+  /** A reset stone put every piece back. */
+  PuzzleReset: 52,
+  /** A gate opened (flags 1) or closed (flags 0); (x, y) is its centre. */
+  GateChanged: 53,
+  /** A block started sliding; dir = push direction. */
+  BlockPushed: 54,
+} as const;
+
+/** Puzzle piece kinds in event payloads (ROADMAP M6.0). */
+export const PieceCode = {
+  Brazier: 1,
+  Crystal: 2,
+  Plate: 3,
+  Rune: 4,
+  Block: 5,
+  Gate: 6,
+  Chasm: 7,
+  Reset: 8,
 } as const;
 
 /** Player projectile kinds in event payloads (matches content projectile kinds). */

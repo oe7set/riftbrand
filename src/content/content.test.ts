@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ENEMIES, ENEMY_TYPE } from './enemies';
+import { PUZZLES } from './puzzles';
 import { ENEMY_RIGS, PLAYER_RIG_ID, RIGS, rigIndex } from './rigs';
 import { enemySchema, rigSchema, weaponSchema } from './schema';
 import { exportTunablesDiff, resetTunables, tunableGroups } from './tunables';
@@ -92,6 +93,10 @@ describe('relic and event content', () => {
         expect(strings[`event.${event.id}.text`], event.id).toBeTruthy();
         for (const o of event.options)
           expect(strings[`event.${event.id}.${o.id}`], `${event.id}.${o.id}`).toBeTruthy();
+      }
+      for (const puzzle of PUZZLES) {
+        expect(strings[`puzzle.${puzzle.id}.name`], puzzle.id).toBeTruthy();
+        expect(strings[`puzzle.${puzzle.id}.hint`], puzzle.id).toBeTruthy();
       }
     }
   });

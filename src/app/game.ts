@@ -8,6 +8,7 @@ import { EVOLUTIONS } from '../content/evolutions';
 import { REFUGE } from '../content/hub/layout';
 import { DEFAULT_CAPE } from '../content/hub/market';
 import { MATERIALS } from '../content/materials';
+import { PUZZLES, puzzleById } from '../content/puzzles';
 import { questById } from '../content/quests';
 import { RELICS } from '../content/relics';
 import type { BeingId, RoomType, Speaker, StationId } from '../content/schema';
@@ -140,6 +141,7 @@ import {
   failRun,
   offerFor,
   pickBoon,
+  puzzleTemplate,
   type RunState,
   rerollOffer,
   rest,
@@ -465,6 +467,7 @@ export class Game {
           const parsed = statusIdSchema.safeParse(id);
           if (parsed.success) debugApplyStatus(this.sim, parsed.data, stacks);
         },
+        loadPuzzle: (id) => this.startDebugPuzzle(id),
       },
       ENEMIES.map((e) => e.id),
       this.version,
@@ -476,6 +479,7 @@ export class Game {
         code: packEnemy(ENEMY_TYPE.slag, i + 1),
       })),
       SPELLS.map((s) => s.id),
+      PUZZLES.map((p) => p.id),
     );
     this.pauseOverlay = new PauseOverlay(
       root,
@@ -1290,6 +1294,11 @@ export class Game {
     if (!run || !node) return;
     const setup = roomSetupFor(run, node);
     this.loadSim(createSim(roomSeed(run, node.id), setup));
+    this.view.hud.clearHint();
+    if (setup.puzzle) {
+      const name = t(`puzzle.${setup.puzzle.id}.name` as TranslationKey);
+      this.view.hud.onBanner(name);
+    }
     // First meeting with a boss or champion: a short scene before the fight (ROADMAP M5.7).
     const foe = node.type === 'boss' || node.type === 'duel' ? firstEnemyId(setup.encounter) : null;
     this.playScene(foe ? `${foe}_intro` : null, () => this.setMode('room'));
@@ -1511,6 +1520,21 @@ export class Game {
         onContinue: () => this.showMap(),
       });
     show(null);
+  }
+
+  /** Debug: a puzzle room on its own (free play, like the arena), ROADMAP M6.0. */
+  private startDebugPuzzle(id: string): void {
+    const def = puzzleById(id);
+    if (!def) return;
+    this.run = null;
+    this.view.hud.setQuestTracker(null);
+    const seed = randomSeed();
+    const node = { id: 0, layer: 1, x: 0.5, type: 'puzzle' as const, next: [] };
+    const setup = roomSetupFor(createRun(seed), node);
+    this.loadSim(createSim(seed, { ...setup, template: puzzleTemplate(def), puzzle: def }));
+    this.view.hud.clearHint();
+    this.view.hud.onBanner(t(`puzzle.${def.id}.name` as TranslationKey));
+    this.setMode('arena');
   }
 
   private startArena(seed: number): void {

@@ -5,6 +5,7 @@ import { C, RenderKind, Team, wasHitBy } from '../ecs/components';
 import { destroyEntity } from '../ecs/world';
 import { applyStatus } from '../effects/status';
 import { Ev, ProjectileCode, pushEvent } from '../events';
+import { puzzleShot } from '../puzzle';
 import { overlapsObstacle } from '../room';
 import type { SimState } from '../sim';
 
@@ -93,6 +94,11 @@ export function projectileSystem(state: SimState): void {
     const x = c.posX[eid] as number;
     const y = c.posY[eid] as number;
     const r = c.radius[eid] as number;
+    // Puzzle pieces catch player shots before the solid circle around them would.
+    if (c.team[eid] === Team.Player && state.room.puzzle && puzzleShot(state, x, y, r)) {
+      expire(state, eid);
+      continue;
+    }
     const atWall =
       x <= r ||
       y <= r ||

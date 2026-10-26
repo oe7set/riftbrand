@@ -1,10 +1,11 @@
 import type { ObstacleDef } from '../content/schema';
+import type { PuzzleState } from './puzzle';
 import type { Encounter } from './run/encounter';
 
 export type RoomMode = 'arena' | 'waves' | 'horde';
 
-const MAX_RECTS = 32;
-const MAX_CIRCLES = 32;
+const MAX_RECTS = 64;
+const MAX_CIRCLES = 64;
 const MAX_SPAWN_POINTS = 16;
 
 /** Static room geometry and encounter progress, kept in typed arrays like the rest of the sim. */
@@ -13,6 +14,9 @@ export interface RoomState {
   /** x, y, w, h per rect. */
   readonly rects: Float64Array;
   rectCount: number;
+  /** Rects and circles from the template; puzzle pieces are appended after them. */
+  staticRectCount: number;
+  staticCircleCount: number;
   /** x, y, r per circle. */
   readonly circles: Float64Array;
   circleCount: number;
@@ -34,6 +38,8 @@ export interface RoomState {
   /** Ticks spent in this room, for run stats. */
   elapsedTicks: number;
   killsAtStart: number;
+  /** Puzzle pieces (ROADMAP M6.0); null outside puzzle rooms. */
+  puzzle: PuzzleState | null;
 }
 
 export function createRoomState(): RoomState {
@@ -41,6 +47,8 @@ export function createRoomState(): RoomState {
     mode: 'arena',
     rects: new Float64Array(MAX_RECTS * 4),
     rectCount: 0,
+    staticRectCount: 0,
+    staticCircleCount: 0,
     circles: new Float64Array(MAX_CIRCLES * 3),
     circleCount: 0,
     spawnPoints: new Float64Array(MAX_SPAWN_POINTS * 2),
@@ -58,6 +66,7 @@ export function createRoomState(): RoomState {
     hordePool: [],
     elapsedTicks: 0,
     killsAtStart: 0,
+    puzzle: null,
   };
 }
 
@@ -78,6 +87,8 @@ export function loadObstacles(room: RoomState, obstacles: readonly ObstacleDef[]
       room.circles[i + 2] = o.r;
     }
   }
+  room.staticRectCount = room.rectCount;
+  room.staticCircleCount = room.circleCount;
 }
 
 export function loadSpawnPoints(

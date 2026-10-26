@@ -4,13 +4,24 @@ import { type RunState, startSpellSlots } from '../../sim/run/run-state';
 import type { KeyValueStore } from './settings';
 
 const STORAGE_KEY = 'riftbrand.run';
-export const RUN_SAVE_VERSION = 12;
+export const RUN_SAVE_VERSION = 13;
 
 const mapNodeSchema = z.object({
   id: z.number().int().min(0),
   layer: z.number().int().min(0),
   x: z.number(),
-  type: z.enum(['combat', 'elite', 'horde', 'rest', 'boss', 'altar', 'shop', 'event', 'duel']),
+  type: z.enum([
+    'combat',
+    'elite',
+    'horde',
+    'rest',
+    'boss',
+    'altar',
+    'shop',
+    'event',
+    'duel',
+    'puzzle',
+  ]),
   next: z.array(z.number().int().min(0)),
 });
 
@@ -192,6 +203,11 @@ function migrate11to12(raw: { version: number; run?: Record<string, unknown> }):
   };
 }
 
+/** v12 → v13: maps may hold puzzle nodes (M6.0); older maps have none, nothing to change. */
+function migrate12to13(raw: { version: number; run?: Record<string, unknown> }): unknown {
+  return { ...raw, version: 13 };
+}
+
 export function migrateRunSave(raw: unknown): RunState | null {
   if (typeof raw !== 'object' || raw === null) return null;
   let data = raw as { version?: unknown; run?: Record<string, unknown> };
@@ -206,6 +222,7 @@ export function migrateRunSave(raw: unknown): RunState | null {
   if (data.version === 9) data = migrate9to10(data as { version: number }) as typeof data;
   if (data.version === 10) data = migrate10to11(data as { version: number }) as typeof data;
   if (data.version === 11) data = migrate11to12(data as { version: number }) as typeof data;
+  if (data.version === 12) data = migrate12to13(data as { version: number }) as typeof data;
   if (data.version !== RUN_SAVE_VERSION) return null;
   raw = data;
   const parsed = saveSchema.safeParse(raw);

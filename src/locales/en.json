@@ -833,5 +833,22 @@
   "dialogue.sel_twins": "The twins left a mark on your brand. Two lines that cross once and never again. A sad shape.",
   "dialogue.toll_forge_quest": "The forge burns. Don't thank me, thank the cores. And the fool who carried them. That's you.",
   "dialogue.iskra_twins": "The twins! I've been sketching them. One always circles left. ALWAYS. Use that! Probably!",
-  "dialogue.archivist_campfire": "Voices at the fire again. I am writing them down. It is the first happy chapter in a long time."
+  "dialogue.archivist_campfire": "Voices at the fire again. I am writing them down. It is the first happy chapter in a long time.",
+  "node.puzzle.name": "Puzzle",
+  "node.puzzle.desc": "No fight: an old mechanism bars the way. Solve it for a relic and materials.",
+  "puzzle.banner": "Puzzle",
+  "puzzle.solved": "Solved!",
+  "puzzle.hint_from": "Iskra",
+  "puzzle.four_bowls.name": "The Four Bowls",
+  "puzzle.four_bowls.hint": "Count the little dots under each bowl! One dot first, then two, then three. Strike them in that order.",
+  "puzzle.rune_path.name": "The Rune Path",
+  "puzzle.rune_path.hint": "The runes have dots too. Step on one dot, then two, and so on. Careful not to walk over the wrong one on the way!",
+  "puzzle.ember_switch.name": "The Ember Switch",
+  "puzzle.ember_switch.hint": "The crystal keeps the gate open only for a moment. Hit it, then run, and dash over the drop without stopping!",
+  "puzzle.crystal_island.name": "The Crystal Island",
+  "puzzle.crystal_island.hint": "Too far to dash, too far to swing. But your rift shot flies over the abyss!",
+  "puzzle.stone_plates.name": "The Stone Plates",
+  "puzzle.stone_plates.hint": "Walk into a block and keep leaning: it slides one step. Each plate wants a block. Stuck? Hit the reset stone.",
+  "puzzle.twin_fires.name": "The Twin Fires",
+  "puzzle.twin_fires.hint": "One gate wants a weight on its plate, the other a spark on the floating crystal. Then light both fires."
 }

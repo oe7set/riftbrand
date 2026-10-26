@@ -1,4 +1,4 @@
-import { BitmapText, Container, Sprite, Text, type Texture } from 'pixi.js';
+import { BitmapText, Container, Graphics, Sprite, Text, type Texture } from 'pixi.js';
 import { RIFT_SHOT } from '../../content/abilities';
 import { ENEMIES } from '../../content/enemies';
 import { STATUS_COUNT, Status } from '../../content/statuses';
@@ -17,6 +17,9 @@ const PIP_WIDTH_PX = 34;
 const PIP_HEIGHT_PX = 8;
 const PIP_GAP_PX = 6;
 const BANNER_SEC = 1.6;
+/** How long a hint stays readable (puzzle rooms, ROADMAP M6.0). */
+const HINT_SEC = 10;
+const HINT_MAX_WIDTH_PX = 560;
 const STAMINA_PULSE_SEC = 0.35;
 const DAMAGE_FLASH_SEC = 0.35;
 const CAST_PIP_WIDTH_PX = 14;
@@ -91,6 +94,11 @@ export class HudView {
   private shownLabel = '';
   private lagHp = 1;
   private bannerSec = 0;
+  private hintSec = 0;
+  private readonly hintBox = new Container();
+  private readonly hintBack = new Graphics();
+  private readonly hintName: Text;
+  private readonly hintText: Text;
   private staminaPulseSec = 0;
   private damageFlashSec = 0;
   private width = 1;
@@ -182,7 +190,26 @@ export class HudView {
       style: { ...style, fontSize: 15, fill: PALETTE.ultimate, letterSpacing: 4 },
     });
     this.bossName.anchor.set(0.5, 1);
+    this.hintName = new Text({
+      text: '',
+      style: { ...style, fontSize: 15, fill: 0x7ff6c8, stroke: { color: PALETTE.ink, width: 3 } },
+    });
+    this.hintText = new Text({
+      text: '',
+      style: {
+        fontFamily: '"Baloo 2", system-ui, sans-serif',
+        fontWeight: '600',
+        fontSize: 16,
+        lineHeight: 21,
+        fill: PALETTE.ink,
+        wordWrap: true,
+        wordWrapWidth: HINT_MAX_WIDTH_PX - 32,
+      },
+    });
+    this.hintBox.addChild(this.hintBack, this.hintName, this.hintText);
+    this.hintBox.visible = false;
     this.root.addChild(
+      this.hintBox,
       this.waveLabel,
       this.banner,
       this.exitArrow,
@@ -316,6 +343,33 @@ export class HudView {
   onBanner(text: string): void {
     this.banner.text = text;
     this.bannerSec = BANNER_SEC;
+  }
+
+  /**
+   * A figure's tip in a speech box (Iskra in puzzle rooms). Redrawn only when a hint arrives,
+   * never per frame.
+   */
+  onHint(name: string, text: string): void {
+    const width = Math.min(HINT_MAX_WIDTH_PX, this.width - 32);
+    this.hintText.style.wordWrapWidth = width - 32;
+    this.hintName.text = name;
+    this.hintText.text = text;
+    this.hintName.position.set(16, 8);
+    this.hintText.position.set(16, 30);
+    const height = 30 + this.hintText.height + 12;
+    this.hintBack
+      .clear()
+      .roundRect(0, 0, width, height, 16)
+      .fill({ color: 0xfff6e4 })
+      .stroke({ color: PALETTE.ink, width: 4 });
+    this.hintBox.position.set((this.width - width) / 2, this.height * 0.14);
+    this.hintBox.visible = true;
+    this.hintSec = HINT_SEC;
+  }
+
+  clearHint(): void {
+    this.hintSec = 0;
+    this.hintBox.visible = false;
   }
 
   onBoss(name: string): void {
@@ -571,6 +625,11 @@ export class HudView {
       this.banner.scale.set(1 + (1 - k) * 0.08);
     } else {
       this.banner.alpha = 0;
+    }
+    if (this.hintSec > 0) {
+      this.hintSec -= dtSec;
+      this.hintBox.alpha = Math.min(1, this.hintSec, (HINT_SEC - this.hintSec) * 4);
+      this.hintBox.visible = this.hintSec > 0;
     }
 
     // Red vignette: a sharp flash on hits plus a slow pulse at low health.

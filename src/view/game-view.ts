@@ -30,6 +30,7 @@ import { EntityView } from './render/entity-view';
 import { rasterizeIcons } from './render/icons/rasterize';
 import { gameIconSpecs } from './render/icons/specs';
 import { PALETTE } from './render/palette';
+import { PuzzleView } from './render/puzzle-view';
 import { armoredRig, armorLookKey } from './render/rig/armor-look';
 import { type BakedRig, type BakeLook, bakeRig, destroyBakedRig } from './render/rig/bake-rig';
 import { styleRig } from './render/rig/style-rig';
@@ -87,6 +88,7 @@ export class GameView {
   private readonly arena: ArenaView;
   private readonly bakeLook: BakeLook;
   private readonly roomView: RoomView;
+  private readonly puzzleView: PuzzleView;
   private readonly exitScreen = { x: 0, y: 0 };
   private readonly fxParticles = new ParticleSystem(PARTICLE_CAPACITY);
   private readonly groundParticles = new ParticleSystem(PARTICLE_CAPACITY / 2);
@@ -121,6 +123,7 @@ export class GameView {
     this.hub = new HubView(REFUGE, rigs, this.textures);
     this.hub.visible = false;
     this.roomView = new RoomView(this.textures, style);
+    this.puzzleView = new PuzzleView(renderer, this.textures);
     this.hud = new HudView(
       this.textures.white,
       this.textures.vignette,
@@ -135,6 +138,7 @@ export class GameView {
     this.worldLayer.addChild(
       this.arena.root,
       this.roomView.root,
+      this.puzzleView.root,
       this.groundParticles.root,
       this.hub.ground,
       this.entities.groundLayer,
@@ -321,6 +325,7 @@ export class GameView {
     this.arena.sync(sim.arenaWidthPx, sim.arenaHeightPx);
     this.emberRain.update(simDtSec, cam.x, cam.y, cam.zoom, cam.viewWidth, cam.viewHeight);
     this.roomView.sync(sim.room, realDtSec);
+    this.puzzleView.sync(sim.room.puzzle, realDtSec);
     this.entities.sync(sim, alpha, realDtSec, simDtSec);
     if (hub) this.hub.sync(realDtSec, px, py, hub.active, hub.marks, hub.locale, hub.refuge);
     this.fxParticles.update(realDtSec);

@@ -195,6 +195,8 @@ export const roomTypeSchema = z.enum([
   'shop',
   'event',
   'duel',
+  /** Puzzle room (ROADMAP M6.0): no fight, solve to open the exit. */
+  'puzzle',
 ]);
 
 export const roomTemplateSchema = z.object({
@@ -225,6 +227,7 @@ export const biomeSchema = z.object({
     altar: z.number(),
     shop: z.number(),
     event: z.number(),
+    puzzle: z.number(),
   }),
   /** Earliest layer (0-based) where elites may appear. */
   eliteMinLayer: z.number().int().min(0),
@@ -239,6 +242,9 @@ export const biomeSchema = z.object({
   shopMinLayer: z.number().int().min(0),
   maxShops: z.number().int().min(0),
   eventMinLayer: z.number().int().min(0),
+  /** Puzzle rooms (ROADMAP M6.0): earliest layer and how many per map at most. */
+  puzzleMinLayer: z.number().int().min(0),
+  maxPuzzles: z.number().int().min(0),
   /** Enemy types (indices into ENEMIES) that may appear here. */
   enemyPool: z.array(z.number().int().min(0)),
   /** Enemy type (index into ENEMIES) fought at the boss node. */
@@ -1419,4 +1425,109 @@ export type SceneDef = z.infer<typeof sceneSchema>;
 
 export function defineScene(def: SceneDef): SceneDef {
   return sceneSchema.parse(def);
+}
+
+// ── Puzzles (ROADMAP M6.0) ────────────────────────────────────────────────
+
+/**
+ * Puzzle pieces. Groups tie them together: a group is active while all its members are
+ * (braziers lit, crystals on, plates pressed, runes stepped on). Gates stand open while their
+ * group is active. Members with an `order` must be activated in that order, else the group
+ * resets. The puzzle is solved once its `goal` group is active.
+ */
+export const puzzleElementSchema = z.discriminatedUnion('kind', [
+  /** Lit by any player hit (blade or shot); stays lit. */
+  z.object({
+    kind: z.literal('brazier'),
+    x: px,
+    y: px,
+    group: id,
+    order: z.number().int().min(1).optional(),
+  }),
+  /** Toggled by a hit; with `holdSec` it switches on for that long instead. */
+  z.object({
+    kind: z.literal('crystal'),
+    x: px,
+    y: px,
+    group: id,
+    holdSec: z.number().positive().optional(),
+  }),
+  /** Pressed while the player or a block stands on it. */
+  z.object({ kind: z.literal('plate'), x: px, y: px, group: id }),
+  /** Floor rune, activated by stepping on it; stays active. */
+  z.object({
+    kind: z.literal('rune'),
+    x: px,
+    y: px,
+    group: id,
+    order: z.number().int().min(1).optional(),
+  }),
+  /** Stone block, pushed one cell at a time by walking into it. */
+  z.object({ kind: z.literal('block'), x: px, y: px }),
+  /** Solid bars while the group `opens` is inactive. */
+  z.object({
+    kind: z.literal('gate'),
+    x: px,
+    y: px,
+    w: z.number().positive(),
+    h: z.number().positive(),
+    opens: id,
+  }),
+  /** A drop: walking in means falling; dashing carries the player across. */
+  z.object({
+    kind: z.literal('chasm'),
+    x: px,
+    y: px,
+    w: z.number().positive(),
+    h: z.number().positive(),
+  }),
+  /** Hit it to put every piece back where it started (no puzzle can get stuck). */
+  z.object({ kind: z.literal('reset'), x: px, y: px }),
+]);
+
+export const puzzleSchema = z.object({
+  id,
+  widthPx: z.number().min(400),
+  heightPx: z.number().min(400),
+  obstacles: z.array(obstacleSchema),
+  playerStart: point,
+  exit: point,
+  elements: z.array(puzzleElementSchema).min(1).max(32),
+  goal: id,
+  /** Worlds this puzzle appears in; empty = every world. */
+  worlds: z.array(id),
+});
+
+export type PuzzleElementDef = z.infer<typeof puzzleElementSchema>;
+export type PuzzleDef = z.infer<typeof puzzleSchema>;
+
+const GROUP_KINDS = new Set(['brazier', 'crystal', 'plate', 'rune']);
+
+/** Validates a puzzle: groups exist, orders run 1..n, everything lies inside the room. */
+export function definePuzzle(def: PuzzleDef): PuzzleDef {
+  const puzzle = puzzleSchema.parse(def);
+  const where = `puzzle ${puzzle.id}`;
+  const groups = new Map<string, number[]>();
+  for (const e of puzzle.elements) {
+    if (e.x < 0 || e.y < 0 || e.x > puzzle.widthPx || e.y > puzzle.heightPx) {
+      throw new Error(`${where}: ${e.kind} lies outside the room`);
+    }
+    if (!GROUP_KINDS.has(e.kind) || !('group' in e)) continue;
+    const orders = groups.get(e.group) ?? [];
+    if ('order' in e && e.order !== undefined) orders.push(e.order);
+    groups.set(e.group, orders);
+  }
+  if (!groups.has(puzzle.goal)) throw new Error(`${where}: goal group ${puzzle.goal} is empty`);
+  for (const e of puzzle.elements) {
+    if (e.kind === 'gate' && !groups.has(e.opens)) {
+      throw new Error(`${where}: gate opens unknown group ${e.opens}`);
+    }
+  }
+  for (const [group, orders] of groups) {
+    const sorted = [...orders].sort((a, b) => a - b);
+    if (sorted.some((o, i) => o !== i + 1)) {
+      throw new Error(`${where}: orders in group ${group} must run 1..n`);
+    }
+  }
+  return puzzle;
 }

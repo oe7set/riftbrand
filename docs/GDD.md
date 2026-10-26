@@ -372,6 +372,7 @@ Jeder Boss hat 2–3 Phasen, 4–6 Muster pro Phase, eine zornige Phase unter 30
 | **Shop** | ⛁ | Nix verkauft | Relikte, Heilung, Segen für **Scherben** (Run-Währung) |
 | **Rast** | ☾ | Lagerfeuer | 40 % Heilung **oder** Waffen-Upgrade |
 | **Ereignis** | ? | Text-Entscheidung mit Risiko gegen Belohnung | variabel, auch Fluch-Relikte |
+| **Rätsel** (M6.0) | Puzzleteil | kein Kampf: Feuerschalen, Kristalle, Platten, Blöcke, Tore und Abgründe; lösbar mit Klinge, Dash und Riss-Geschoss. Reihenfolgen sind sichtbar, Iskra gibt Hinweise. Höchstens 2 pro Map, ab Ebene 2. | ein Relikt, 1–2 Materialien, Scherben |
 | **Riss-Prüfung** | ◈ | Herausforderung (Zeitlimit, „nicht getroffen werden“, nur Dash-Schaden) | bei Erfolg großer Bonus, bei Misserfolg nichts |
 | **Boss** | ♛ | Bosskampf | Rissstaub, Story, Heilung, Biom-Wechsel |
 

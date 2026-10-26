@@ -833,5 +833,22 @@
   "dialogue.sel_twins": "Die Zwillinge haben eine Spur in deinem Brandmal hinterlassen. Zwei Linien, die sich einmal kreuzen und nie wieder. Eine traurige Form.",
   "dialogue.toll_forge_quest": "Die Esse brennt. Dank nicht mir, dank den Kernen. Und dem Dummkopf, der sie hergeschleppt hat. Das bist du.",
   "dialogue.iskra_twins": "Die Zwillinge! Ich hab sie skizziert. Einer kreist immer nach links. IMMER. Nutz das! Wahrscheinlich!",
-  "dialogue.archivist_campfire": "Wieder Stimmen am Feuer. Ich schreibe sie auf. Es ist das erste glückliche Kapitel seit Langem."
+  "dialogue.archivist_campfire": "Wieder Stimmen am Feuer. Ich schreibe sie auf. Es ist das erste glückliche Kapitel seit Langem.",
+  "node.puzzle.name": "Rätsel",
+  "node.puzzle.desc": "Kein Kampf: Ein alter Mechanismus versperrt den Weg. Löse ihn für ein Relikt und Materialien.",
+  "puzzle.banner": "Rätsel",
+  "puzzle.solved": "Gelöst!",
+  "puzzle.hint_from": "Iskra",
+  "puzzle.four_bowls.name": "Die vier Schalen",
+  "puzzle.four_bowls.hint": "Zähl die kleinen Punkte unter den Schalen! Erst ein Punkt, dann zwei, dann drei. Schlag sie in dieser Reihenfolge an.",
+  "puzzle.rune_path.name": "Der Runenpfad",
+  "puzzle.rune_path.hint": "Die Runen haben auch Punkte. Erst auf den einen Punkt treten, dann auf zwei und so weiter. Pass auf, dass du unterwegs nicht über die falsche läufst!",
+  "puzzle.ember_switch.name": "Der Glutschalter",
+  "puzzle.ember_switch.hint": "Der Kristall hält das Tor nur kurz offen. Triff ihn, dann lauf los und spring mit dem Dash ohne anzuhalten über den Abgrund!",
+  "puzzle.crystal_island.name": "Die Kristallinsel",
+  "puzzle.crystal_island.hint": "Zu weit für einen Dash, zu weit für die Klinge. Aber dein Riss-Geschoss fliegt über den Abgrund!",
+  "puzzle.stone_plates.name": "Die Steinplatten",
+  "puzzle.stone_plates.hint": "Lauf gegen einen Block und drück weiter: Er rutscht ein Feld. Jede Platte will einen Block. Festgefahren? Schlag den Rücksetzstein.",
+  "puzzle.twin_fires.name": "Die Zwillingsfeuer",
+  "puzzle.twin_fires.hint": "Ein Tor will ein Gewicht auf seiner Platte, das andere einen Funken im schwebenden Kristall. Dann zünde beide Feuer an."
 }

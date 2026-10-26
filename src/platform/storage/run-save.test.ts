@@ -141,6 +141,12 @@ describe('run save', () => {
     expect(migrated?.tally).toEqual({ statusKills: {}, flawlessRooms: 0, items: [] });
   });
 
+  it('migrates v12 saves unchanged: their maps simply hold no puzzles (M6.0)', () => {
+    const run = createRun(21);
+    const migrated = migrateRunSave({ version: 12, run });
+    expect(migrated?.map).toEqual(run.map);
+  });
+
   it('clears the save', () => {
     const store = memoryStore();
     saveRun(store, createRun(5));
